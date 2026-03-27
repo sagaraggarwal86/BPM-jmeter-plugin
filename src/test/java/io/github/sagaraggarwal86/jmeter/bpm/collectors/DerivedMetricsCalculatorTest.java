@@ -7,6 +7,7 @@ import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.ResourceEntry;
 import io.github.sagaraggarwal86.jmeter.bpm.model.RuntimeResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED: import for BOTTLENECK_* after G-02 moved constants here
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,12 +32,12 @@ class DerivedMetricsCalculatorTest {
         // Use defaults (auto-generated bpm.properties)
         BpmPropertiesManager props = new BpmPropertiesManager() {
             @Override
-            Path resolvePropertiesPath() {
+            protected Path resolvePropertiesPath() { // CHANGED: protected — cross-package override
                 return Path.of(System.getProperty("java.io.tmpdir"), "bpm-test-calc.properties");
             }
 
             @Override
-            String getJMeterProperty(String key) {
+            public String getJMeterProperty(String key) { // CHANGED: public — must not narrow parent's public access
                 return null;
             }
         };
@@ -47,7 +48,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("Perfect vitals produce score 100")
     void compute_perfectVitals_score100() {
-        WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 200);
+        WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 200L); // CHANGED: L suffix — WebVitalsResult fields are Long, not long
         NetworkResult network = new NetworkResult(10, 100000L, 0, List.of());
         RuntimeResult runtime = new RuntimeResult(5000000L, 500, 5, 3);
         ConsoleResult console = new ConsoleResult(0, 0, List.of());
@@ -60,7 +61,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("Poor vitals produce score 0")
     void compute_poorVitals_score0() {
-        WebVitalsResult vitals = new WebVitalsResult(5000, 6000, 0.5, 3000);
+        WebVitalsResult vitals = new WebVitalsResult(5000L, 6000L, 0.5, 3000L); // CHANGED: L suffix
         NetworkResult network = new NetworkResult(10, 100000L, 0, List.of());
         RuntimeResult runtime = new RuntimeResult(5000000L, 500, 5, 3);
         ConsoleResult console = new ConsoleResult(10, 0, List.of());
@@ -73,7 +74,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("renderTime = LCP - TTFB")
     void compute_renderTime_isLcpMinusTtfb() {
-        WebVitalsResult vitals = new WebVitalsResult(500, 1180, 0.01, 380);
+        WebVitalsResult vitals = new WebVitalsResult(500L, 1180L, 0.01, 380L); // CHANGED: L suffix
         DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
 
         assertEquals(800, result.renderTime());
@@ -82,7 +83,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("serverClientRatio has 2 decimal precision")
     void compute_serverRatio_twoDecimalPrecision() {
-        WebVitalsResult vitals = new WebVitalsResult(500, 1180, 0.01, 380);
+        WebVitalsResult vitals = new WebVitalsResult(500L, 1180L, 0.01, 380L); // CHANGED: L suffix
         DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
 
         assertEquals(32.20, result.serverClientRatio(), 0.01);
@@ -91,7 +92,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("fcpLcpGap = LCP - FCP")
     void compute_fcpLcpGap_correct() {
-        WebVitalsResult vitals = new WebVitalsResult(420, 1180, 0.01, 380);
+        WebVitalsResult vitals = new WebVitalsResult(420L, 1180L, 0.01, 380L); // CHANGED: L suffix
         DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
 
         assertEquals(760, result.fcpLcpGap());
@@ -117,37 +118,37 @@ class DerivedMetricsCalculatorTest {
         @Test
         @DisplayName("Priority 1: Reliability issue when failedRequests > 0")
         void bottleneck_failedRequests_reliabilityIssue() {
-            WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 200);
+            WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 200L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 2, List.of());
 
             DerivedMetrics result = calculator.compute(vitals, network, null, null, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_RELIABILITY, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_RELIABILITY, result.bottleneck()); // CHANGED: DerivedMetricsCalculator.BOTTLENECK_* → BpmConstants.BOTTLENECK_* (G-02)
         }
 
         @Test
         @DisplayName("Priority 2: Server bottleneck when TTFB/LCP > 60%")
         void bottleneck_highTtfbRatio_serverBottleneck() {
             // TTFB = 700, LCP = 1000 → 70% > 60% threshold
-            WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 700);
+            WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 700L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 0, List.of());
 
             DerivedMetrics result = calculator.compute(vitals, network, null, null, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_SERVER, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_SERVER, result.bottleneck()); // CHANGED: BpmConstants
         }
 
         @Test
         @DisplayName("Priority 3: Resource bottleneck when slowest[0]/LCP > 40%")
         void bottleneck_slowResource_resourceBottleneck() {
             // Slowest = 500ms, LCP = 1000ms → 50% > 40% threshold
-            WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 200);
+            WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 200L); // CHANGED: L suffix
             ResourceEntry slow = new ResourceEntry("/big.js", 500, 300000, 100);
             NetworkResult network = new NetworkResult(10, 300000L, 0, List.of(slow));
 
             DerivedMetrics result = calculator.compute(vitals, network, null, null, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_RESOURCE, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_RESOURCE, result.bottleneck()); // CHANGED: BpmConstants
         }
 
         @Test
@@ -155,12 +156,12 @@ class DerivedMetricsCalculatorTest {
         void bottleneck_highRenderTime_clientRendering() {
             // TTFB = 100, LCP = 1000 → renderTime = 900 → 90% > 60%
             // But TTFB/LCP = 10% (not server bottleneck)
-            WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 100);
+            WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 100L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 0, List.of());
 
             DerivedMetrics result = calculator.compute(vitals, network, null, null, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_CLIENT, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_CLIENT, result.bottleneck()); // CHANGED: BpmConstants
         }
 
         @Test
@@ -168,20 +169,20 @@ class DerivedMetricsCalculatorTest {
         void bottleneck_excessiveLayouts_layoutThrashing() {
             // layoutCount = 600, domNodes = 1000 → 600 > 1000*0.5=500
             // TTFB/LCP must be low, renderTime/LCP must be low to avoid earlier priorities
-            WebVitalsResult vitals = new WebVitalsResult(400, 1000, 0.01, 400);
+            WebVitalsResult vitals = new WebVitalsResult(400L, 1000L, 0.01, 400L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 0, List.of());
             RuntimeResult runtime = new RuntimeResult(5000000L, 1000, 600, 50);
 
             DerivedMetrics result = calculator.compute(vitals, network, runtime, null, 2000);
 
-            assertTrue(result.bottlenecks().contains(DerivedMetricsCalculator.BOTTLENECK_LAYOUT));
+            assertTrue(result.bottlenecks().contains(BpmConstants.BOTTLENECK_LAYOUT)); // CHANGED: BpmConstants
         }
 
         @Test
         @DisplayName("Priority 6: No bottleneck matched — dash label")
         void bottleneck_noneMatched_dashLabel() {
             // All ratios below thresholds, no failures
-            WebVitalsResult vitals = new WebVitalsResult(200, 1000, 0.01, 400);
+            WebVitalsResult vitals = new WebVitalsResult(200L, 1000L, 0.01, 400L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 0,
                     List.of(new ResourceEntry("/small.js", 100, 5000, 50)));
             RuntimeResult runtime = new RuntimeResult(5000000L, 1000, 10, 5);
@@ -189,7 +190,7 @@ class DerivedMetricsCalculatorTest {
 
             DerivedMetrics result = calculator.compute(vitals, network, runtime, console, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_NONE, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_NONE, result.bottleneck()); // CHANGED: BpmConstants
             assertTrue(result.bottlenecks().isEmpty());
         }
 
@@ -197,14 +198,14 @@ class DerivedMetricsCalculatorTest {
         @DisplayName("Multiple bottlenecks detected — all recorded in array, first is primary")
         void bottleneck_multiple_allRecordedFirstIsPrimary() {
             // failedRequests > 0 AND TTFB/LCP > 60%
-            WebVitalsResult vitals = new WebVitalsResult(500, 1000, 0.01, 700);
+            WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 700L); // CHANGED: L suffix
             NetworkResult network = new NetworkResult(10, 100000L, 2, List.of());
 
             DerivedMetrics result = calculator.compute(vitals, network, null, null, 2000);
 
-            assertEquals(DerivedMetricsCalculator.BOTTLENECK_RELIABILITY, result.bottleneck());
+            assertEquals(BpmConstants.BOTTLENECK_RELIABILITY, result.bottleneck()); // CHANGED: BpmConstants
             assertTrue(result.bottlenecks().size() >= 2);
-            assertTrue(result.bottlenecks().contains(DerivedMetricsCalculator.BOTTLENECK_SERVER));
+            assertTrue(result.bottlenecks().contains(BpmConstants.BOTTLENECK_SERVER)); // CHANGED: BpmConstants
         }
     }
 
@@ -215,7 +216,7 @@ class DerivedMetricsCalculatorTest {
     @Test
     @DisplayName("LCP=0 produces zero ratios without division error")
     void compute_lcpZero_noDivisionError() {
-        WebVitalsResult vitals = new WebVitalsResult(0, 0, 0.0, 0);
+        WebVitalsResult vitals = new WebVitalsResult(0L, 0L, 0.0, 0L); // CHANGED: L suffix
         DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
 
         assertEquals(0.0, result.serverClientRatio());
@@ -230,7 +231,7 @@ class DerivedMetricsCalculatorTest {
         assertNotNull(result);
         assertEquals(0, result.renderTime());
         assertEquals(0.0, result.serverClientRatio());
-        assertEquals(DerivedMetricsCalculator.BOTTLENECK_NONE, result.bottleneck());
+        assertEquals(BpmConstants.BOTTLENECK_NONE, result.bottleneck()); // CHANGED: BpmConstants
     }
 
     @Test

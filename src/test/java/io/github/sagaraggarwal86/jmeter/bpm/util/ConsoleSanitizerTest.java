@@ -65,4 +65,26 @@ class ConsoleSanitizerTest {
         String input = "Bearer eyJhbGciOiJIUzI1NiJ9 admin@test.com";
         assertEquals(input, sanitizer.sanitize(input));
     }
+
+    // CHANGED: §10.1 — all 8 patterns must be covered; connection string and credit card were missing
+
+    @Test
+    @DisplayName("Connection string URI is redacted")
+    void sanitize_connectionString_redacted() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(true);
+        String input = "DB: mongodb://admin:secret@host:27017/mydb";
+        String result = sanitizer.sanitize(input);
+        assertFalse(result.contains("admin:secret@host"), "Connection string credentials should be redacted");
+        assertTrue(result.contains("[REDACTED]"));
+    }
+
+    @Test
+    @DisplayName("Credit card number pattern is redacted")
+    void sanitize_creditCard_redacted() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(true);
+        String input = "Card: 4111111111111111 on file";
+        String result = sanitizer.sanitize(input);
+        assertFalse(result.contains("4111111111111111"), "Credit card number should be redacted");
+        assertTrue(result.contains("[REDACTED]"));
+    }
 }

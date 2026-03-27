@@ -8,6 +8,7 @@ import io.github.sagaraggarwal86.jmeter.bpm.collectors.WebVitalsCollector;
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
 import io.github.sagaraggarwal86.jmeter.bpm.error.BpmErrorHandler;
 import io.github.sagaraggarwal86.jmeter.bpm.error.LogOnceTracker;
+import io.github.sagaraggarwal86.jmeter.bpm.gui.BpmListenerGui; // CHANGED: §5.5 — GUI lifecycle wiring
 import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
@@ -106,6 +107,9 @@ public class BpmListener extends AbstractTestElement
     private transient volatile boolean seleniumAvailable;
     private transient volatile boolean seleniumChecked;
 
+    // Info bar override for Scenario A/C states — read by BpmListenerGui.drainGuiQueue() // CHANGED: §5.7
+    private transient volatile String infoBarOverride;
+
     // Per-thread iteration counter
     private transient ConcurrentHashMap<String, AtomicInteger> iterationsByThread;
 
@@ -137,6 +141,7 @@ public class BpmListener extends AbstractTestElement
 
         // Initialize collectors
         webVitalsCollector = new WebVitalsCollector();
+        webVitalsCollector.reset(); // CHANGED: §3.5 — explicit reset guards against future singleton reuse
         networkCollector = new NetworkCollector(propertiesManager.getNetworkTopN());
         runtimeCollector = new RuntimeCollector();
         consoleCollector = new ConsoleCollector(consoleSanitizer);
@@ -146,7 +151,7 @@ public class BpmListener extends AbstractTestElement
         jsonlWriter = new JsonlWriter();
         summaryJsonWriter = new SummaryJsonWriter();
 
-        String outputPath = propertiesManager.getOutputPath();
+        String outputPath = resolveOutputPath();
         try {
             jsonlWriter.open(Path.of(outputPath));
             log.info("BPM: JSONL output file: {}", outputPath);
@@ -168,8 +173,23 @@ public class BpmListener extends AbstractTestElement
         // Selenium check deferred to first sampleOccurred
         seleniumAvailable = false;
         seleniumChecked = false;
+        infoBarOverride = null; // CHANGED: §5.7 — reset override on each test start
 
         debugLogger.log("Test started. Debug mode: {}", propertiesManager.isDebugEnabled());
+
+        // Notify GUI of test start if running in GUI mode // CHANGED: §5.5
+        try {
+            if (org.apache.jmeter.gui.GuiPackage.getInstance() != null) {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    var guiComp = org.apache.jmeter.gui.GuiPackage.getInstance().getGui(this);
+                    if (guiComp instanceof BpmListenerGui bpmGui) {
+                        bpmGui.testStarted();
+                    }
+                });
+            }
+        } catch (Exception ignored) {
+            // Non-GUI mode — no GUI to notify
+        }
     }
 
     // ── SampleListener ─────────────────────────────────────────────────────────────────────
@@ -188,18 +208,14 @@ public class BpmListener extends AbstractTestElement
     public void sampleOccurred(SampleEvent event) {
         try {
             SampleResult result = event.getResult();
-            JMeterVariables vars = event.getResult().getSampleLabel() != null
-                    ? org.apache.jmeter.threads.JMeterContextService.getContext().getVariables()
-                    : null;
+            var ctx = org.apache.jmeter.threads.JMeterContextService.getContext(); // CHANGED: safe context guard (§2.1)
+            JMeterVariables vars = ctx != null ? ctx.getVariables() : null;
 
             if (vars == null) {
                 return;
             }
 
-            String threadName = event.getThreadGroup();
-            if (threadName == null || threadName.isEmpty()) {
-                threadName = Thread.currentThread().getName();
-            }
+            String threadName = Thread.currentThread().getName(); // CHANGED: full thread name e.g. "Thread Group 1-1" (§4.2)
 
             // Check if thread is disabled by error handler
             if (errorHandler.isThreadDisabled(threadName)) {
@@ -298,6 +314,20 @@ public class BpmListener extends AbstractTestElement
 
         debugLogger.log("Test ended. Total samples collected: {}",
                 samplesCollected != null ? samplesCollected.get() : 0);
+
+        // Notify GUI of test end if running in GUI mode // CHANGED: §5.5
+        try {
+            if (org.apache.jmeter.gui.GuiPackage.getInstance() != null) {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    var guiComp = org.apache.jmeter.gui.GuiPackage.getInstance().getGui(this);
+                    if (guiComp instanceof BpmListenerGui bpmGui) {
+                        bpmGui.testEnded();
+                    }
+                });
+            }
+        } catch (Exception ignored) {
+            // Non-GUI mode — no GUI to notify
+        }
     }
 
     // ── Clearable ──────────────────────────────────────────────────────────────────────────
@@ -353,6 +383,38 @@ public class BpmListener extends AbstractTestElement
         return propertiesManager;
     }
 
+    /**
+     * Returns an info-bar override message set during Scenario A (no Selenium) or
+     * Scenario C (non-Chrome browser). Null if no override is active.
+     * Read by BpmListenerGui.drainGuiQueue() on the EDT.
+     *
+     * @return info-bar override text, or null // CHANGED: §5.7
+     */
+    public String getInfoBarOverride() { // CHANGED: §5.7
+        return infoBarOverride;
+    }
+
+    // ── Internal: Output path resolution ──────────────────────────────────────────────────
+
+    /**
+     * Resolves the JSONL output path using the defined priority chain: // CHANGED: P3 — GUI field is now in the chain
+     * {@code -Jbpm.output (highest) → GUI TestElement property → bpm.properties/default (lowest)}.
+     */
+    private String resolveOutputPath() {
+        // 1. -J flag (CLI override — highest priority)
+        String jFlag = propertiesManager.getJMeterProperty("bpm.output");
+        if (jFlag != null && !jFlag.isBlank()) {
+            return jFlag;
+        }
+        // 2. GUI TestElement property (set via output path field + Browse button)
+        String guiPath = getPropertyAsString(BpmConstants.TEST_ELEMENT_OUTPUT_PATH, "").trim();
+        if (!guiPath.isEmpty()) {
+            return guiPath;
+        }
+        // 3. bpm.properties default (lowest priority)
+        return propertiesManager.getOutputPath();
+    }
+
     // ── Internal: Selenium check ───────────────────────────────────────────────────────────
 
     /**
@@ -369,6 +431,7 @@ public class BpmListener extends AbstractTestElement
             debugLogger.log("Selenium/ChromeDriver found on classpath.");
         } catch (ClassNotFoundException e) {
             seleniumAvailable = false;
+            infoBarOverride = BpmConstants.INFO_NO_SELENIUM; // CHANGED: §5.7 — Scenario A info bar
             log.warn("BPM: {}", BpmConstants.INFO_NO_SELENIUM);
         }
     }
@@ -385,6 +448,7 @@ public class BpmListener extends AbstractTestElement
         }
         logOnceTracker.warnOnce(threadName, "non-chrome",
                 "Non-Chrome browser detected (" + className + "). CDP metrics require Chrome/Chromium.");
+        infoBarOverride = BpmConstants.INFO_NON_CHROME; // CHANGED: §5.7 — Scenario C info bar
         return false;
     }
 
@@ -467,6 +531,7 @@ public class BpmListener extends AbstractTestElement
                 t0 = System.currentTimeMillis();
                 network = networkCollector.collect(executor, buffer);
                 networkMs = System.currentTimeMillis() - t0;
+                debugLogger.logNetworkBufferDrained(network != null ? network.totalRequests() : 0); // CHANGED: P5 — call site was missing; method existed in BpmDebugLogger but was never invoked
             }
 
             RuntimeResult runtime = null;
@@ -515,7 +580,9 @@ public class BpmListener extends AbstractTestElement
 
             // Write to JSONL
             if (jsonlWriter.isOpen()) {
+                long writeStart = System.currentTimeMillis();
                 jsonlWriter.write(bpmResult);
+                debugLogger.logJsonlWrite(1, 0, System.currentTimeMillis() - writeStart); // CHANGED: P5 — call site was missing; byte count passed as 0 (JsonlWriter does not expose last write size; avoiding API change)
             }
 
             // Queue for GUI update
@@ -733,7 +800,7 @@ public class BpmListener extends AbstractTestElement
          * Updates the aggregate with a new sample's derived and raw metrics.
          */
         public synchronized void update(DerivedMetrics derived, WebVitalsResult vitals,
-                                         NetworkResult network, ConsoleResult console) {
+                                        NetworkResult network, ConsoleResult console) {
             sampleCount++;
             totalScore += derived.performanceScore();
             totalRenderTime += derived.renderTime();
@@ -741,10 +808,10 @@ public class BpmListener extends AbstractTestElement
             totalFcpLcpGap += derived.fcpLcpGap();
 
             if (vitals != null) {
-                totalLcp += vitals.lcp();
-                totalFcp += vitals.fcp();
-                totalTtfb += vitals.ttfb();
-                totalCls += vitals.cls();
+                totalLcp  += vitals.lcp()  != null ? vitals.lcp()  : 0L; // CHANGED: null-safe unboxing (§3.2)
+                totalFcp  += vitals.fcp()  != null ? vitals.fcp()  : 0L;
+                totalTtfb += vitals.ttfb() != null ? vitals.ttfb() : 0L;
+                totalCls  += vitals.cls()  != null ? vitals.cls()  : 0.0;
             }
             if (network != null) {
                 totalRequests += network.totalRequests();

@@ -55,7 +55,10 @@ public final class SummaryJsonWriter {
         Path summaryPath = deriveSummaryPath(jsonlPath);
         try {
             ObjectNode root = buildSummaryJson(labelStats, slaLcpPoor, slaScorePoor);
-            Files.createDirectories(summaryPath.getParent() != null ? summaryPath.getParent() : summaryPath);
+            Path parent = summaryPath.getParent();
+            if (parent != null) {                              // CHANGED: skip createDirectories for bare filename paths; passing summaryPath itself creates a directory named after the file
+                Files.createDirectories(parent);
+            }
             objectMapper.writeValue(summaryPath.toFile(), root);
             log.info("BPM: Summary written to {}", summaryPath);
         } catch (IOException e) {

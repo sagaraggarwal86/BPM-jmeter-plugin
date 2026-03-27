@@ -41,6 +41,13 @@ public final class BpmConstants {
     /** Default JSONL output filename, resolved relative to JMeter's working directory. */
     public static final String DEFAULT_OUTPUT_FILENAME = "bpm-results.jsonl";
 
+    /**
+     * JMeter TestElement property key used to persist the GUI output path field into the JMX.
+     * Resolution order in BpmListener.testStarted():
+     * {@code -Jbpm.output (highest) → this property → bpm.properties → hardcoded default}.
+     */ // CHANGED: P3 — wire GUI output path field through TestElement so it round-trips with the JMX
+    public static final String TEST_ELEMENT_OUTPUT_PATH = "bpm.outputPath";
+
     // ── Property keys ─────────────────────────────────────────────────────────────────────────
 
     /** Property key: enable/disable Web Vitals metric collection tier. */
@@ -275,7 +282,7 @@ public final class BpmConstants {
      * Indices align with {@code COL_IDX_LABEL} through {@code COL_IDX_BOTTLENECK}.
      */
     public static final String[] ALWAYS_VISIBLE_HEADERS = {
-        "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck"
+            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck"
     };
 
     /**
@@ -283,7 +290,7 @@ public final class BpmConstants {
      * Indices align with {@code COL_IDX_FCP} through {@code COL_IDX_WARNS}.
      */
     public static final String[] RAW_METRIC_HEADERS = {
-        "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
+            "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
 
     /**
@@ -291,10 +298,10 @@ public final class BpmConstants {
      * Index {@code i} corresponds to model column index {@code i}.
      */
     public static final String[] ALL_COLUMN_HEADERS = {
-        // Always visible (0-6)
-        "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck",
-        // Raw metrics (7-14)
-        "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
+            // Always visible (0-6)
+            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck",
+            // Raw metrics (7-14)
+            "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
 
     /**
@@ -302,7 +309,7 @@ public final class BpmConstants {
      * All are {@code false} (OFF) by default; users opt-in via the column selector.
      */
     public static final boolean[] RAW_COLUMNS_DEFAULT_VISIBILITY = {
-        false, false, false, false, false, false, false, false
+            false, false, false, false, false, false, false, false
     };
 
     // ── Column tooltips ───────────────────────────────────────────────────────────────────────
@@ -407,7 +414,7 @@ public final class BpmConstants {
     /** Default info-bar text shown before any test runs. */
     public static final String INFO_DEFAULT =
             "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
-            + " Chrome DevTools Protocol. [Help \u2197]";
+                    + " Chrome DevTools Protocol. [Help \u2197]";
 
     /**
      * Info-bar text shown when Selenium/WebDriver classes are absent from the classpath
@@ -415,7 +422,7 @@ public final class BpmConstants {
      */
     public static final String INFO_NO_SELENIUM =
             "\u26A0 Selenium/WebDriver Support plugin not found."
-            + " Install it via JMeter Plugins Manager.";
+                    + " Install it via JMeter Plugins Manager.";
 
     /** Info-bar text shown when no WebDriver Sampler data has arrived yet (Scenario B). */
     public static final String INFO_WAITING = "Waiting for WebDriver Sampler data...";
