@@ -112,6 +112,7 @@
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
         <nexus-staging-plugin.version>1.6.13</nexus-staging-plugin.version>
         <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
+        <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version> <!-- CHANGED (G-06): added enforcer plugin version property -->
 
         <!-- JaCoCo threshold — 90% line coverage on the main bundle -->
         <jacoco.line.coverage.minimum>0.90</jacoco.line.coverage.minimum>
@@ -247,6 +248,12 @@
                     <version>${maven-gpg-plugin.version}</version>
                 </plugin>
 
+                <plugin> <!-- CHANGED (G-06): added maven-enforcer-plugin to pluginManagement -->
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven-enforcer-plugin.version}</version>
+                </plugin> <!-- CHANGED (G-06) -->
+
             </plugins>
         </pluginManagement>
 
@@ -353,6 +360,33 @@
 
                 </executions>
             </plugin>
+
+
+            <!-- ── Build environment guard ── --> <!-- CHANGED (G-06) -->
+            <plugin> <!-- CHANGED (G-06): enforce minimum JDK 17 and Maven 3.8 at validate phase -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-build-environment</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <fail>true</fail>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[17,)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.8,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin> <!-- CHANGED (G-06) -->
 
         </plugins>
     </build>

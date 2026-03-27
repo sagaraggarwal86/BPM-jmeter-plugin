@@ -20,7 +20,7 @@ class ModelSerializationTest {
     @Test
     @DisplayName("BpmResult serializes and deserializes with all fields intact")
     void bpmResult_fullRoundtrip_allFieldsPreserved() throws Exception {
-        WebVitalsResult vitals = new WebVitalsResult(420, 1180, 0.02, 380);
+        WebVitalsResult vitals = new WebVitalsResult(420L, 1180L, 0.02, 380L);
         NetworkResult network = new NetworkResult(23, 847000L, 0,
                 List.of(new ResourceEntry("/static/dashboard.js", 290, 225000, 120)));
         RuntimeResult runtime = new RuntimeResult(18400000L, 1847, 12, 8);
@@ -46,7 +46,7 @@ class ModelSerializationTest {
     @Test
     @DisplayName("WebVitalsResult roundtrip preserves all metric values")
     void webVitalsResult_roundtrip_valuesPreserved() throws Exception {
-        WebVitalsResult original = new WebVitalsResult(420, 1180, 0.02, 380);
+        WebVitalsResult original = new WebVitalsResult(420L, 1180L, 0.02, 380L);
         String json = mapper.writeValueAsString(original);
         WebVitalsResult result = mapper.readValue(json, WebVitalsResult.class);
 

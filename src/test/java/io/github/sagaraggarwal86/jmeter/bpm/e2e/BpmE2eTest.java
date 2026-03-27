@@ -172,12 +172,12 @@ class BpmE2eTest {
 
         BpmPropertiesManager props = new BpmPropertiesManager() {
             @Override
-            Path resolvePropertiesPath() {
+            protected Path resolvePropertiesPath() { // CHANGED: protected — cross-package override
                 return Path.of(System.getProperty("java.io.tmpdir"), "bpm-e2e-test.properties");
             }
 
             @Override
-            String getJMeterProperty(String key) {
+            public String getJMeterProperty(String key) { // CHANGED: public — must not narrow parent's public access
                 return null;
             }
         };

@@ -96,6 +96,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     // Reference to the BpmListener for queue draining
     private transient BpmListener listenerRef;
 
+    // Reference to the properties manager for live SLA thresholds (§5.2 Decision #10) // CHANGED
+    private transient io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager propertiesRef;
+
     // State
     private boolean testRunning;
 
@@ -115,7 +118,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         setBorder(makeBorder());
 
         // Title panel from AbstractListenerGui
-        Box titlePanel = makeTitlePanel();
+        java.awt.Container titlePanel = makeTitlePanel(); // CHANGED: makeTitlePanel() returns Container, not Box
 
         // Main content panel
         JPanel mainPanel = new JPanel();
@@ -279,16 +282,23 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     @Override
     public void modifyTestElement(TestElement element) {
         super.configureTestElement(element);
-        // Output path is managed via BpmPropertiesManager, not saved in test element
+        String path = outputPathField.getText().trim();                      // CHANGED: P3 — persist GUI path into JMX so it survives save/reload
+        if (!path.isEmpty()) {
+            element.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH, path);
+        }
     }
 
     /** {@inheritDoc} */
     @Override
     public void configure(TestElement element) {
         super.configure(element);
+        String savedPath = element.getPropertyAsString(              // CHANGED: P3 — restore persisted path into the field on configure
+                BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
+                BpmConstants.DEFAULT_OUTPUT_FILENAME);
+        outputPathField.setText(savedPath);
         if (element instanceof BpmListener listener) {
             this.listenerRef = listener;
-            // Start timer if test is running
+            this.propertiesRef = listener.getPropertiesManager();
             if (listener.getGuiUpdateQueue() != null && !updateTimer.isRunning()) {
                 testRunning = true;
                 loadFileButton.setEnabled(false);
@@ -303,6 +313,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     /** {@inheritDoc} */
     @Override
     public void clearData() {
+        if (listenerRef != null) { // CHANGED: §5.8 — delegate to listener to reset backend state
+            listenerRef.clearData();
+        }
         tableModel.clear();
         labelFilter.removeAllItems();
         labelFilter.addItem("All Labels");
@@ -323,6 +336,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         BpmListener listener = this.listenerRef;
         if (listener == null) {
             return;
+        }
+
+        // Check for Scenario A/C info-bar override before processing data // CHANGED: §5.7
+        String override = listener.getInfoBarOverride();
+        if (override != null) {
+            infoBar.setText(override);
         }
 
         ConcurrentLinkedQueue<BpmResult> queue = listener.getGuiUpdateQueue();
@@ -742,10 +761,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             }
             WebVitalsResult v = result.webVitals();
             if (v != null) {
-                totalFcp += v.fcp();
-                totalLcp += v.lcp();
-                totalCls += v.cls();
-                totalTtfb += v.ttfb();
+                totalFcp  += v.fcp()  != null ? v.fcp()  : 0L;   // CHANGED: null-safe unboxing (WebVitalsResult uses boxed Long/Double; SPA stale returns null)
+                totalLcp  += v.lcp()  != null ? v.lcp()  : 0L;   // CHANGED
+                totalCls  += v.cls()  != null ? v.cls()  : 0.0;  // CHANGED
+                totalTtfb += v.ttfb() != null ? v.ttfb() : 0L;   // CHANGED
             }
             NetworkResult n = result.network();
             if (n != null) {
@@ -819,8 +838,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
-                                                        boolean isSelected, boolean hasFocus,
-                                                        int row, int column) {
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value,
                     isSelected, hasFocus, row, column);
 
@@ -835,13 +854,17 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             // Get the model column index (column model may be reordered — though we disabled that)
             int modelCol = table.convertColumnIndexToModel(column);
 
-            // Row background tint by score
+            // Row background tint by score — use live thresholds, fall back to defaults (§5.2) // CHANGED
             List<RowData> filtered = tableModel.getFilteredRows();
             if (row >= 0 && row < filtered.size()) {
                 int score = filtered.get(row).getScore();
-                if (score > 0 && score < BpmConstants.DEFAULT_SLA_SCORE_POOR) {
+                int scorePoor = propertiesRef != null
+                        ? propertiesRef.getSlaScorePoor() : BpmConstants.DEFAULT_SLA_SCORE_POOR;
+                int scoreGood = propertiesRef != null
+                        ? propertiesRef.getSlaScoreGood() : BpmConstants.DEFAULT_SLA_SCORE_GOOD;
+                if (score > 0 && score < scorePoor) {
                     c.setBackground(ROW_TINT_RED);
-                } else if (score > 0 && score < BpmConstants.DEFAULT_SLA_SCORE_GOOD) {
+                } else if (score > 0 && score < scoreGood) {
                     c.setBackground(ROW_TINT_AMBER);
                 }
             }
@@ -865,36 +888,48 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 return;
             }
 
+            // Read thresholds from live propertiesRef; fall back to constants if not yet loaded // CHANGED: §5.2 Decision #10
+            int scoreGood  = propertiesRef != null ? propertiesRef.getSlaScoreGood()  : BpmConstants.DEFAULT_SLA_SCORE_GOOD;
+            int scorePoor  = propertiesRef != null ? propertiesRef.getSlaScorePoor()  : BpmConstants.DEFAULT_SLA_SCORE_POOR;
+            long fcpGood   = propertiesRef != null ? propertiesRef.getSlaFcpGood()    : BpmConstants.DEFAULT_SLA_FCP_GOOD;
+            long fcpPoor   = propertiesRef != null ? propertiesRef.getSlaFcpPoor()    : BpmConstants.DEFAULT_SLA_FCP_POOR;
+            long lcpGood   = propertiesRef != null ? propertiesRef.getSlaLcpGood()    : BpmConstants.DEFAULT_SLA_LCP_GOOD;
+            long lcpPoor   = propertiesRef != null ? propertiesRef.getSlaLcpPoor()    : BpmConstants.DEFAULT_SLA_LCP_POOR;
+            double clsGood = propertiesRef != null ? propertiesRef.getSlaClsGood()    : BpmConstants.DEFAULT_SLA_CLS_GOOD;
+            double clsPoor = propertiesRef != null ? propertiesRef.getSlaClsPoor()    : BpmConstants.DEFAULT_SLA_CLS_POOR;
+            long ttfbGood  = propertiesRef != null ? propertiesRef.getSlaTtfbGood()   : BpmConstants.DEFAULT_SLA_TTFB_GOOD;
+            long ttfbPoor  = propertiesRef != null ? propertiesRef.getSlaTtfbPoor()   : BpmConstants.DEFAULT_SLA_TTFB_POOR;
+
             switch (modelCol) {
                 case BpmConstants.COL_IDX_SCORE -> {
                     int score = toInt(value);
-                    c.setForeground(score >= BpmConstants.DEFAULT_SLA_SCORE_GOOD ? COLOR_GOOD
-                            : score >= BpmConstants.DEFAULT_SLA_SCORE_POOR ? COLOR_NEEDS_WORK
-                            : COLOR_POOR);
+                    c.setForeground(score >= scoreGood ? COLOR_GOOD
+                            : score >= scorePoor ? COLOR_NEEDS_WORK
+                              : COLOR_POOR);
                 }
                 case BpmConstants.COL_IDX_FCP -> {
                     long fcp = toLong(value);
-                    c.setForeground(fcp <= BpmConstants.DEFAULT_SLA_FCP_GOOD ? COLOR_GOOD
-                            : fcp <= BpmConstants.DEFAULT_SLA_FCP_POOR ? COLOR_NEEDS_WORK
-                            : COLOR_POOR);
+                    c.setForeground(fcp <= fcpGood ? COLOR_GOOD
+                            : fcp <= fcpPoor ? COLOR_NEEDS_WORK
+                              : COLOR_POOR);
                 }
                 case BpmConstants.COL_IDX_LCP -> {
                     long lcp = toLong(value);
-                    c.setForeground(lcp <= BpmConstants.DEFAULT_SLA_LCP_GOOD ? COLOR_GOOD
-                            : lcp <= BpmConstants.DEFAULT_SLA_LCP_POOR ? COLOR_NEEDS_WORK
-                            : COLOR_POOR);
+                    c.setForeground(lcp <= lcpGood ? COLOR_GOOD
+                            : lcp <= lcpPoor ? COLOR_NEEDS_WORK
+                              : COLOR_POOR);
                 }
                 case BpmConstants.COL_IDX_CLS -> {
                     double cls = toDoubleFromFormatted(value);
-                    c.setForeground(cls <= BpmConstants.DEFAULT_SLA_CLS_GOOD ? COLOR_GOOD
-                            : cls <= BpmConstants.DEFAULT_SLA_CLS_POOR ? COLOR_NEEDS_WORK
-                            : COLOR_POOR);
+                    c.setForeground(cls <= clsGood ? COLOR_GOOD
+                            : cls <= clsPoor ? COLOR_NEEDS_WORK
+                              : COLOR_POOR);
                 }
                 case BpmConstants.COL_IDX_TTFB -> {
                     long ttfb = toLong(value);
-                    c.setForeground(ttfb <= BpmConstants.DEFAULT_SLA_TTFB_GOOD ? COLOR_GOOD
-                            : ttfb <= BpmConstants.DEFAULT_SLA_TTFB_POOR ? COLOR_NEEDS_WORK
-                            : COLOR_POOR);
+                    c.setForeground(ttfb <= ttfbGood ? COLOR_GOOD
+                            : ttfb <= ttfbPoor ? COLOR_NEEDS_WORK
+                              : COLOR_POOR);
                 }
                 case BpmConstants.COL_IDX_ERRS -> {
                     int errs = toInt(value);

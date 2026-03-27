@@ -70,16 +70,38 @@ public final class CdpSessionManager {
         log.debug("BPM: CDP session opened — domains enabled, observers injected.");
     }
 
+    // CHANGED (G-05): reInjectObservers now re-enables CDP domains independently and executes
+    // REINJECT_OBSERVERS (instead of delegating to openSession/INJECT_OBSERVERS).
+    // This prevents CLS double-counting: REINJECT_OBSERVERS resets window.__bpm_cls = 0 before
+    // registering a new PerformanceObserver, so a stale first observer cannot stack with the new
+    // one and double every subsequent layout-shift contribution.
+    // openSession() is unchanged — it remains correct for first-time initialisation.
     /**
      * Re-injects observers after a CDP session re-initialization.
      *
-     * <p>Called when the error handler triggers a re-init. Re-enables domains
-     * and re-injects all JavaScript hooks.</p>
+     * <p>Re-enables CDP domains and re-injects all JavaScript hooks using
+     * {@link JsSnippets#REINJECT_OBSERVERS} instead of {@link JsSnippets#INJECT_OBSERVERS}.
+     * The distinction is critical: {@code REINJECT_OBSERVERS} resets {@code window.__bpm_cls}
+     * to {@code 0} before registering a new CLS observer, preventing double-counting when a
+     * second {@code PerformanceObserver} would otherwise stack on a still-live first observer.</p>
+     *
+     * <p>The old session's CLS data was already captured and written to JSONL before this
+     * re-init was triggered, so resetting the accumulator causes no data loss.</p>
      *
      * @param executor the CDP command executor
      */
-    public void reInjectObservers(CdpCommandExecutor executor) {
-        openSession(executor);
+    public void reInjectObservers(CdpCommandExecutor executor) { // CHANGED (G-05)
+        // Re-enable all CDP domains (same as openSession — required after session re-init)
+        for (String domain : CDP_DOMAINS) { // CHANGED (G-05)
+            executor.enableDomain(domain); // CHANGED (G-05)
+        } // CHANGED (G-05)
+
+        // Use REINJECT_OBSERVERS (not INJECT_OBSERVERS) — resets window.__bpm_cls = 0
+        executor.executeScript(JsSnippets.REINJECT_OBSERVERS); // CHANGED (G-05)
+
+        // Console hook is idempotent — re-injecting resets window.__bpm_console
+        executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK); // CHANGED (G-05)
+
         log.debug("BPM: Observers re-injected after CDP session re-init.");
     }
 

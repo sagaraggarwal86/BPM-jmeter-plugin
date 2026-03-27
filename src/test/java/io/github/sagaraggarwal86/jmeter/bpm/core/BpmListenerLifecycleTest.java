@@ -33,7 +33,7 @@ class BpmListenerLifecycleTest {
     @DisplayName("testEnded() is safe to call even without testStarted()")
     void testEnded_withoutStart_noException() {
         BpmListener listener = new BpmListener();
-        assertDoesNotThrow(listener::testEnded);
+        assertDoesNotThrow(() -> listener.testEnded()); // CHANGED: lambda instead of method ref — resolves ambiguity between Executable and ThrowingSupplier overloads
     }
 
     @Test
@@ -73,6 +73,6 @@ class BpmListenerLifecycleTest {
         // should be handled gracefully (no NPE propagation)
         // We can't easily create a SampleEvent without JMeter context,
         // so we just verify testEnded works after a failed attempt
-        assertDoesNotThrow(listener::testEnded);
+        assertDoesNotThrow(() -> listener.testEnded()); // CHANGED: lambda instead of method ref — resolves ambiguity
     }
 }

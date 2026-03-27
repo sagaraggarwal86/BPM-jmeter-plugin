@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  * {@code -J flag → bpm.properties → hardcoded default}. All other properties
  * resolve from bpm.properties only (no -J support).</p>
  */
-public final class BpmPropertiesManager {
+public class BpmPropertiesManager { // CHANGED: removed final — tests subclass this to override resolvePropertiesPath() and getJMeterProperty()
 
     private static final Logger log = LoggerFactory.getLogger(BpmPropertiesManager.class);
 
@@ -75,6 +75,7 @@ public final class BpmPropertiesManager {
 
     private static final String KEY_SECURITY_SANITIZE = "security.sanitize";
     private static final String KEY_DEBUG = "bpm.debug";
+    private static final String KEY_BPM_OUTPUT = "bpm.output"; // CHANGED: P6 — needed for bpm.properties middle tier in getOutputPath()
 
     // Hardcoded defaults (lowest priority fallback)
     private static final String DEFAULT_OUTPUT_PATH = "bpm-results.jsonl";
@@ -135,8 +136,12 @@ public final class BpmPropertiesManager {
         if (jFlag != null && !jFlag.isBlank()) {
             return jFlag;
         }
-        // bpm.properties has no explicit output key — output path is only overridable via -J
-        // Fallback to hardcoded default
+        // bpm.properties middle tier — reads the (optionally uncommented) bpm.output key // CHANGED: P6 — this tier was skipped with a comment; the key exists in the template, the code must honour it
+        String propValue = properties != null ? properties.getProperty(KEY_BPM_OUTPUT) : null;
+        if (propValue != null && !propValue.isBlank()) {
+            return propValue.trim();
+        }
+        // Hardcoded default (lowest priority)
         return DEFAULT_OUTPUT_PATH;
     }
 
@@ -282,7 +287,7 @@ public final class BpmPropertiesManager {
      * Resolves the path to {@code bpm.properties} in the JMeter bin directory.
      * Falls back to the current working directory if JMETER_HOME is null.
      */
-    Path resolvePropertiesPath() {
+    protected Path resolvePropertiesPath() { // CHANGED: package-private → protected; cross-package test subclasses override this
         String jmeterHome = JMeterUtils.getJMeterHome();
         Path baseDir;
         if (jmeterHome != null && !jmeterHome.isBlank()) {
@@ -370,7 +375,7 @@ public final class BpmPropertiesManager {
      * Retrieves a JMeter system property set via {@code -J} flag.
      * Returns null if not set. Extracted for testability.
      */
-    String getJMeterProperty(String key) {
+    public String getJMeterProperty(String key) { // CHANGED: widened from package-private to public; called by BpmListener (different package)
         try {
             return JMeterUtils.getProperty(key);
         } catch (Exception e) {

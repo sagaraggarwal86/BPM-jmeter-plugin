@@ -1,6 +1,7 @@
 package io.github.sagaraggarwal86.jmeter.bpm.collectors;
 
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED: required after Gap 10 removed local weight constants
 import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
 import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
@@ -37,20 +38,11 @@ public final class DerivedMetricsCalculator {
 
     private static final Logger log = LoggerFactory.getLogger(DerivedMetricsCalculator.class);
 
-    /** Bottleneck label constants matching design doc section 3.4. */
-    public static final String BOTTLENECK_RELIABILITY = "Reliability issue";
-    public static final String BOTTLENECK_SERVER = "Server bottleneck";
-    public static final String BOTTLENECK_RESOURCE = "Resource bottleneck";
-    public static final String BOTTLENECK_CLIENT = "Client rendering";
-    public static final String BOTTLENECK_LAYOUT = "Layout thrashing";
-    public static final String BOTTLENECK_NONE = "\u2014"; // em dash
+    // CHANGED (G-02): Removed six duplicate BOTTLENECK_* string constants.
+    // All bottleneck labels are now sourced exclusively from BpmConstants (Decision #26 —
+    // single source of truth). Usages below reference BpmConstants.BOTTLENECK_* directly.
 
-    // Performance score weights (design doc section 3.3)
-    private static final double WEIGHT_LCP = 0.40;
-    private static final double WEIGHT_FCP = 0.15;
-    private static final double WEIGHT_CLS = 0.15;
-    private static final double WEIGHT_TTFB = 0.15;
-    private static final double WEIGHT_ERRORS = 0.15;
+    // Performance score weights delegated to BpmConstants (§3.3 — single source of truth) // CHANGED: removed local duplicates
 
     private final BpmPropertiesManager properties;
 
@@ -76,11 +68,11 @@ public final class DerivedMetricsCalculator {
     public DerivedMetrics compute(WebVitalsResult vitals, NetworkResult network,
                                   RuntimeResult runtime, ConsoleResult console,
                                   long samplerDuration) {
-        // Extract raw values with null-safe defaults
-        long fcp = vitals != null ? vitals.fcp() : 0;
-        long lcp = vitals != null ? vitals.lcp() : 0;
-        double cls = vitals != null ? vitals.cls() : 0.0;
-        long ttfb = vitals != null ? vitals.ttfb() : 0;
+        // Extract raw values with null-safe defaults // CHANGED: null-safe unboxing (§3.2 — all metrics may be unavailable)
+        long fcp  = vitals != null && vitals.fcp()  != null ? vitals.fcp()  : 0L;
+        long lcp  = vitals != null && vitals.lcp()  != null ? vitals.lcp()  : 0L;
+        double cls = vitals != null && vitals.cls() != null ? vitals.cls() : 0.0;
+        long ttfb = vitals != null && vitals.ttfb() != null ? vitals.ttfb() : 0L;
 
         int totalRequests = network != null ? network.totalRequests() : 0;
         int failedRequests = network != null ? network.failedRequests() : 0;
@@ -113,7 +105,7 @@ public final class DerivedMetricsCalculator {
         // Bottleneck detection (all matches + first-match-wins primary)
         List<String> bottlenecks = detectBottlenecks(
                 failedRequests, ttfb, lcp, slowest, renderTime, layoutCount, domNodes);
-        String bottleneck = bottlenecks.isEmpty() ? BOTTLENECK_NONE : bottlenecks.get(0);
+        String bottleneck = bottlenecks.isEmpty() ? BpmConstants.BOTTLENECK_NONE : bottlenecks.get(0); // CHANGED (G-02): was local BOTTLENECK_NONE
 
         return new DerivedMetrics(
                 renderTime,
@@ -137,13 +129,14 @@ public final class DerivedMetricsCalculator {
         double fcpScore = scoreMetricLong(fcp, properties.getSlaFcpGood(), properties.getSlaFcpPoor());
         double clsScore = scoreMetricDouble(cls, properties.getSlaClsGood(), properties.getSlaClsPoor());
         double ttfbScore = scoreMetricLong(ttfb, properties.getSlaTtfbGood(), properties.getSlaTtfbPoor());
-        double errorScore = scoreErrors(errorCount);
+        double errorScore = scoreErrors(errorCount,
+                properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor()); // CHANGED: P4 — use configurable thresholds
 
-        double weighted = lcpScore * WEIGHT_LCP
-                + fcpScore * WEIGHT_FCP
-                + clsScore * WEIGHT_CLS
-                + ttfbScore * WEIGHT_TTFB
-                + errorScore * WEIGHT_ERRORS;
+        double weighted = lcpScore   * BpmConstants.SCORE_WEIGHT_LCP   // CHANGED: §3.3 single source of truth
+                + fcpScore   * BpmConstants.SCORE_WEIGHT_FCP
+                + clsScore   * BpmConstants.SCORE_WEIGHT_CLS
+                + ttfbScore  * BpmConstants.SCORE_WEIGHT_TTFB
+                + errorScore * BpmConstants.SCORE_WEIGHT_ERRORS;
 
         return (int) Math.round(weighted);
     }
@@ -159,14 +152,14 @@ public final class DerivedMetricsCalculator {
 
         // Priority 1: Reliability issue (failedRequests > 0)
         if (failedRequests > 0) {
-            detected.add(BOTTLENECK_RELIABILITY);
+            detected.add(BpmConstants.BOTTLENECK_RELIABILITY); // CHANGED (G-02): was local BOTTLENECK_RELIABILITY
         }
 
         // Priority 2: Server bottleneck (TTFB / LCP > threshold %)
         if (lcp > 0) {
             double serverRatio = (double) ttfb / lcp * 100.0;
             if (serverRatio > properties.getBottleneckServerRatio()) {
-                detected.add(BOTTLENECK_SERVER);
+                detected.add(BpmConstants.BOTTLENECK_SERVER); // CHANGED (G-02): was local BOTTLENECK_SERVER
             }
         }
 
@@ -174,7 +167,7 @@ public final class DerivedMetricsCalculator {
         if (lcp > 0 && !slowest.isEmpty()) {
             double resourceRatio = (double) slowest.get(0).duration() / lcp * 100.0;
             if (resourceRatio > properties.getBottleneckResourceRatio()) {
-                detected.add(BOTTLENECK_RESOURCE);
+                detected.add(BpmConstants.BOTTLENECK_RESOURCE); // CHANGED (G-02): was local BOTTLENECK_RESOURCE
             }
         }
 
@@ -182,7 +175,7 @@ public final class DerivedMetricsCalculator {
         if (lcp > 0) {
             double clientRatio = (double) renderTime / lcp * 100.0;
             if (clientRatio > properties.getBottleneckClientRatio()) {
-                detected.add(BOTTLENECK_CLIENT);
+                detected.add(BpmConstants.BOTTLENECK_CLIENT); // CHANGED (G-02): was local BOTTLENECK_CLIENT
             }
         }
 
@@ -190,7 +183,7 @@ public final class DerivedMetricsCalculator {
         if (domNodes > 0) {
             double threshold = domNodes * properties.getBottleneckLayoutThrashFactor();
             if (layoutCount > threshold) {
-                detected.add(BOTTLENECK_LAYOUT);
+                detected.add(BpmConstants.BOTTLENECK_LAYOUT); // CHANGED (G-02): was local BOTTLENECK_LAYOUT
             }
         }
 
@@ -224,13 +217,14 @@ public final class DerivedMetricsCalculator {
     }
 
     /**
-     * Scores JS error count per design doc: 100 if 0, 50 if 1-5, 0 if > 5.
+     * Scores JS error count against configurable SLA thresholds.
+     * 100 if count ≤ good threshold, 50 if ≤ poor threshold, 0 if above poor.
      */
-    private static double scoreErrors(int errorCount) {
-        if (errorCount == 0) {
+    private static double scoreErrors(int errorCount, int good, int poor) {
+        if (errorCount <= good) {
             return 100.0;
         }
-        if (errorCount <= 5) {
+        if (errorCount <= poor) {
             return 50.0;
         }
         return 0.0;

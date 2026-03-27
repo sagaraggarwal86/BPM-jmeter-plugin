@@ -14,6 +14,8 @@ package io.github.sagaraggarwal86.jmeter.bpm.util;
  * <ol>
  *   <li>{@link #INJECT_OBSERVERS} is executed once when the CDP session is opened to register
  *       persistent {@code PerformanceObserver} callbacks for LCP and CLS.</li>
+ *   <li>{@link #REINJECT_OBSERVERS} is executed on CDP session re-initialisation (error recovery)
+ *       to re-register observers without double-counting CLS from the previous session.</li>
  *   <li>{@link #COLLECT_WEB_VITALS} is executed once per sampler to read the accumulated values
  *       written by those observers, together with FCP and TTFB from Navigation Timing.</li>
  *   <li>{@link #CDP_METHOD_PERFORMANCE_GET_METRICS} is the CDP domain method name passed to
@@ -44,6 +46,11 @@ public final class JsSnippets {
      * <p>The script is idempotent: re-injecting after a CDP session re-init overwrites the
      * previous window state but does not stack duplicate observers because the session re-init
      * happens after a navigation or browser restart.
+     *
+     * <p><strong>Do not use this script on the CDP re-injection path.</strong>
+     * Use {@link #REINJECT_OBSERVERS} instead, which resets {@code window.__bpm_cls} to zero
+     * before registering a new observer, preventing CLS double-counting when a second
+     * {@code PerformanceObserver} is stacked on top of a still-live first one.
      */
     public static final String INJECT_OBSERVERS = """
             (function() {
@@ -57,6 +64,53 @@ public final class JsSnippets {
 
               // CLS: accumulate layout-shift values, ignoring shifts caused by user input.
               window.__bpm_cls = window.__bpm_cls || 0;
+              new PerformanceObserver(function(list) {
+                var entries = list.getEntries();
+                for (var i = 0; i < entries.length; i++) {
+                  if (!entries[i].hadRecentInput) {
+                    window.__bpm_cls = (window.__bpm_cls || 0) + entries[i].value;
+                  }
+                }
+              }).observe({type: 'layout-shift', buffered: true});
+            })();
+            """;
+
+    // CHANGED (G-05): New constant — safe re-injection script for CDP session recovery.
+    /**
+     * JavaScript executed when a CDP session is re-initialised mid-test (error recovery path).
+     *
+     * <p>This script is functionally identical to {@link #INJECT_OBSERVERS} except that it
+     * <strong>resets {@code window.__bpm_cls} to {@code 0}</strong> before registering a new
+     * CLS observer. This is correct and necessary because:
+     * <ol>
+     *   <li>The previous session's CLS data was already captured and written to JSONL before
+     *       the re-init was triggered — discarding the accumulated value causes no data loss.</li>
+     *   <li>Without the reset, {@code window.__bpm_cls || 0} preserves the old value and a
+     *       second {@code PerformanceObserver} for {@code layout-shift} is stacked on top of
+     *       the still-live first observer, causing every subsequent layout shift to be counted
+     *       twice (double-counting bug).</li>
+     * </ol>
+     *
+     * <p>The LCP observer re-registration is safe without reset because {@code window.__bpm_lcp}
+     * is a scalar that the new observer overwrites on the next LCP event — no double-counting
+     * is possible for LCP.
+     *
+     * <p>Called exclusively from {@code CdpSessionManager.reInjectObservers()}.
+     * {@link #INJECT_OBSERVERS} remains correct for first-time session initialisation.
+     */
+    public static final String REINJECT_OBSERVERS = """
+            (function() {
+              // LCP: re-register observer — safe on re-inject (scalar overwrite on next event).
+              new PerformanceObserver(function(list) {
+                var entries = list.getEntries();
+                if (entries.length > 0) {
+                  window.__bpm_lcp = entries[entries.length - 1].startTime;
+                }
+              }).observe({type: 'largest-contentful-paint', buffered: true});
+
+              // CLS: reset to 0 before registering a new observer to prevent double-counting.
+              // The old session's CLS was already flushed to JSONL before re-init was triggered.
+              window.__bpm_cls = 0;
               new PerformanceObserver(function(list) {
                 var entries = list.getEntries();
                 for (var i = 0; i < entries.length; i++) {

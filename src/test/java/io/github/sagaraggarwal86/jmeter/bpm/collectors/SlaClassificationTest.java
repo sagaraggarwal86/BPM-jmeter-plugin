@@ -24,10 +24,10 @@ class SlaClassificationTest {
     @BeforeEach
     void setUp() {
         BpmPropertiesManager props = new BpmPropertiesManager() {
-            @Override Path resolvePropertiesPath() {
+            @Override protected Path resolvePropertiesPath() { // CHANGED: protected — cross-package override
                 return Path.of(System.getProperty("java.io.tmpdir"), "bpm-sla-test.properties");
             }
-            @Override String getJMeterProperty(String key) { return null; }
+            @Override public String getJMeterProperty(String key) { return null; } // CHANGED: public — must not narrow parent's public access
         };
         props.load();
         calculator = new DerivedMetricsCalculator(props);
