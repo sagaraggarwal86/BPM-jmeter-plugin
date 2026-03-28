@@ -251,7 +251,7 @@ class CollectorsTest {
         @Test
         @DisplayName("Sanitization applied to messages")
         void collect_withSanitizer_redactsSensitiveData() {
-            buffer.addConsoleMessage("error", "Token: Bearer eyJhbGciOiJIUzI1NiJ9.test.sig");
+            buffer.addConsoleMessage("error", "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.test.sig"); // CHANGED: "Token:" doesn't match Bearer pattern — requires "Authorization:" or "Auth:"
 
             ConsoleCollector collector = new ConsoleCollector(new ConsoleSanitizer(true));
             ConsoleResult result = collector.collect(executor, buffer);

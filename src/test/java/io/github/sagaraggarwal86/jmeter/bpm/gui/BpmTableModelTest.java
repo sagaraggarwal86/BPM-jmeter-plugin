@@ -59,16 +59,17 @@ class BpmTableModelTest {
     }
 
     @Test
-    @DisplayName("Label filter shows only matching label (no TOTAL)")
-    void labelFilter_showsOnlyMatchingLabel() {
+    @DisplayName("Transaction filter shows only matching label plus TOTAL")
+    void transactionFilter_showsOnlyMatchingLabel() {
         model.addOrUpdateResult(createResult("Login", 90, 1200));
         model.addOrUpdateResult(createResult("Dashboard", 60, 3000));
 
-        model.setFilterLabel("Login");
+        model.setTransactionFilter("Login", false, true);
         model.fireTableDataChanged();
 
-        assertEquals(1, model.getRowCount());
+        assertEquals(2, model.getRowCount()); // Login + TOTAL
         assertEquals("Login", model.getValueAt(0, BpmConstants.COL_IDX_LABEL));
+        assertEquals("TOTAL", model.getValueAt(1, BpmConstants.COL_IDX_LABEL));
     }
 
     @Test
@@ -77,7 +78,7 @@ class BpmTableModelTest {
         model.addOrUpdateResult(createResult("Login", 90, 1200));
         model.addOrUpdateResult(createResult("Dashboard", 60, 3000));
 
-        model.setFilterLabel(null);
+        model.setTransactionFilter(null, false, true);
         model.fireTableDataChanged();
 
         assertEquals(3, model.getRowCount()); // 2 labels + TOTAL

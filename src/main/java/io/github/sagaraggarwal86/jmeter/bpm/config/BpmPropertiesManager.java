@@ -91,7 +91,7 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
     private static final long DEFAULT_SLA_TTFB_GOOD = 800L;
     private static final long DEFAULT_SLA_TTFB_POOR = 1800L;
     private static final int DEFAULT_SLA_JSERRORS_GOOD = 0;
-    private static final int DEFAULT_SLA_JSERRORS_POOR = 1;
+    private static final int DEFAULT_SLA_JSERRORS_POOR = 5; // CHANGED: Gap 2 — aligned with design doc §3.3
     private static final int DEFAULT_SLA_SCORE_GOOD = 90;
     private static final int DEFAULT_SLA_SCORE_POOR = 50;
     private static final double DEFAULT_BOTTLENECK_SERVER_RATIO = 60.0;

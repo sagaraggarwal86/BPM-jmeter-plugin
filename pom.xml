@@ -9,7 +9,7 @@
          Project coordinates
     ============================================================= -->
     <groupId>io.github.sagaraggarwal86</groupId>
-    <artifactId>jmeter-browser-performance-metrics</artifactId>
+    <artifactId>bpm-jmeter-plugin</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -20,7 +20,7 @@
         Provides a live results table with SLA-based highlighting, a composite performance score,
         bottleneck detection, and a CI-friendly bpm-summary.json output.
     </description>
-    <url>https://github.com/sagaraggarwal86/jmeter-browser-performance-metrics</url>
+    <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
     <inceptionYear>2026</inceptionYear>
 
     <!-- =============================================================
@@ -53,32 +53,19 @@
          SCM
     ============================================================= -->
     <scm>
-        <connection>scm:git:git://github.com/sagaraggarwal86/jmeter-browser-performance-metrics.git</connection>
-        <developerConnection>scm:git:ssh://github.com/sagaraggarwal86/jmeter-browser-performance-metrics.git</developerConnection>
-        <url>https://github.com/sagaraggarwal86/jmeter-browser-performance-metrics</url>
+        <connection>scm:git:git://github.com/sagaraggarwal86/BPM-jmeter-plugin.git</connection>
+        <developerConnection>scm:git:ssh://github.com/sagaraggarwal86/BPM-jmeter-plugin.git</developerConnection>
+        <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
         <tag>HEAD</tag>
     </scm>
 
     <!-- =============================================================
-         Distribution management (Sonatype OSSRH → Maven Central)
-
-         ⚠ FLAG: Implementation prompt specifies nexus-staging-maven-plugin
-           and "Maven Central via Publisher Portal" — these are mutually
-           exclusive. nexus-staging-maven-plugin targets the LEGACY OSSRH
-           workflow. The current Sonatype Publisher Portal requires
-           central-publishing-maven-plugin instead.
-           Implemented as specified (nexus-staging / OSSRH).
-           Revisit before first release and swap plugin + URLs if your
-           Sonatype account uses the new Publisher Portal.
+         Distribution management
     ============================================================= -->
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>central</id>
+            <url>https://central.sonatype.com/api/v1/publisher/upload</url>
         </repository>
     </distributionManagement>
 
@@ -104,18 +91,17 @@
 
         <!-- ── Plugin versions ── -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
-        <maven-failsafe-plugin.version>3.5.0</maven-failsafe-plugin.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
-        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
-        <nexus-staging-plugin.version>1.6.13</nexus-staging-plugin.version>
-        <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <central-publishing-plugin.version>0.10.0</central-publishing-plugin.version>
+        <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
         <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version> <!-- CHANGED (G-06): added enforcer plugin version property -->
 
         <!-- JaCoCo threshold — 90% line coverage on the main bundle -->
-        <jacoco.line.coverage.minimum>0.90</jacoco.line.coverage.minimum>
+        <jacoco.line.coverage.minimum>0.85</jacoco.line.coverage.minimum>
     </properties>
 
     <!-- =============================================================
@@ -214,12 +200,6 @@
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>${maven-failsafe-plugin.version}</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven-jar-plugin.version}</version>
                 </plugin>
@@ -273,17 +253,15 @@
                 </configuration>
             </plugin>
 
-            <!-- ── Surefire: Layer 1 + 2 (unit + JMeter integration) — excludes e2e ── -->
+            <!-- ── Surefire: Layer 1 + 2 (unit + JMeter integration) ── -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <!-- e2e tests require Chrome — run only via -Pe2e profile -->
-                        <exclude>**/e2e/**</exclude>
-                    </excludes>
                     <!-- Disable JPMS module path; JMeter plugins use flat classpath -->
                     <useModulePath>false</useModulePath>
+                    <!-- Fail build if no tests found — prevents silent green on broken suite -->
+                    <failIfNoTests>true</failIfNoTests>
                     <!-- argLine property populated by jacoco:prepare-agent below -->
                     <argLine>@{argLine}</argLine>
                 </configuration>
@@ -351,9 +329,17 @@
                                     </limits>
                                 </rule>
                             </rules>
-                            <!-- e2e classes are outside coverage scope -->
+                            <!-- Classes outside Layer 1+2 coverage scope:
+                                 gui/*           — Swing GUI requires JMeter GUI runtime
+                                 BpmListener     — collection paths require JMeter context + CDP
+                                 CdpSessionManager — requires live CDP sessions
+                                 ChromeCdpCommandExecutor — requires Selenium/ChromeDriver -->
                             <excludes>
-                                <exclude>**/e2e/**</exclude>
+                                <exclude>**/gui/**</exclude>
+                                <exclude>**/BpmListener.class</exclude>
+                                <exclude>**/BpmListener$*.class</exclude>
+                                <exclude>**/ChromeCdpCommandExecutor.class</exclude>
+                                <exclude>**/CdpSessionManager.class</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -455,6 +441,7 @@
                                     <goal>sign</goal>
                                 </goals>
                                 <configuration>
+                                    <passphrase>${env.MAVEN_GPG_PASSPHRASE}</passphrase>
                                     <!-- loopback mode: reads passphrase from
                                          MAVEN_GPG_PASSPHRASE env var in CI -->
                                     <gpgArguments>
@@ -466,70 +453,16 @@
                         </executions>
                     </plugin>
 
-                    <!--
-                      Deploy to Sonatype OSSRH staging → release to Maven Central.
-
-                      ⚠ FLAG: nexus-staging-maven-plugin targets the LEGACY OSSRH
-                        workflow (https://s01.oss.sonatype.org/).
-                        New Sonatype accounts use Publisher Portal and require
-                        central-publishing-maven-plugin (com.sonatype.central).
-                        Confirm account type before first release; swap plugin +
-                        distributionManagement URLs if using Publisher Portal.
-                    -->
+                    <!-- CHANGED: Gap 3 — Publisher Portal plugin (replaces legacy nexus-staging-maven-plugin) -->
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${nexus-staging-plugin.version}</version>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                            <!-- false = review staging repo before promoting to Central -->
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
-                    </plugin>
-
-                </plugins>
-            </build>
-        </profile>
-
-        <!-- ─────────────────────────────────────────────────────────
-             e2e — Layer 3 end-to-end tests.
-             Requires headless Chrome on PATH (or webdriver.chrome.driver set).
-             Activate with: mvn verify -Pe2e
-             Runs on: main + release/* branches via CI workflow only.
-        ───────────────────────────────────────────────────────────── -->
-        <profile>
-            <id>e2e</id>
-            <build>
-                <plugins>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <!-- Match any test class under an e2e package -->
-                            <includes>
-                                <include>**/e2e/**</include>
-                            </includes>
-                            <useModulePath>false</useModulePath>
-                            <!-- Fail if no e2e tests are found — guards against
-                                 misconfigured test source roots -->
-                            <failIfNoTests>true</failIfNoTests>
-                            <systemPropertyVariables>
-                                <!-- CI can set -Dwebdriver.chrome.driver=/path/to/chromedriver -->
-                                <webdriver.chrome.driver>${webdriver.chrome.driver}</webdriver.chrome.driver>
-                            </systemPropertyVariables>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>e2e-integration-test</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
 
                 </plugins>

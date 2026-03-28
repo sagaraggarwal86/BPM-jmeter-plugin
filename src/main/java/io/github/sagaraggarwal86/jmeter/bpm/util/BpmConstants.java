@@ -48,6 +48,21 @@ public final class BpmConstants {
      */ // CHANGED: P3 — wire GUI output path field through TestElement so it round-trips with the JMX
     public static final String TEST_ELEMENT_OUTPUT_PATH = "bpm.outputPath";
 
+    /** TestElement property key: start offset in seconds for filter settings. */
+    public static final String TEST_ELEMENT_START_OFFSET = "bpm.startOffset";
+
+    /** TestElement property key: end offset in seconds for filter settings. */
+    public static final String TEST_ELEMENT_END_OFFSET = "bpm.endOffset";
+
+    /** TestElement property key: transaction names filter pattern. */
+    public static final String TEST_ELEMENT_TRANSACTION_NAMES = "bpm.transactionNames";
+
+    /** TestElement property key: whether transaction names filter uses regex. */
+    public static final String TEST_ELEMENT_REGEX = "bpm.regex";
+
+    /** TestElement property key: whether transaction names filter is include (true) or exclude (false). */
+    public static final String TEST_ELEMENT_INCLUDE = "bpm.include";
+
     // ── Property keys ─────────────────────────────────────────────────────────────────────────
 
     /** Property key: enable/disable Web Vitals metric collection tier. */
@@ -174,8 +189,8 @@ public final class BpmConstants {
     /** Default JS errors "good" count: 0 errors. */
     public static final int DEFAULT_SLA_JSERRORS_GOOD = 0;
 
-    /** Default JS errors "poor" lower bound: 1 error. */
-    public static final int DEFAULT_SLA_JSERRORS_POOR = 1;
+    /** Default JS errors "poor" lower bound: 5 errors. */
+    public static final int DEFAULT_SLA_JSERRORS_POOR = 5; // CHANGED: Gap 2 — aligned with design doc §3.3 (1-5 = needs work, >5 = poor)
 
     /** Default performance score "Good" threshold: ≥ 90. */
     public static final int DEFAULT_SLA_SCORE_GOOD = 90;
@@ -414,7 +429,11 @@ public final class BpmConstants {
     /** Default info-bar text shown before any test runs. */
     public static final String INFO_DEFAULT =
             "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
-                    + " Chrome DevTools Protocol. [Help \u2197]";
+                    + " Chrome DevTools Protocol."; // CHANGED: Gap 4 — [Help ↗] moved to a separate clickable button
+
+    /** URL opened by the Help button in the info bar. */
+    public static final String HELP_URL =
+            "https://github.com/sagaraggarwal86/BPM-jmeter-plugin#readme"; // CHANGED: Gap 4
 
     /**
      * Info-bar text shown when Selenium/WebDriver classes are absent from the classpath

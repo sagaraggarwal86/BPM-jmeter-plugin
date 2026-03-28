@@ -312,8 +312,10 @@ public class BpmListener extends AbstractTestElement
             log.warn("BPM: Error during testEnded: {}", e.getMessage());
         }
 
-        debugLogger.log("Test ended. Total samples collected: {}",
-                samplesCollected != null ? samplesCollected.get() : 0);
+        if (debugLogger != null) { // CHANGED: null-guard — testEnded() may be called without testStarted()
+            debugLogger.log("Test ended. Total samples collected: {}",
+                    samplesCollected != null ? samplesCollected.get() : 0);
+        }
 
         // Notify GUI of test end if running in GUI mode // CHANGED: §5.5
         try {
@@ -626,7 +628,7 @@ public class BpmListener extends AbstractTestElement
             CdpCommandExecutor newExecutor = ChromeCdpCommandExecutor.fromBrowserObject(browserObj);
             MetricsBuffer newBuffer = new MetricsBuffer();
 
-            sessionManager.openSession(newExecutor);
+            sessionManager.reInjectObservers(newExecutor); // CHANGED: Gap 1 — use reInjectObservers (not openSession) to reset CLS accumulator and prevent double-counting
 
             executorsByThread.put(threadName, newExecutor);
             buffersByThread.put(threadName, newBuffer);
