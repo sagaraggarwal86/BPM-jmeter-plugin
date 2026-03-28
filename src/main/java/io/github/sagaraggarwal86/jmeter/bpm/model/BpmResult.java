@@ -101,4 +101,5 @@ public record BpmResult(
          */
         @JsonProperty("derived") DerivedMetrics derived
 
-) {}
+) {
+}

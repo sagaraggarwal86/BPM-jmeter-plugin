@@ -11,7 +11,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Layer 1 unit tests for SummaryJsonWriter.
@@ -19,10 +20,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("SummaryJsonWriter")
 class SummaryJsonWriterTest {
 
+    private final ObjectMapper mapper = new ObjectMapper();
     @TempDir
     Path tempDir;
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     @DisplayName("verdict is PASS when no SLA breaches and score above threshold")

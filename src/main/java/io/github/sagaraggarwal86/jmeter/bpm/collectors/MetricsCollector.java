@@ -27,9 +27,9 @@ public interface MetricsCollector<T> {
      * @param buffer   the shared metrics buffer containing buffered CDP events;
      *                 never null
      * @return the collected metrics result, or null if collection was skipped
-     *         (e.g. SPA stale LCP detection)
+     * (e.g. SPA stale LCP detection)
      * @throws RuntimeException if CDP communication fails; callers must handle
-     *         gracefully via {@code BpmErrorHandler}
+     *                          gracefully via {@code BpmErrorHandler}
      */
     T collect(CdpCommandExecutor executor, MetricsBuffer buffer);
 }

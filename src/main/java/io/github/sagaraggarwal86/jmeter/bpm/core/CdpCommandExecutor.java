@@ -23,7 +23,7 @@ public interface CdpCommandExecutor {
      *
      * @param script the JavaScript code to execute
      * @return the script result; may be null, a primitive wrapper, a String,
-     *         or a {@link Map} depending on the script's return value
+     * or a {@link Map} depending on the script's return value
      * @throws RuntimeException if script execution fails or the CDP session is invalid
      */
     Object executeScript(String script);

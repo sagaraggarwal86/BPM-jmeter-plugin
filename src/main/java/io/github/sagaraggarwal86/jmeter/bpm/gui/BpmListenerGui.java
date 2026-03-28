@@ -342,7 +342,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     }
 
     private void drainGuiQueue() {
-        BpmListener listener = this.listenerRef;
+        BpmListener listener = BpmListener.getActiveInstance(); // CHANGED: read from the active (initialized) instance — not listenerRef, which may point to the original (uninitialized) test element
+        if (listener == null) { listener = this.listenerRef; } // fallback for JSONL read mode (no active test)
         if (listener == null) { return; }
 
         ConcurrentLinkedQueue<BpmResult> queue = listener.getGuiUpdateQueue();
@@ -364,16 +365,18 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         }
 
         int startOffset = parseIntSafe(startOffsetField.getText().trim());
+        int endOffset = parseIntSafe(endOffsetField.getText().trim()); // CHANGED: read end offset for filtering
         String txPattern = transactionNamesField.getText().trim();
         boolean useRegex = regexCheckBox.isSelected();
         boolean include = "Include".equals(includeExcludeCombo.getSelectedItem());
 
         for (BpmResult r : batch) {
-            if (testStartTime != null && startOffset > 0) {
+            if (testStartTime != null && (startOffset > 0 || endOffset > 0)) { // CHANGED: check both offsets
                 try {
                     Instant sampleTime = Instant.parse(r.timestamp());
                     long elapsedSec = Duration.between(testStartTime, sampleTime).getSeconds();
-                    if (elapsedSec < startOffset) { continue; }
+                    if (startOffset > 0 && elapsedSec < startOffset) { continue; }
+                    if (endOffset > 0 && elapsedSec > endOffset) { continue; } // CHANGED: skip samples beyond end offset
                 } catch (Exception ignored) { }
             }
             if (!txPattern.isEmpty()) {

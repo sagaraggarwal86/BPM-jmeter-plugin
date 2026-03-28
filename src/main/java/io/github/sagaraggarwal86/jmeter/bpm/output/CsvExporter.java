@@ -28,7 +28,9 @@ public final class CsvExporter {
     private static final char QUOTE = '"';
     private static final String NEWLINE = System.lineSeparator();
 
-    /** Prevent instantiation. */
+    /**
+     * Prevent instantiation.
+     */
     private CsvExporter() {
     }
 

@@ -32,7 +32,9 @@ import java.util.regex.Pattern;
  */
 public final class ConsoleSanitizer {
 
-    /** Replacement token for all matched sensitive values. */
+    /**
+     * Replacement token for all matched sensitive values.
+     */
     public static final String REDACTED = "[REDACTED]";
 
     // ── Compiled patterns ─────────────────────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ public final class ConsoleSanitizer {
      */
     private static final Pattern PATTERN_CONNECTION_STRING = Pattern.compile(
             "(?i)(?:mongodb|postgresql|postgres|mysql|mariadb|redis|amqp|amqps|jdbc:"
-            + "(?:mysql|postgresql|oracle|sqlserver|h2)?)://\\S+");
+                    + "(?:mysql|postgresql|oracle|sqlserver|h2)?)://\\S+");
 
     /**
      * Matches 13–19 consecutive digit sequences that resemble payment card numbers.
@@ -107,14 +109,14 @@ public final class ConsoleSanitizer {
      * Patterns without groups replace the entire match.
      */
     private static final List<PatternReplacement> PATTERNS = List.of(
-            new PatternReplacement(PATTERN_BEARER_TOKEN,     "$1" + REDACTED),
-            new PatternReplacement(PATTERN_API_KEY,          "$1" + REDACTED),
-            new PatternReplacement(PATTERN_JWT,              REDACTED),
-            new PatternReplacement(PATTERN_EMAIL,            REDACTED),
-            new PatternReplacement(PATTERN_AWS_ACCESS_KEY,   REDACTED),
-            new PatternReplacement(PATTERN_PASSWORD,         "$1" + REDACTED),
+            new PatternReplacement(PATTERN_BEARER_TOKEN, "$1" + REDACTED),
+            new PatternReplacement(PATTERN_API_KEY, "$1" + REDACTED),
+            new PatternReplacement(PATTERN_JWT, REDACTED),
+            new PatternReplacement(PATTERN_EMAIL, REDACTED),
+            new PatternReplacement(PATTERN_AWS_ACCESS_KEY, REDACTED),
+            new PatternReplacement(PATTERN_PASSWORD, "$1" + REDACTED),
             new PatternReplacement(PATTERN_CONNECTION_STRING, REDACTED),
-            new PatternReplacement(PATTERN_CREDIT_CARD,      REDACTED)
+            new PatternReplacement(PATTERN_CREDIT_CARD, REDACTED)
     );
 
     // ── State ─────────────────────────────────────────────────────────────────────────────────
@@ -158,7 +160,7 @@ public final class ConsoleSanitizer {
      *
      * @param message the raw console message from the browser Log domain; may be {@code null}
      * @return the sanitized message, or the original if sanitization is disabled, or {@code null}
-     *         if the input was {@code null}
+     * if the input was {@code null}
      */
     public String sanitize(String message) {
         if (!enabled || message == null || message.isEmpty()) {
@@ -180,5 +182,6 @@ public final class ConsoleSanitizer {
      * @param pattern     the compiled regex pattern to match
      * @param replacement the replacement string (may use back-references such as {@code $1})
      */
-    private record PatternReplacement(Pattern pattern, String replacement) {}
+    private record PatternReplacement(Pattern pattern, String replacement) {
+    }
 }

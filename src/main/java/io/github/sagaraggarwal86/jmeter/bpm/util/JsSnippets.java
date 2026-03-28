@@ -72,6 +72,21 @@ public final class JsSnippets {
                   }
                 }
               }).observe({type: 'layout-shift', buffered: true});
+
+              // CHANGED: Bug 11 — Synchronous seed from performance buffer.
+              // Observer callbacks are queued as tasks (async), so if collectMetrics()
+              // runs immediately after injection, window.__bpm_lcp would still be 0.
+              // Reading the buffer directly ensures values are available instantly.
+              var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+              if (lcpEntries.length > 0) {
+                window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+              }
+              var clsEntries = performance.getEntriesByType('layout-shift');
+              var clsSum = 0;
+              for (var i = 0; i < clsEntries.length; i++) {
+                if (!clsEntries[i].hadRecentInput) clsSum += clsEntries[i].value;
+              }
+              if (clsSum > 0) window.__bpm_cls = clsSum;
             })();
             """;
 
@@ -119,6 +134,12 @@ public final class JsSnippets {
                   }
                 }
               }).observe({type: 'layout-shift', buffered: true});
+
+              // CHANGED: Bug 11 — Synchronous seed (same as INJECT_OBSERVERS).
+              var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+              if (lcpEntries.length > 0) {
+                window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+              }
             })();
             """;
 
@@ -146,7 +167,7 @@ public final class JsSnippets {
      * LCP and CLS are sourced from the window globals set by {@link #INJECT_OBSERVERS}.
      */
     public static final String COLLECT_WEB_VITALS = """
-            (function() {
+            return (function() {
               var nav = (performance.getEntriesByType('navigation') || [])[0] || {};
               var fcpEntries = performance.getEntriesByName('first-contentful-paint') || [];
               var fcpEntry = fcpEntries.length > 0 ? fcpEntries[0] : null;
@@ -220,7 +241,7 @@ public final class JsSnippets {
      * for cross-validation in end-to-end tests.
      */
     public static final String COLLECT_RESOURCE_TIMING = """
-            (function() {
+            return (function() {
               var entries = performance.getEntriesByType('resource') || [];
               var resources = [];
               for (var i = 0; i < entries.length; i++) {
@@ -287,10 +308,28 @@ public final class JsSnippets {
      * to prevent double-counting on the next collection cycle.</p>
      */
     public static final String DRAIN_CONSOLE_BUFFER = """
-            (function() {
+            return (function() {
               var buf = window.__bpm_console || [];
               window.__bpm_console = [];
               return buf;
             })();
             """;
+
+    // ── Observer presence detection ─────────────────────────────────────────────────────── // CHANGED: new constants for post-navigation re-injection
+
+    /**
+     * Checks whether BPM observers are active in the current page context.
+     * Returns {@code true} if observers were injected into this page, {@code false}
+     * if the page navigated and the JavaScript context was destroyed.
+     * Used by {@code CdpSessionManager.ensureObserversInjected()}.
+     */
+    public static final String CHECK_OBSERVERS_PRESENT =
+            "return typeof window.__bpm_observer_active !== 'undefined'";
+
+    /**
+     * Sets the observer-active marker after successful observer injection.
+     * Destroyed automatically when the page navigates (JavaScript context reset).
+     */
+    public static final String SET_OBSERVER_MARKER =
+            "window.__bpm_observer_active = true";
 }

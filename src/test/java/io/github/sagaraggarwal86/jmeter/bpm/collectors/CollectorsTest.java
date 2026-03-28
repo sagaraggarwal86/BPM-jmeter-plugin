@@ -66,19 +66,23 @@ class CollectorsTest {
         }
 
         @Test
-        @DisplayName("SPA stale detection: returns null when LCP unchanged")
-        void collect_lcpUnchanged_returnsNull() {
+        @DisplayName("SPA stale detection: returns partial result with null LCP/FCP/TTFB when unchanged")
+        void collect_lcpUnchanged_returnsPartialWithNullLcp() { // CHANGED: Bug 12 — FCP/TTFB also stale
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
                     .thenReturn(Map.of("lcp", 1180.0, "fcp", 420.0, "cls", 0.0, "ttfb", 380.0));
 
             WebVitalsCollector collector = new WebVitalsCollector();
-            // First call — stores LCP
+            // First call — stores LCP, FCP, TTFB
             WebVitalsResult first = collector.collect(executor, buffer);
             assertNotNull(first);
 
-            // Second call with same LCP — SPA stale
+            // Second call with same values — SPA stale: LCP/FCP/TTFB null, CLS preserved
             WebVitalsResult second = collector.collect(executor, buffer);
-            assertNull(second, "Should return null for stale SPA LCP");
+            assertNotNull(second, "Should return partial result for stale SPA navigation");
+            assertNull(second.lcp(), "LCP should be null for stale SPA detection");
+            assertNull(second.fcp(), "FCP should be null for stale SPA detection"); // CHANGED: Bug 12
+            assertEquals(0.0, second.cls(), 0.0001, "CLS should be preserved (accumulates)");
+            assertNull(second.ttfb(), "TTFB should be null for stale SPA detection"); // CHANGED: Bug 12
         }
 
         @Test

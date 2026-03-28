@@ -40,13 +40,18 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
      */
     private final ConcurrentHashMap<String, Double> previousLcpByThread = new ConcurrentHashMap<>();
 
+    /** Tracks the last seen FCP value per thread for SPA stale detection. */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
+    private final ConcurrentHashMap<String, Double> previousFcpByThread = new ConcurrentHashMap<>();
+
+    /** Tracks the last seen TTFB value per thread for SPA stale detection. */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
+    private final ConcurrentHashMap<String, Double> previousTtfbByThread = new ConcurrentHashMap<>();
+
     /**
      * Collects Web Vitals metrics from the browser.
      *
      * @param executor the CDP command executor
      * @param buffer   the metrics buffer (not used by this collector)
-     * @return the Web Vitals result, or {@code null} if LCP is stale (SPA navigation
-     *         with no new largest-contentful-paint event)
+     * @return the Web Vitals result, or {@code null} if collection fails
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -66,30 +71,51 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
         double fcp = toDouble(vitals.get("fcp"));
         double ttfb = toDouble(vitals.get("ttfb"));
 
-        // SPA stale LCP detection
         String threadName = Thread.currentThread().getName();
+
+        // SPA stale LCP detection
+        Long lcpResult;
         Double previousLcp = previousLcpByThread.get(threadName);
         if (previousLcp != null && Double.compare(previousLcp, lcp) == 0 && lcp > 0) {
-            log.debug("BPM: LCP unchanged ({} ms) — SPA stale detection, skipping.", lcp);
-            // Still update other vitals but mark LCP as null via convention
-            previousLcpByThread.put(threadName, lcp);
-            return null;
+            log.debug("BPM: LCP unchanged ({} ms) — SPA stale detection, marking LCP null.", lcp);
+            lcpResult = null;
+        } else {
+            lcpResult = Math.round(lcp);
         }
         previousLcpByThread.put(threadName, lcp);
 
-        return new WebVitalsResult(
-                Math.round(fcp),
-                Math.round(lcp),
-                cls,
-                Math.round(ttfb)
-        );
+        // SPA stale FCP detection — FCP only fires once per full page load // CHANGED: Bug 12
+        Long fcpResult;
+        Double previousFcp = previousFcpByThread.get(threadName);
+        if (previousFcp != null && Double.compare(previousFcp, fcp) == 0 && fcp > 0) {
+            log.debug("BPM: FCP unchanged ({} ms) — SPA stale detection, marking FCP null.", fcp);
+            fcpResult = null;
+        } else {
+            fcpResult = Math.round(fcp);
+        }
+        previousFcpByThread.put(threadName, fcp);
+
+        // SPA stale TTFB detection — TTFB only updates on full page navigation // CHANGED: Bug 12
+        Long ttfbResult;
+        Double previousTtfb = previousTtfbByThread.get(threadName);
+        if (previousTtfb != null && Double.compare(previousTtfb, ttfb) == 0 && ttfb > 0) {
+            log.debug("BPM: TTFB unchanged ({} ms) — SPA stale detection, marking TTFB null.", ttfb);
+            ttfbResult = null;
+        } else {
+            ttfbResult = Math.round(ttfb);
+        }
+        previousTtfbByThread.put(threadName, ttfb);
+
+        return new WebVitalsResult(fcpResult, lcpResult, cls, ttfbResult);
     }
 
     /**
-     * Resets the per-thread LCP tracking state. Called during {@code testStarted()}.
+     * Resets the per-thread tracking state. Called during {@code testStarted()}.
      */
     public void reset() {
         previousLcpByThread.clear();
+        previousFcpByThread.clear();  // CHANGED: Bug 12
+        previousTtfbByThread.clear(); // CHANGED: Bug 12
     }
 
     /**

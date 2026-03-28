@@ -68,11 +68,16 @@ public final class DerivedMetricsCalculator {
     public DerivedMetrics compute(WebVitalsResult vitals, NetworkResult network,
                                   RuntimeResult runtime, ConsoleResult console,
                                   long samplerDuration) {
-        // Extract raw values with null-safe defaults // CHANGED: null-safe unboxing (§3.2 — all metrics may be unavailable)
-        long fcp  = vitals != null && vitals.fcp()  != null ? vitals.fcp()  : 0L;
-        long lcp  = vitals != null && vitals.lcp()  != null ? vitals.lcp()  : 0L;
-        double cls = vitals != null && vitals.cls() != null ? vitals.cls() : 0.0;
-        long ttfb = vitals != null && vitals.ttfb() != null ? vitals.ttfb() : 0L;
+        // Extract raw values — keep nullable for score computation // CHANGED: Bug 10 — null-aware scoring
+        Long fcp  = vitals != null ? vitals.fcp()  : null;
+        Long lcp  = vitals != null ? vitals.lcp()  : null;
+        Double cls = vitals != null ? vitals.cls() : null;
+        Long ttfb = vitals != null ? vitals.ttfb() : null;
+
+        // Primitive defaults for derived metric computation
+        long lcpVal  = lcp  != null ? lcp  : 0L;
+        long ttfbVal = ttfb != null ? ttfb : 0L;
+        long fcpVal  = fcp  != null ? fcp  : 0L;
 
         int totalRequests = network != null ? network.totalRequests() : 0;
         int failedRequests = network != null ? network.failedRequests() : 0;
@@ -83,28 +88,28 @@ public final class DerivedMetricsCalculator {
 
         int errorCount = console != null ? console.errors() : 0;
 
-        // Render Time = LCP - TTFB
-        long renderTime = Math.max(0, lcp - ttfb);
+        // Render Time = LCP - TTFB (only meaningful when both LCP and TTFB are available)
+        long renderTime = (lcp != null && ttfb != null) ? Math.max(0, lcpVal - ttfbVal) : 0L; // CHANGED: Bug 10
 
         // Server Ratio = (TTFB / LCP) × 100, 2 decimal places
-        double serverClientRatio = lcp > 0
-                ? roundToTwoDecimals((double) ttfb / lcp * 100.0)
+        double serverClientRatio = (lcp != null && ttfb != null && lcpVal > 0) // CHANGED: Bug 10
+                ? roundToTwoDecimals((double) ttfbVal / lcpVal * 100.0)
                 : 0.0;
 
-        // FCP-LCP Gap = LCP - FCP
-        long fcpLcpGap = Math.max(0, lcp - fcp);
+        // FCP-LCP Gap = LCP - FCP (only meaningful when both available)
+        long fcpLcpGap = (lcp != null && fcp != null) ? Math.max(0, lcpVal - fcpVal) : 0L; // CHANGED: Bug 10
 
         // Failed Request Rate = (failed / total) × 100
         double failedRequestRate = totalRequests > 0
                 ? roundToTwoDecimals((double) failedRequests / totalRequests * 100.0)
                 : 0.0;
 
-        // Performance Score (weighted composite)
+        // Performance Score (weighted composite, null-aware) // CHANGED: Bug 10
         int performanceScore = computePerformanceScore(lcp, fcp, cls, ttfb, errorCount);
 
         // Bottleneck detection (all matches + first-match-wins primary)
         List<String> bottlenecks = detectBottlenecks(
-                failedRequests, ttfb, lcp, slowest, renderTime, layoutCount, domNodes);
+                failedRequests, ttfbVal, lcpVal, slowest, renderTime, layoutCount, domNodes);
         String bottleneck = bottlenecks.isEmpty() ? BpmConstants.BOTTLENECK_NONE : bottlenecks.get(0); // CHANGED (G-02): was local BOTTLENECK_NONE
 
         return new DerivedMetrics(
@@ -122,23 +127,44 @@ public final class DerivedMetricsCalculator {
      * Computes the weighted performance score (0-100) per design doc section 3.3.
      *
      * <p>Each metric is scored individually against its SLA thresholds
-     * (100 = good, 50 = needs work, 0 = poor), then combined via weighted average.</p>
+     * (100 = good, 50 = needs work, 0 = poor), then combined via weighted average.
+     * Null metrics (unavailable/stale) are excluded and remaining weights are
+     * renormalized to ensure the score stays in [0, 100].</p>
+     *
+     * @return 0 if no metrics are available; otherwise the renormalized weighted score
      */
-    int computePerformanceScore(long lcp, long fcp, double cls, long ttfb, int errorCount) {
-        double lcpScore = scoreMetricLong(lcp, properties.getSlaLcpGood(), properties.getSlaLcpPoor());
-        double fcpScore = scoreMetricLong(fcp, properties.getSlaFcpGood(), properties.getSlaFcpPoor());
-        double clsScore = scoreMetricDouble(cls, properties.getSlaClsGood(), properties.getSlaClsPoor());
-        double ttfbScore = scoreMetricLong(ttfb, properties.getSlaTtfbGood(), properties.getSlaTtfbPoor());
-        double errorScore = scoreErrors(errorCount,
-                properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor()); // CHANGED: P4 — use configurable thresholds
+    int computePerformanceScore(Long lcp, Long fcp, Double cls, Long ttfb, int errorCount) { // CHANGED: Bug 10 — boxed types for null-awareness
+        double totalWeight = 0.0;
+        double weightedSum = 0.0;
 
-        double weighted = lcpScore   * BpmConstants.SCORE_WEIGHT_LCP   // CHANGED: §3.3 single source of truth
-                + fcpScore   * BpmConstants.SCORE_WEIGHT_FCP
-                + clsScore   * BpmConstants.SCORE_WEIGHT_CLS
-                + ttfbScore  * BpmConstants.SCORE_WEIGHT_TTFB
-                + errorScore * BpmConstants.SCORE_WEIGHT_ERRORS;
+        if (lcp != null) {
+            weightedSum += scoreMetricLong(lcp, properties.getSlaLcpGood(), properties.getSlaLcpPoor())
+                    * BpmConstants.SCORE_WEIGHT_LCP;
+            totalWeight += BpmConstants.SCORE_WEIGHT_LCP;
+        }
+        if (fcp != null) {
+            weightedSum += scoreMetricLong(fcp, properties.getSlaFcpGood(), properties.getSlaFcpPoor())
+                    * BpmConstants.SCORE_WEIGHT_FCP;
+            totalWeight += BpmConstants.SCORE_WEIGHT_FCP;
+        }
+        if (cls != null) {
+            weightedSum += scoreMetricDouble(cls, properties.getSlaClsGood(), properties.getSlaClsPoor())
+                    * BpmConstants.SCORE_WEIGHT_CLS;
+            totalWeight += BpmConstants.SCORE_WEIGHT_CLS;
+        }
+        if (ttfb != null) {
+            weightedSum += scoreMetricLong(ttfb, properties.getSlaTtfbGood(), properties.getSlaTtfbPoor())
+                    * BpmConstants.SCORE_WEIGHT_TTFB;
+            totalWeight += BpmConstants.SCORE_WEIGHT_TTFB;
+        }
+        // Errors always contribute — they're from console capture, not browser navigation metrics
+        weightedSum += scoreErrors(errorCount,
+                properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor())
+                * BpmConstants.SCORE_WEIGHT_ERRORS;
+        totalWeight += BpmConstants.SCORE_WEIGHT_ERRORS;
 
-        return (int) Math.round(weighted);
+        // Renormalize: scale to [0, 100] based on available metric weights
+        return totalWeight > 0 ? (int) Math.round(weightedSum / totalWeight) : 0;
     }
 
     /**

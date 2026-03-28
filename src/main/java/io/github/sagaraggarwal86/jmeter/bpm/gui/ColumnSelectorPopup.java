@@ -2,10 +2,8 @@ package io.github.sagaraggarwal86.jmeter.bpm.gui;
 
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JPopupMenu;
+import javax.swing.*;
 import java.awt.event.ActionListener;
-import java.util.Arrays;
 
 /**
  * Dropdown popup with checkboxes for toggling raw metric column visibility.

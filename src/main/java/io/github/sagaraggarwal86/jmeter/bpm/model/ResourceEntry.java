@@ -43,4 +43,5 @@ public record ResourceEntry(
          */
         @JsonProperty("ttfb") long ttfb
 
-) {}
+) {
+}

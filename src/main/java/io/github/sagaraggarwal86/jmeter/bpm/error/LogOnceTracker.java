@@ -23,7 +23,9 @@ public final class LogOnceTracker {
 
     private static final Logger log = LoggerFactory.getLogger(LogOnceTracker.class);
 
-    /** Separator between thread name and warning key to form a composite key. */
+    /**
+     * Separator between thread name and warning key to form a composite key.
+     */
     private static final String KEY_SEPARATOR = "::";
 
     private final Set<String> loggedWarnings = ConcurrentHashMap.newKeySet();

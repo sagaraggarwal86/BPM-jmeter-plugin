@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -98,7 +98,8 @@
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <central-publishing-plugin.version>0.10.0</central-publishing-plugin.version>
         <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
-        <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version> <!-- CHANGED (G-06): added enforcer plugin version property -->
+        <maven-enforcer-plugin.version>3.5.0
+        </maven-enforcer-plugin.version> <!-- CHANGED (G-06): added enforcer plugin version property -->
 
         <!-- JaCoCo threshold — 90% line coverage on the main bundle -->
         <jacoco.line.coverage.minimum>0.85</jacoco.line.coverage.minimum>
