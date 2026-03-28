@@ -1,6 +1,5 @@
 package io.github.sagaraggarwal86.jmeter.bpm.core;
 
-import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

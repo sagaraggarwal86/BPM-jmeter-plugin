@@ -80,7 +80,7 @@ public final class BpmDebugLogger {
         }
         long total = vitalsMs + networkMs + runtimeMs + consoleMs;
         LOG.debug("BPM: Collecting metrics for '{}' [webvitals={}ms, network={}ms,"
-                  + " runtime={}ms, console={}ms, total={}ms]",
+                        + " runtime={}ms, console={}ms, total={}ms]",
                 samplerLabel, vitalsMs, networkMs, runtimeMs, consoleMs, total);
     }
 
@@ -92,8 +92,8 @@ public final class BpmDebugLogger {
      * DEBUG - BPM: CDP session opened for thread 'Thread Group 1-1' in 84ms
      * </pre>
      *
-     * @param threadName  JMeter thread name (from {@code JMeterContext.getThread().getThreadName()})
-     * @param durationMs  time taken to open the session in milliseconds
+     * @param threadName JMeter thread name (from {@code JMeterContext.getThread().getThreadName()})
+     * @param durationMs time taken to open the session in milliseconds
      */
     public void logCdpSessionOpened(String threadName, long durationMs) {
         if (!enabled) {
@@ -130,9 +130,9 @@ public final class BpmDebugLogger {
      * DEBUG - BPM: JSONL write: 1 record, 482 bytes, flush in 1ms
      * </pre>
      *
-     * @param recordCount  number of records written in this batch (typically 1)
-     * @param bytes        approximate serialised size of the record in bytes
-     * @param flushMs      time taken for the flush operation in milliseconds (0 if no flush)
+     * @param recordCount number of records written in this batch (typically 1)
+     * @param bytes       approximate serialised size of the record in bytes
+     * @param flushMs     time taken for the flush operation in milliseconds (0 if no flush)
      */
     public void logJsonlWrite(int recordCount, long bytes, long flushMs) {
         if (!enabled) {
@@ -162,8 +162,8 @@ public final class BpmDebugLogger {
     /**
      * Logs a CDP session re-initialisation attempt after a collection error.
      *
-     * @param threadName  JMeter thread name
-     * @param attempt     re-init attempt number (1 = first attempt)
+     * @param threadName JMeter thread name
+     * @param attempt    re-init attempt number (1 = first attempt)
      */
     public void logCdpReInit(String threadName, int attempt) {
         if (!enabled) {
@@ -189,8 +189,8 @@ public final class BpmDebugLogger {
     /**
      * Logs a general-purpose debug message with one format argument.
      *
-     * @param format  SLF4J format string (uses {@code {}}) placeholders
-     * @param arg     single argument to substitute
+     * @param format SLF4J format string (uses {@code {}}) placeholders
+     * @param arg    single argument to substitute
      */
     public void log(String format, Object arg) {
         if (!enabled) {

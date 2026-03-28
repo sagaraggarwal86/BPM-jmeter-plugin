@@ -19,40 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("BpmPropertiesManager")
 class BpmPropertiesManagerTest {
 
-    /**
-     * Subclass that redirects properties path to a temp directory
-     * and stubs out JMeterUtils calls.
-     */
-    static class TestablePropertiesManager extends BpmPropertiesManager {
-
-        private final Path propertiesPath;
-        private String jFlagOutput;
-        private String jFlagDebug;
-
-        TestablePropertiesManager(Path propertiesPath) {
-            this.propertiesPath = propertiesPath;
-        }
-
-        @Override
-        protected Path resolvePropertiesPath() {
-            return propertiesPath;
-        }
-
-        @Override
-        public String getJMeterProperty(String key) {
-            if ("bpm.output".equals(key)) {
-                return jFlagOutput;
-            }
-            if ("bpm.debug".equals(key)) {
-                return jFlagDebug;
-            }
-            return null;
-        }
-
-        void setJFlagOutput(String value) { this.jFlagOutput = value; }
-        void setJFlagDebug(String value) { this.jFlagDebug = value; }
-    }
-
     @Test
     @DisplayName("Auto-generates properties file from template on first run")
     void load_missingFile_autoGenerates(@TempDir Path tempDir) {
@@ -173,9 +139,9 @@ class BpmPropertiesManagerTest {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
                 "# Browser Performance Metrics (BPM) v1.0\n"
-                + "sla.fcp.good=not_a_number\n"
-                + "network.topN=abc\n"
-                + "sla.cls.good=xyz\n",
+                        + "sla.fcp.good=not_a_number\n"
+                        + "network.topN=abc\n"
+                        + "sla.cls.good=xyz\n",
                 StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
@@ -196,5 +162,44 @@ class BpmPropertiesManagerTest {
         assertDoesNotThrow(() -> mgr.load());
         // Falls back to hardcoded defaults
         assertEquals(BpmConstants.DEFAULT_SLA_LCP_GOOD, mgr.getSlaLcpGood());
+    }
+
+    /**
+     * Subclass that redirects properties path to a temp directory
+     * and stubs out JMeterUtils calls.
+     */
+    static class TestablePropertiesManager extends BpmPropertiesManager {
+
+        private final Path propertiesPath;
+        private String jFlagOutput;
+        private String jFlagDebug;
+
+        TestablePropertiesManager(Path propertiesPath) {
+            this.propertiesPath = propertiesPath;
+        }
+
+        @Override
+        protected Path resolvePropertiesPath() {
+            return propertiesPath;
+        }
+
+        @Override
+        public String getJMeterProperty(String key) {
+            if ("bpm.output".equals(key)) {
+                return jFlagOutput;
+            }
+            if ("bpm.debug".equals(key)) {
+                return jFlagDebug;
+            }
+            return null;
+        }
+
+        void setJFlagOutput(String value) {
+            this.jFlagOutput = value;
+        }
+
+        void setJFlagDebug(String value) {
+            this.jFlagDebug = value;
+        }
     }
 }

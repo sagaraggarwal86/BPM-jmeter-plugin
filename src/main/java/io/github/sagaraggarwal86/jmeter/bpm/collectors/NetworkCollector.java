@@ -7,12 +7,7 @@ import io.github.sagaraggarwal86.jmeter.bpm.model.ResourceEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Collects network metrics from the {@link MetricsBuffer}.
@@ -44,6 +39,35 @@ public final class NetworkCollector implements MetricsCollector<NetworkResult> {
      */
     public NetworkCollector(int topN) {
         this.topN = Math.max(1, topN);
+    }
+
+    /**
+     * Determines if an HTTP status code indicates failure (4xx or 5xx).
+     * Status 0 means unknown (Resource Timing API limitation) — treated as success.
+     */
+    private static boolean isFailed(int status) {
+        return status >= 400;
+    }
+
+    /**
+     * Truncates URL to 512 characters to limit payload size.
+     */
+    private static String truncateUrl(String url) {
+        return url.length() > 512 ? url.substring(0, 512) : url;
+    }
+
+    private static long toLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        return 0L;
+    }
+
+    private static int toInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return 0;
     }
 
     /**
@@ -90,12 +114,15 @@ public final class NetworkCollector implements MetricsCollector<NetworkResult> {
         // Sort all entries by duration descending for top-N selection
         allEntries.sort(Comparator.comparingLong(ResourceEntry::duration).reversed());
 
-        // Build slowest list: top N successful + all failed, deduplicated
+        // Build slowest list: top N successful + all failed, deduplicated // CHANGED: skip failed entries in top-N loop — they are added unconditionally below
         Set<ResourceEntry> slowestSet = new LinkedHashSet<>();
         int added = 0;
         for (ResourceEntry entry : allEntries) {
             if (added >= topN) {
                 break;
+            }
+            if (failedEntries.contains(entry)) { // CHANGED: skip failed — reserve top-N slots for successful entries
+                continue;
             }
             slowestSet.add(entry);
             added++;
@@ -104,34 +131,5 @@ public final class NetworkCollector implements MetricsCollector<NetworkResult> {
         slowestSet.addAll(failedEntries);
 
         return new NetworkResult(totalRequests, totalBytes, failedRequests, List.copyOf(slowestSet));
-    }
-
-    /**
-     * Determines if an HTTP status code indicates failure (4xx or 5xx).
-     * Status 0 means unknown (Resource Timing API limitation) — treated as success.
-     */
-    private static boolean isFailed(int status) {
-        return status >= 400;
-    }
-
-    /**
-     * Truncates URL to 512 characters to limit payload size.
-     */
-    private static String truncateUrl(String url) {
-        return url.length() > 512 ? url.substring(0, 512) : url;
-    }
-
-    private static long toLong(Object value) {
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        return 0L;
-    }
-
-    private static int toInt(Object value) {
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return 0;
     }
 }

@@ -71,6 +71,18 @@ public class BpmListener extends AbstractTestElement
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BpmListener.class);
 
+    // CHANGED: Static reference to the instance that received testStarted() — cloned instances
+    // that receive sampleOccurred() without testStarted() delegate to this active instance.
+    private static volatile BpmListener activeInstance;
+
+    /**
+     * Returns the currently active (initialized) BpmListener instance, or null
+     * if no test is running. Used by BpmListenerGui to drain the correct queue.
+     */
+    public static BpmListener getActiveInstance() {
+        return activeInstance;
+    }
+
     // ── Per-test state (reset in testStarted) ──────────────────────────────────────────────
 
     private transient BpmPropertiesManager propertiesManager;
@@ -190,6 +202,8 @@ public class BpmListener extends AbstractTestElement
         } catch (Exception ignored) {
             // Non-GUI mode — no GUI to notify
         }
+
+        activeInstance = this; // CHANGED: register as the active instance for clone delegation
     }
 
     // ── SampleListener ─────────────────────────────────────────────────────────────────────
@@ -206,6 +220,17 @@ public class BpmListener extends AbstractTestElement
      */
     @Override
     public void sampleOccurred(SampleEvent event) {
+        // CHANGED: Delegate to the active (initialized) instance — JMeter may invoke
+        // sampleOccurred on a cloned BpmListener that never received testStarted().
+        // The clone forwards the event to the instance that owns the writers, collectors,
+        // and GUI-connected queue.
+        if (errorHandler == null) {
+            BpmListener active = activeInstance;
+            if (active != null && active != this) {
+                active.sampleOccurred(event);
+            }
+            return;
+        }
         try {
             SampleResult result = event.getResult();
             var ctx = org.apache.jmeter.threads.JMeterContextService.getContext(); // CHANGED: safe context guard (§2.1)
@@ -256,7 +281,9 @@ public class BpmListener extends AbstractTestElement
         } catch (Exception e) {
             // Never let exceptions propagate to JMeter
             log.warn("BPM: Unexpected error in sampleOccurred: {}", e.getMessage());
-            debugLogger.log("sampleOccurred exception: {}", e.toString());
+            if (debugLogger != null) { // CHANGED: null-guard — debugLogger is transient; may be null if testStarted() was never called
+                debugLogger.log("sampleOccurred exception: {}", e.toString());
+            }
         }
     }
 
@@ -329,6 +356,10 @@ public class BpmListener extends AbstractTestElement
             }
         } catch (Exception ignored) {
             // Non-GUI mode — no GUI to notify
+        }
+
+        if (activeInstance == this) { // CHANGED: clear static reference to allow GC and prevent stale delegation
+            activeInstance = null;
         }
     }
 
@@ -517,6 +548,9 @@ public class BpmListener extends AbstractTestElement
         try {
             // Transfer browser-side buffered events to Java-side MetricsBuffer
             sessionManager.transferBufferedEvents(executor, buffer);
+
+            // Re-inject observers if page navigation destroyed the JavaScript context // CHANGED: post-navigation observer re-injection
+            sessionManager.ensureObserversInjected(executor);
 
             // Collect raw metrics per enabled tier
             long t0, vitalsMs = 0, networkMs = 0, runtimeMs = 0, consoleMs = 0;

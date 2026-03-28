@@ -52,4 +52,5 @@ public record WebVitalsResult(
          */
         @JsonProperty("ttfb") Long ttfb
 
-) {}
+) {
+}

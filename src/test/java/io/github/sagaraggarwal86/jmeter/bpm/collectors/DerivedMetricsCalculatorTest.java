@@ -1,12 +1,7 @@
 package io.github.sagaraggarwal86.jmeter.bpm.collectors;
 
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
-import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ResourceEntry;
-import io.github.sagaraggarwal86.jmeter.bpm.model.RuntimeResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
+import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED: import for BOTTLENECK_* after G-02 moved constants here
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -111,6 +106,38 @@ class DerivedMetricsCalculatorTest {
     // Bottleneck Labels (one test per label)
     // ══════════════════════════════════════════════════════════════════════════════
 
+    @Test
+    @DisplayName("LCP=0 produces zero ratios without division error")
+    void compute_lcpZero_noDivisionError() {
+        WebVitalsResult vitals = new WebVitalsResult(0L, 0L, 0.0, 0L); // CHANGED: L suffix
+        DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
+
+        assertEquals(0.0, result.serverClientRatio());
+        assertEquals(0, result.renderTime());
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // Edge cases
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("All null sub-results produce safe defaults")
+    void compute_allNull_safeDefaults() {
+        DerivedMetrics result = calculator.compute(null, null, null, null, 1000);
+
+        assertNotNull(result);
+        assertEquals(0, result.renderTime());
+        assertEquals(0.0, result.serverClientRatio());
+        assertEquals(BpmConstants.BOTTLENECK_NONE, result.bottleneck()); // CHANGED: BpmConstants
+    }
+
+    @Test
+    @DisplayName("No network data produces 0% failed request rate")
+    void compute_noNetworkData_zeroFailedRate() {
+        DerivedMetrics result = calculator.compute(null, null, null, null, 1000);
+        assertEquals(0.0, result.failedRequestRate());
+    }
+
     @Nested
     @DisplayName("Bottleneck Detection")
     class BottleneckDetection {
@@ -207,37 +234,5 @@ class DerivedMetricsCalculatorTest {
             assertTrue(result.bottlenecks().size() >= 2);
             assertTrue(result.bottlenecks().contains(BpmConstants.BOTTLENECK_SERVER)); // CHANGED: BpmConstants
         }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════════
-    // Edge cases
-    // ══════════════════════════════════════════════════════════════════════════════
-
-    @Test
-    @DisplayName("LCP=0 produces zero ratios without division error")
-    void compute_lcpZero_noDivisionError() {
-        WebVitalsResult vitals = new WebVitalsResult(0L, 0L, 0.0, 0L); // CHANGED: L suffix
-        DerivedMetrics result = calculator.compute(vitals, null, null, null, 2000);
-
-        assertEquals(0.0, result.serverClientRatio());
-        assertEquals(0, result.renderTime());
-    }
-
-    @Test
-    @DisplayName("All null sub-results produce safe defaults")
-    void compute_allNull_safeDefaults() {
-        DerivedMetrics result = calculator.compute(null, null, null, null, 1000);
-
-        assertNotNull(result);
-        assertEquals(0, result.renderTime());
-        assertEquals(0.0, result.serverClientRatio());
-        assertEquals(BpmConstants.BOTTLENECK_NONE, result.bottleneck()); // CHANGED: BpmConstants
-    }
-
-    @Test
-    @DisplayName("No network data produces 0% failed request rate")
-    void compute_noNetworkData_zeroFailedRate() {
-        DerivedMetrics result = calculator.compute(null, null, null, null, 1000);
-        assertEquals(0.0, result.failedRequestRate());
     }
 }

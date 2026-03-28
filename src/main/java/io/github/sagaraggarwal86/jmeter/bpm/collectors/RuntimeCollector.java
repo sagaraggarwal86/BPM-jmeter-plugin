@@ -33,6 +33,13 @@ public final class RuntimeCollector implements MetricsCollector<RuntimeResult> {
     private static final String KEY_LAYOUT_COUNT = "LayoutCount";
     private static final String KEY_STYLE_RECALC = "RecalcStyleCount";
 
+    private static double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        return 0.0;
+    }
+
     /**
      * Collects runtime metrics via CDP {@code Performance.getMetrics}.
      *
@@ -70,12 +77,5 @@ public final class RuntimeCollector implements MetricsCollector<RuntimeResult> {
         }
 
         return new RuntimeResult(heapUsed, domNodes, layoutCount, styleRecalcCount);
-    }
-
-    private static double toDouble(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        return 0.0;
     }
 }

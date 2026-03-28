@@ -48,4 +48,5 @@ public record RuntimeResult(
          */
         @JsonProperty("styleRecalcCount") int styleRecalcCount
 
-) {}
+) {
+}

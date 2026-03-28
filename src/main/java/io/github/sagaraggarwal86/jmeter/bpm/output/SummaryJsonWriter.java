@@ -41,14 +41,35 @@ public final class SummaryJsonWriter {
     }
 
     /**
+     * Derives the summary JSON path from the JSONL path.
+     *
+     * <p>Replaces {@code .jsonl} extension with {@code -summary.json}.
+     * If the path has no {@code .jsonl} extension, appends {@code -summary.json}.</p>
+     *
+     * @param jsonlPath the JSONL output path
+     * @return the derived summary path
+     */
+    static Path deriveSummaryPath(Path jsonlPath) {
+        String filename = jsonlPath.getFileName().toString();
+        String summaryFilename;
+        if (filename.endsWith(".jsonl")) {
+            summaryFilename = filename.substring(0, filename.length() - ".jsonl".length()) + "-summary.json";
+        } else {
+            summaryFilename = filename + "-summary.json";
+        }
+        Path parent = jsonlPath.getParent();
+        return parent != null ? parent.resolve(summaryFilename) : Path.of(summaryFilename);
+    }
+
+    /**
      * Writes the summary JSON file.
      *
-     * @param jsonlPath      the JSONL output path (summary path is derived from this)
-     * @param labelStats     per-label aggregated statistics; each entry contains:
-     *                       "score" (int), "lcp" (long avg), "bottleneck" (String),
-     *                       "samples" (int)
-     * @param slaLcpPoor     the LCP poor threshold for verdict determination
-     * @param slaScorePoor   the score poor threshold
+     * @param jsonlPath    the JSONL output path (summary path is derived from this)
+     * @param labelStats   per-label aggregated statistics; each entry contains:
+     *                     "score" (int), "lcp" (long avg), "bottleneck" (String),
+     *                     "samples" (int)
+     * @param slaLcpPoor   the LCP poor threshold for verdict determination
+     * @param slaScorePoor the score poor threshold
      */
     public void write(Path jsonlPath, List<Map<String, Object>> labelStats,
                       long slaLcpPoor, int slaScorePoor) {
@@ -120,26 +141,5 @@ public final class SummaryJsonWriter {
         root.set("details", detailsArray);
 
         return root;
-    }
-
-    /**
-     * Derives the summary JSON path from the JSONL path.
-     *
-     * <p>Replaces {@code .jsonl} extension with {@code -summary.json}.
-     * If the path has no {@code .jsonl} extension, appends {@code -summary.json}.</p>
-     *
-     * @param jsonlPath the JSONL output path
-     * @return the derived summary path
-     */
-    static Path deriveSummaryPath(Path jsonlPath) {
-        String filename = jsonlPath.getFileName().toString();
-        String summaryFilename;
-        if (filename.endsWith(".jsonl")) {
-            summaryFilename = filename.substring(0, filename.length() - ".jsonl".length()) + "-summary.json";
-        } else {
-            summaryFilename = filename + "-summary.json";
-        }
-        Path parent = jsonlPath.getParent();
-        return parent != null ? parent.resolve(summaryFilename) : Path.of(summaryFilename);
     }
 }

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,21 +28,24 @@ import java.util.regex.Pattern;
  */
 public class BpmPropertiesManager { // CHANGED: removed final — tests subclass this to override resolvePropertiesPath() and getJMeterProperty()
 
+    /**
+     * Current plugin version embedded in the template.
+     */
+    static final String CURRENT_VERSION = "1.0";
     private static final Logger log = LoggerFactory.getLogger(BpmPropertiesManager.class);
-
-    /** Bundled template resource path inside the JAR. */
+    /**
+     * Bundled template resource path inside the JAR.
+     */
     private static final String TEMPLATE_RESOURCE = "/bpm-default.properties";
-
-    /** Properties filename. */
+    /**
+     * Properties filename.
+     */
     private static final String PROPERTIES_FILENAME = "bpm.properties";
-
-    /** Pattern to extract version from the header comment: {@code # Browser Performance Metrics (BPM) vX.Y} */
+    /**
+     * Pattern to extract version from the header comment: {@code # Browser Performance Metrics (BPM) vX.Y}
+     */
     private static final Pattern VERSION_PATTERN =
             Pattern.compile("^#.*Browser Performance Metrics \\(BPM\\)\\s+v(\\S+)");
-
-    /** Current plugin version embedded in the template. */
-    static final String CURRENT_VERSION = "1.0";
-
     // -J flag property keys (JMeter system properties set via -Jbpm.output / -Jbpm.debug)
     private static final String J_FLAG_OUTPUT = "bpm.output";
     private static final String J_FLAG_DEBUG = "bpm.debug";
@@ -165,118 +167,162 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
 
     // ======================== Metric Toggles ========================
 
-    /** @return true if Web Vitals collection is enabled */
+    /**
+     * @return true if Web Vitals collection is enabled
+     */
     public boolean isWebVitalsEnabled() {
         return getBooleanProperty(KEY_METRICS_WEBVITALS, DEFAULT_METRIC_ENABLED);
     }
 
-    /** @return true if Network metrics collection is enabled */
+    /**
+     * @return true if Network metrics collection is enabled
+     */
     public boolean isNetworkEnabled() {
         return getBooleanProperty(KEY_METRICS_NETWORK, DEFAULT_METRIC_ENABLED);
     }
 
-    /** @return true if Runtime metrics collection is enabled */
+    /**
+     * @return true if Runtime metrics collection is enabled
+     */
     public boolean isRuntimeEnabled() {
         return getBooleanProperty(KEY_METRICS_RUNTIME, DEFAULT_METRIC_ENABLED);
     }
 
-    /** @return true if Console metrics collection is enabled */
+    /**
+     * @return true if Console metrics collection is enabled
+     */
     public boolean isConsoleEnabled() {
         return getBooleanProperty(KEY_METRICS_CONSOLE, DEFAULT_METRIC_ENABLED);
     }
 
-    /** @return number of slowest resources to capture in network tier */
+    /**
+     * @return number of slowest resources to capture in network tier
+     */
     public int getNetworkTopN() {
         return getIntProperty(KEY_NETWORK_TOP_N, DEFAULT_NETWORK_TOP_N);
     }
 
     // ======================== SLA Thresholds ========================
 
-    /** @return FCP good threshold in milliseconds */
+    /**
+     * @return FCP good threshold in milliseconds
+     */
     public long getSlaFcpGood() {
         return getLongProperty(KEY_SLA_FCP_GOOD, DEFAULT_SLA_FCP_GOOD);
     }
 
-    /** @return FCP poor threshold in milliseconds */
+    /**
+     * @return FCP poor threshold in milliseconds
+     */
     public long getSlaFcpPoor() {
         return getLongProperty(KEY_SLA_FCP_POOR, DEFAULT_SLA_FCP_POOR);
     }
 
-    /** @return LCP good threshold in milliseconds */
+    /**
+     * @return LCP good threshold in milliseconds
+     */
     public long getSlaLcpGood() {
         return getLongProperty(KEY_SLA_LCP_GOOD, DEFAULT_SLA_LCP_GOOD);
     }
 
-    /** @return LCP poor threshold in milliseconds */
+    /**
+     * @return LCP poor threshold in milliseconds
+     */
     public long getSlaLcpPoor() {
         return getLongProperty(KEY_SLA_LCP_POOR, DEFAULT_SLA_LCP_POOR);
     }
 
-    /** @return CLS good threshold (unitless) */
+    /**
+     * @return CLS good threshold (unitless)
+     */
     public double getSlaClsGood() {
         return getDoubleProperty(KEY_SLA_CLS_GOOD, DEFAULT_SLA_CLS_GOOD);
     }
 
-    /** @return CLS poor threshold (unitless) */
+    /**
+     * @return CLS poor threshold (unitless)
+     */
     public double getSlaClsPoor() {
         return getDoubleProperty(KEY_SLA_CLS_POOR, DEFAULT_SLA_CLS_POOR);
     }
 
-    /** @return TTFB good threshold in milliseconds */
+    /**
+     * @return TTFB good threshold in milliseconds
+     */
     public long getSlaTtfbGood() {
         return getLongProperty(KEY_SLA_TTFB_GOOD, DEFAULT_SLA_TTFB_GOOD);
     }
 
-    /** @return TTFB poor threshold in milliseconds */
+    /**
+     * @return TTFB poor threshold in milliseconds
+     */
     public long getSlaTtfbPoor() {
         return getLongProperty(KEY_SLA_TTFB_POOR, DEFAULT_SLA_TTFB_POOR);
     }
 
-    /** @return JS errors good threshold (count) */
+    /**
+     * @return JS errors good threshold (count)
+     */
     public int getSlaJsErrorsGood() {
         return getIntProperty(KEY_SLA_JSERRORS_GOOD, DEFAULT_SLA_JSERRORS_GOOD);
     }
 
-    /** @return JS errors poor threshold (count) */
+    /**
+     * @return JS errors poor threshold (count)
+     */
     public int getSlaJsErrorsPoor() {
         return getIntProperty(KEY_SLA_JSERRORS_POOR, DEFAULT_SLA_JSERRORS_POOR);
     }
 
-    /** @return Performance score good threshold */
+    /**
+     * @return Performance score good threshold
+     */
     public int getSlaScoreGood() {
         return getIntProperty(KEY_SLA_SCORE_GOOD, DEFAULT_SLA_SCORE_GOOD);
     }
 
-    /** @return Performance score poor threshold */
+    /**
+     * @return Performance score poor threshold
+     */
     public int getSlaScorePoor() {
         return getIntProperty(KEY_SLA_SCORE_POOR, DEFAULT_SLA_SCORE_POOR);
     }
 
     // ======================== Bottleneck Thresholds ========================
 
-    /** @return Server bottleneck ratio threshold (TTFB as % of LCP) */
+    /**
+     * @return Server bottleneck ratio threshold (TTFB as % of LCP)
+     */
     public double getBottleneckServerRatio() {
         return getDoubleProperty(KEY_BOTTLENECK_SERVER_RATIO, DEFAULT_BOTTLENECK_SERVER_RATIO);
     }
 
-    /** @return Resource bottleneck ratio threshold (slowest resource as % of LCP) */
+    /**
+     * @return Resource bottleneck ratio threshold (slowest resource as % of LCP)
+     */
     public double getBottleneckResourceRatio() {
         return getDoubleProperty(KEY_BOTTLENECK_RESOURCE_RATIO, DEFAULT_BOTTLENECK_RESOURCE_RATIO);
     }
 
-    /** @return Client rendering bottleneck ratio threshold (render time as % of LCP) */
+    /**
+     * @return Client rendering bottleneck ratio threshold (render time as % of LCP)
+     */
     public double getBottleneckClientRatio() {
         return getDoubleProperty(KEY_BOTTLENECK_CLIENT_RATIO, DEFAULT_BOTTLENECK_CLIENT_RATIO);
     }
 
-    /** @return Layout thrashing factor (layoutCount &gt; domNodes * factor) */
+    /**
+     * @return Layout thrashing factor (layoutCount &gt; domNodes * factor)
+     */
     public double getBottleneckLayoutThrashFactor() {
         return getDoubleProperty(KEY_BOTTLENECK_LAYOUT_FACTOR, DEFAULT_BOTTLENECK_LAYOUT_FACTOR);
     }
 
     // ======================== Security ========================
 
-    /** @return true if console message sanitization is enabled */
+    /**
+     * @return true if console message sanitization is enabled
+     */
     public boolean isSanitizeEnabled() {
         return getBooleanProperty(KEY_SECURITY_SANITIZE, DEFAULT_SECURITY_SANITIZE);
     }

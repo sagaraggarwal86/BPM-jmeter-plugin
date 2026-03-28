@@ -28,24 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class BpmErrorHandler {
 
     private static final Logger log = LoggerFactory.getLogger(BpmErrorHandler.class);
-
-    /**
-     * Per-thread CDP session health state.
-     */
-    public enum ThreadState {
-        /** Normal operation. Metrics collection proceeds. */
-        HEALTHY,
-        /** CDP session error occurred. One re-initialization attempt allowed. */
-        RE_INIT_NEEDED,
-        /** Re-initialization failed. BPM is disabled for this thread. */
-        DISABLED
-    }
-
     private final ConcurrentHashMap<String, ThreadState> threadStates = new ConcurrentHashMap<>();
     private final AtomicInteger reInitCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
     private final LogOnceTracker logOnceTracker;
-
     /**
      * Creates a new error handler with the given log-once tracker.
      *
@@ -172,5 +158,23 @@ public final class BpmErrorHandler {
         reInitCount.set(0);
         failureCount.set(0);
         logOnceTracker.reset();
+    }
+
+    /**
+     * Per-thread CDP session health state.
+     */
+    public enum ThreadState {
+        /**
+         * Normal operation. Metrics collection proceeds.
+         */
+        HEALTHY,
+        /**
+         * CDP session error occurred. One re-initialization attempt allowed.
+         */
+        RE_INIT_NEEDED,
+        /**
+         * Re-initialization failed. BPM is disabled for this thread.
+         */
+        DISABLED
     }
 }

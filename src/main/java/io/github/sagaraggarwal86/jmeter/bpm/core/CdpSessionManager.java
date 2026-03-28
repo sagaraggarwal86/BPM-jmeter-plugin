@@ -67,6 +67,9 @@ public final class CdpSessionManager {
         // Inject console.error/warn interceptor
         executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK);
 
+        // Set marker for ensureObserversInjected() navigation detection // CHANGED: post-navigation re-injection support
+        executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
+
         log.debug("BPM: CDP session opened — domains enabled, observers injected.");
     }
 
@@ -102,7 +105,36 @@ public final class CdpSessionManager {
         // Console hook is idempotent — re-injecting resets window.__bpm_console
         executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK); // CHANGED (G-05)
 
+        // Set marker for ensureObserversInjected() navigation detection // CHANGED: post-navigation re-injection support
+        executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
+
         log.debug("BPM: Observers re-injected after CDP session re-init.");
+    }
+
+    /**
+     * Re-injects observers if the page context was destroyed by a full page navigation.
+     *
+     * <p>Checks for the {@code window.__bpm_observer_active} marker set during
+     * initial injection. If absent (navigation destroyed the JS context), re-injects
+     * all observers and the console capture hook. Uses {@link JsSnippets#INJECT_OBSERVERS}
+     * (not {@link JsSnippets#REINJECT_OBSERVERS}) because the CLS accumulator was already
+     * reset by the navigation — no double-counting risk.</p>
+     *
+     * <p>Called at the start of each collection cycle before collectors run.
+     * Overhead: one {@code executeScript} call per sample (the marker check).
+     * Re-injection only fires after full page navigations.</p>
+     *
+     * @param executor the CDP command executor
+     */
+    public void ensureObserversInjected(CdpCommandExecutor executor) { // CHANGED: new method — post-navigation observer re-injection
+        Boolean present = Boolean.TRUE.equals(
+                executor.executeScript(JsSnippets.CHECK_OBSERVERS_PRESENT));
+        if (!present) {
+            executor.executeScript(JsSnippets.INJECT_OBSERVERS);
+            executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK);
+            executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
+            log.debug("BPM: Observers re-injected after page navigation.");
+        }
     }
 
     /**

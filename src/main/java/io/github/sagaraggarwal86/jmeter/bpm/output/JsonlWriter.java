@@ -28,7 +28,9 @@ public final class JsonlWriter {
 
     private static final Logger log = LoggerFactory.getLogger(JsonlWriter.class);
 
-    /** Number of records between automatic flushes. */
+    /**
+     * Number of records between automatic flushes.
+     */
     private static final int FLUSH_INTERVAL = 10;
 
     private final ObjectMapper objectMapper;
