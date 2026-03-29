@@ -256,113 +256,132 @@ public final class BpmConstants {
      * Default: debug logging disabled.
      */
     public static final boolean DEFAULT_BPM_DEBUG = false;
-    /**
-     * Bottleneck label (priority 1): one or more failed network requests detected.
-     */
-    public static final String BOTTLENECK_RELIABILITY = "Reliability issue";
 
-    // ── Bottleneck labels ─────────────────────────────────────────────────────────────────────
+    // ── Improvement Area labels ───────────────────────────────────────────────────────────────
+    // CHANGED: renamed from "Bottleneck labels" — values now describe the action to take,
+    // not a problem statement, so score=100 with a label is not contradictory.
     /**
-     * Bottleneck label (priority 2): TTFB exceeds server-ratio threshold of LCP.
+     * Improvement Area label (priority 1): one or more failed network requests detected.
+     * Always a real problem regardless of score — fix this before anything else.
      */
-    public static final String BOTTLENECK_SERVER = "Server bottleneck";
+    public static final String BOTTLENECK_RELIABILITY = "Fix Network Failures"; // CHANGED: renamed
+
     /**
-     * Bottleneck label (priority 3): slowest resource exceeds resource-ratio threshold of LCP.
+     * Improvement Area label (priority 2): TTFB is consuming > 60% of LCP time.
      */
-    public static final String BOTTLENECK_RESOURCE = "Resource bottleneck";
+    public static final String BOTTLENECK_SERVER = "Reduce Server Response"; // CHANGED: renamed
+
     /**
-     * Bottleneck label (priority 4): render time exceeds client-ratio threshold of LCP.
+     * Improvement Area label (priority 3): a single asset is consuming > 40% of LCP time.
      */
-    public static final String BOTTLENECK_CLIENT = "Client rendering";
+    public static final String BOTTLENECK_RESOURCE = "Optimise Heavy Assets"; // CHANGED: renamed
+
     /**
-     * Bottleneck label (priority 5): layout count exceeds layout-thrash threshold × DOM nodes.
+     * Improvement Area label (priority 4): client-side rendering is consuming > 60% of LCP time.
      */
-    public static final String BOTTLENECK_LAYOUT = "Layout thrashing";
+    public static final String BOTTLENECK_CLIENT = "Reduce Render Work"; // CHANGED: renamed
+
     /**
-     * Bottleneck label (priority 6): no bottleneck condition matched.
+     * Improvement Area label (priority 5): excessive layout recalculations relative to DOM size.
      */
-    public static final String BOTTLENECK_NONE = "—";
+    public static final String BOTTLENECK_LAYOUT = "Reduce DOM Complexity"; // CHANGED: renamed
+
     /**
-     * Model index of the Label column (always visible).
+     * Improvement Area label when no condition fires — all load factors are proportional.
      */
+    public static final String BOTTLENECK_NONE = "None"; // CHANGED: renamed from "—"
+
+    // ── Stability category labels ─────────────────────────────────────────────────────────────
+    // CHANGED: new — CLS expressed as a human-readable category rather than raw decimal
+
+    /** CLS ≤ {@link #DEFAULT_SLA_CLS_GOOD} (0.10) — no perceptible layout shift. */
+    public static final String STABILITY_STABLE = "Stable";
+
+    /** CLS between good and poor thresholds — noticeable but within tolerable range. */
+    public static final String STABILITY_MINOR_SHIFTS = "Minor Shifts";
+
+    /** CLS > {@link #DEFAULT_SLA_CLS_POOR} (0.25) — disruptive layout shift. */
+    public static final String STABILITY_UNSTABLE = "Unstable";
+
+    // ── Column model indices (full 18-column model) ───────────────────────────────────────────
+    // CHANGED: 3 new always-visible columns added (Front, Stability, Headroom);
+    // Improvement Area shifted from 6 → 9; raw columns shifted from 7-14 → 10-17.
+
+    /** Model index of the Label column (always visible). */
     public static final int COL_IDX_LABEL = 0;
 
-    // ── Column model indices (full 15-column model) ───────────────────────────────────────────
-    /**
-     * Model index of the Samples column (always visible).
-     */
+    /** Model index of the Samples column (always visible). */
     public static final int COL_IDX_SAMPLES = 1;
-    /**
-     * Model index of the Score column (always visible).
-     */
+
+    /** Model index of the Score column (always visible). */
     public static final int COL_IDX_SCORE = 2;
-    /**
-     * Model index of the Render Time column (always visible).
-     */
+
+    /** Model index of the Render Time column — LCP − TTFB (always visible). */
     public static final int COL_IDX_RENDER_TIME = 3;
-    /**
-     * Model index of the Server Ratio column (always visible).
-     */
+
+    /** Model index of the Server Ratio column — TTFB/LCP % (always visible). */
     public static final int COL_IDX_SERVER_RATIO = 4;
-    /**
-     * Model index of the FCP-LCP Gap column (always visible).
-     */
-    public static final int COL_IDX_FCP_LCP_GAP = 5;
-    /**
-     * Model index of the Bottleneck column (always visible).
-     */
-    public static final int COL_IDX_BOTTLENECK = 6;
-    /**
-     * Model index of the FCP column (raw metric, off by default).
-     */
-    public static final int COL_IDX_FCP = 7;
-    /**
-     * Model index of the LCP column (raw metric, off by default).
-     */
-    public static final int COL_IDX_LCP = 8;
-    /**
-     * Model index of the CLS column (raw metric, off by default).
-     */
-    public static final int COL_IDX_CLS = 9;
-    /**
-     * Model index of the TTFB column (raw metric, off by default).
-     */
-    public static final int COL_IDX_TTFB = 10;
-    /**
-     * Model index of the Reqs column (raw metric, off by default).
-     */
-    public static final int COL_IDX_REQS = 11;
-    /**
-     * Model index of the Size column (raw metric, off by default).
-     */
-    public static final int COL_IDX_SIZE = 12;
-    /**
-     * Model index of the Errs column (raw metric, off by default).
-     */
-    public static final int COL_IDX_ERRS = 13;
-    /**
-     * Model index of the Warns column (raw metric, off by default).
-     */
-    public static final int COL_IDX_WARNS = 14;
-    /**
-     * Total number of columns in the full table model.
-     */
-    public static final int TOTAL_COLUMN_COUNT = 15;
-    /**
-     * Number of always-visible (derived + identity) columns.
-     */
-    public static final int ALWAYS_VISIBLE_COLUMN_COUNT = 7;
-    /**
-     * Number of raw metric columns that can be toggled via the column selector.
-     */
+
+    /** Model index of the Frontend Time column — FCP − TTFB (always visible). CHANGED: new */
+    public static final int COL_IDX_FRONTEND_TIME = 5;
+
+    /** Model index of the FCP-LCP Gap column — LCP − FCP (always visible). */
+    public static final int COL_IDX_FCP_LCP_GAP = 6;
+
+    /** Model index of the Stability column — CLS category (always visible). CHANGED: new */
+    public static final int COL_IDX_STABILITY = 7;
+
+    /** Model index of the Headroom column — LCP budget remaining % (always visible). CHANGED: new */
+    public static final int COL_IDX_HEADROOM = 8;
+
+    /** Model index of the Improvement Area column (always visible). CHANGED: renamed from COL_IDX_BOTTLENECK */
+    public static final int COL_IDX_IMPROVEMENT_AREA = 9;
+
+    /** @deprecated Use {@link #COL_IDX_IMPROVEMENT_AREA}. */
+    @Deprecated public static final int COL_IDX_BOTTLENECK = COL_IDX_IMPROVEMENT_AREA;
+
+    /** Model index of the FCP column (raw metric, off by default). */
+    public static final int COL_IDX_FCP = 10;   // CHANGED: shifted from 7
+
+    /** Model index of the LCP column (raw metric, off by default). */
+    public static final int COL_IDX_LCP = 11;   // CHANGED: shifted from 8
+
+    /** Model index of the CLS column (raw metric, off by default). */
+    public static final int COL_IDX_CLS = 12;   // CHANGED: shifted from 9
+
+    /** Model index of the TTFB column (raw metric, off by default). */
+    public static final int COL_IDX_TTFB = 13;  // CHANGED: shifted from 10
+
+    /** Model index of the Reqs column (raw metric, off by default). */
+    public static final int COL_IDX_REQS = 14;  // CHANGED: shifted from 11
+
+    /** Model index of the Size column (raw metric, off by default). */
+    public static final int COL_IDX_SIZE = 15;  // CHANGED: shifted from 12
+
+    /** Model index of the Errs column (raw metric, off by default). */
+    public static final int COL_IDX_ERRS = 16;  // CHANGED: shifted from 13
+
+    /** Model index of the Warns column (raw metric, off by default). */
+    public static final int COL_IDX_WARNS = 17; // CHANGED: shifted from 14
+
+    /** Total number of columns in the full table model. CHANGED: 15 → 18 */
+    public static final int TOTAL_COLUMN_COUNT = 18;
+
+    /** Number of always-visible (derived + identity) columns. CHANGED: 7 → 10 */
+    public static final int ALWAYS_VISIBLE_COLUMN_COUNT = 10;
+
+    /** Number of raw metric columns that can be toggled via the column selector. */
     public static final int RAW_COLUMN_COUNT = 8;
+
     /**
-     * Column headers for the 7 always-visible columns in display order.
-     * Indices align with {@code COL_IDX_LABEL} through {@code COL_IDX_BOTTLENECK}.
-     */
+     * Column headers for the 10 always-visible columns in display order.
+     * Indices align with {@code COL_IDX_LABEL} through {@code COL_IDX_IMPROVEMENT_AREA}.
+     */ // CHANGED: 7 → 10 headers
     public static final String[] ALWAYS_VISIBLE_HEADERS = {
-            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck"
+            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
+            "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area"
     };
+
     /**
      * Column headers for the 8 raw metric columns in display order.
      * Indices align with {@code COL_IDX_FCP} through {@code COL_IDX_WARNS}.
@@ -370,202 +389,278 @@ public final class BpmConstants {
     public static final String[] RAW_METRIC_HEADERS = {
             "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
+
     /**
-     * All 15 column headers in full model order (always-visible first, then raw).
-     * Index {@code i} corresponds to model column index {@code i}.
-     */
+     * All 18 column headers in full model order (always-visible first, then raw).
+     */ // CHANGED: 15 → 18 columns
     public static final String[] ALL_COLUMN_HEADERS = {
-            // Always visible (0-6)
-            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Bottleneck",
-            // Raw metrics (7-14)
+            // Always visible (0-9)
+            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
+            "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area",
+            // Raw metrics (10-17)
             "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
+
     /**
      * Default visibility for each of the 8 raw metric columns (index 0 = FCP … index 7 = Warns).
-     * All are {@code false} (OFF) by default; users opt-in via the column selector.
      */
     public static final boolean[] RAW_COLUMNS_DEFAULT_VISIBILITY = {
             false, false, false, false, false, false, false, false
     };
-    /**
-     * Tooltip for the Score column.
-     */
-    public static final String TOOLTIP_SCORE =
-            "Performance score (0-100). Based on Core Web Vitals weighted average";
 
-    // ── Column tooltips ───────────────────────────────────────────────────────────────────────
-    /**
-     * Tooltip for the Render Time column.
-     */
+    // ── Column header tooltips ────────────────────────────────────────────────────────────────
+
+    /** Tooltip for the Score column. */
+    public static final String TOOLTIP_SCORE =
+            "Performance score (0-100). Weighted average of Core Web Vitals against SLA thresholds. Null for SPA actions where LCP/FCP/TTFB are not applicable.";
+
+    /** Tooltip for the Render Time column. */
     public static final String TOOLTIP_RENDER_TIME =
-            "Render Time = LCP − TTFB. Pure client-side rendering duration";
-    /**
-     * Tooltip for the Server Ratio column.
-     */
+            "Render Time = LCP \u2212 TTFB. Time spent on client-side rendering after the server responded.";
+
+    /** Tooltip for the Server Ratio column. */
     public static final String TOOLTIP_SERVER_RATIO =
-            "Server ratio = (TTFB ÷ LCP) × 100. Higher = server is the bottleneck";
-    /**
-     * Tooltip for the FCP-LCP Gap column.
-     */
+            "Server Ratio = (TTFB \u00f7 LCP) \u00d7 100. Percentage of LCP time attributable to server response. Higher = more server-dominated.";
+
+    /** Tooltip for the Frontend Time column. CHANGED: new */
+    public static final String TOOLTIP_FRONTEND_TIME =
+            "Frontend Time = FCP \u2212 TTFB. Time the browser spent parsing HTML and executing blocking scripts before showing any content. Large values indicate render-blocking resources.";
+
+    /** Tooltip for the FCP-LCP Gap column. */
     public static final String TOOLTIP_FCP_LCP_GAP =
-            "FCP to LCP gap. Large gap = main content loads much later than first paint";
-    /**
-     * Tooltip for the Bottleneck column.
-     */
-    public static final String TOOLTIP_BOTTLENECK =
-            "Primary performance bottleneck detected for this label";
-    /**
-     * Tooltip for the FCP column.
-     */
+            "FCP\u2013LCP Gap = LCP \u2212 FCP. Time between first paint and largest paint. Large gap = main content loads much later than initial paint, suggesting lazy-loaded or blocking content.";
+
+    /** Tooltip for the Stability column. CHANGED: new */
+    public static final String TOOLTIP_STABILITY =
+            "Visual Stability based on Cumulative Layout Shift (CLS). Stable = CLS \u2264 0.10 (good). Minor Shifts = CLS 0.10\u20130.25 (needs work). Unstable = CLS > 0.25 (poor).";
+
+    /** Tooltip for the Headroom column. CHANGED: new */
+    public static final String TOOLTIP_HEADROOM =
+            "LCP Performance Budget Remaining. Percentage of LCP budget left before hitting the Poor threshold. Trending toward 0% means the action is at risk of SLA breach under load.";
+
+    /** Tooltip for the Improvement Area column. CHANGED: renamed + reworded */
+    public static final String TOOLTIP_IMPROVEMENT_AREA =
+            "Improvement Area: identifies the biggest factor consuming load time for this action. Where to focus if performance needs to improve further. Not a failure indicator \u2014 present even when Score is 100.";
+
+    /** @deprecated Use {@link #TOOLTIP_IMPROVEMENT_AREA}. */
+    @Deprecated public static final String TOOLTIP_BOTTLENECK = TOOLTIP_IMPROVEMENT_AREA;
+
+    /** Tooltip for the FCP column. */
     public static final String TOOLTIP_FCP =
-            "First Contentful Paint. Time until first text/image is visible";
-    /**
-     * Tooltip for the LCP column.
-     */
+            "First Contentful Paint. Time until first text or image is visible.";
+
+    /** Tooltip for the LCP column. */
     public static final String TOOLTIP_LCP =
-            "Largest Contentful Paint. Time until the largest visible element renders";
-    /**
-     * Tooltip for the CLS column.
-     */
+            "Largest Contentful Paint. Time until the largest visible element renders.";
+
+    /** Tooltip for the CLS column. */
     public static final String TOOLTIP_CLS =
-            "Cumulative Layout Shift. Visual stability score (lower is better)";
-    /**
-     * Tooltip for the TTFB column.
-     */
+            "Cumulative Layout Shift score (raw). Lower is better. See Stability column for categorised view.";
+
+    /** Tooltip for the TTFB column. */
     public static final String TOOLTIP_TTFB =
-            "Time To First Byte. Server response time";
-    /**
-     * Tooltip for the Reqs column.
-     */
+            "Time To First Byte. Server response time from request sent to first byte received.";
+
+    /** Tooltip for the Reqs column. */
     public static final String TOOLTIP_REQS =
-            "Average number of network requests per action";
-    /**
-     * Tooltip for the Size column.
-     */
+            "Average number of network requests per action.";
+
+    /** Tooltip for the Size column. */
     public static final String TOOLTIP_SIZE =
-            "Average total transfer size per action";
-    /**
-     * Tooltip for the Errs column.
-     */
+            "Average total transfer size per action in kilobytes.";
+
+    /** Tooltip for the Errs column. */
     public static final String TOOLTIP_ERRS =
-            "Total JavaScript errors in browser console";
-    /**
-     * Tooltip for the Warns column.
-     */
+            "Total JavaScript errors captured from the browser console.";
+
+    /** Tooltip for the Warns column. */
     public static final String TOOLTIP_WARNS =
-            "Total JavaScript warnings in browser console";
+            "Total JavaScript warnings captured from the browser console.";
+
+    // ── Improvement Area value tooltips ──────────────────────────────────────────────────────
+    // CHANGED: new — shown on cell hover in the Improvement Area column
+
+    /** Cell tooltip for {@link #BOTTLENECK_NONE}. */
+    public static final String VALUE_TOOLTIP_NONE =
+            "All load factors are within proportion. No specific area needs attention.";
+
+    /** Cell tooltip for {@link #BOTTLENECK_RELIABILITY}. */
+    public static final String VALUE_TOOLTIP_RELIABILITY =
+            "One or more network requests failed (4xx/5xx or connection error). Investigate failing endpoints before optimising anything else.";
+
+    /** Cell tooltip for {@link #BOTTLENECK_SERVER}. */
+    public static final String VALUE_TOOLTIP_SERVER =
+            "Time To First Byte is consuming more than 60% of LCP time. Consider server-side caching, CDN placement, or backend query optimisation.";
+
+    /** Cell tooltip for {@link #BOTTLENECK_RESOURCE}. */
+    public static final String VALUE_TOOLTIP_RESOURCE =
+            "A single asset (script, image, or third-party resource) is consuming more than 40% of LCP time. Compress, lazy-load, or defer it.";
+
+    /** Cell tooltip for {@link #BOTTLENECK_CLIENT}. */
+    public static final String VALUE_TOOLTIP_CLIENT =
+            "Client-side rendering is consuming more than 60% of LCP time. Reduce JavaScript execution, defer non-critical scripts, or optimise the critical rendering path.";
+
+    /** Cell tooltip for {@link #BOTTLENECK_LAYOUT}. */
+    public static final String VALUE_TOOLTIP_LAYOUT =
+            "Excessive layout recalculations detected relative to DOM size. Avoid reading and writing DOM layout properties in the same frame, and reduce DOM depth.";
+
+    // ── Stability value tooltips ──────────────────────────────────────────────────────────────
+    // CHANGED: new — shown on cell hover in the Stability column
+
+    /** Cell tooltip for {@link #STABILITY_STABLE}. */
+    public static final String VALUE_TOOLTIP_STABLE =
+            "CLS \u2264 0.10. No perceptible layout shift. Visual stability is good.";
+
+    /** Cell tooltip for {@link #STABILITY_MINOR_SHIFTS}. */
+    public static final String VALUE_TOOLTIP_MINOR_SHIFTS =
+            "CLS 0.10\u20130.25. Noticeable layout shift. Users may lose their place on the page.";
+
+    /** Cell tooltip for {@link #STABILITY_UNSTABLE}. */
+    public static final String VALUE_TOOLTIP_UNSTABLE =
+            "CLS > 0.25. Disruptive layout shift. Elements visibly jump as the page loads.";
+
     /**
-     * LCP contribution to the composite performance score: 40%.
-     */
-    public static final double SCORE_WEIGHT_LCP = 0.40;
+     * Returns the header tooltip for the given full-model column index.
+     *
+     * @param modelColumnIndex column index in the 18-column full model (0-based)
+     * @return tooltip text, or {@code null} for Label and Samples (no tooltip)
+     */ // CHANGED: updated for 18-column model
+    public static String getTooltip(int modelColumnIndex) {
+        return switch (modelColumnIndex) {
+            case COL_IDX_SCORE            -> TOOLTIP_SCORE;
+            case COL_IDX_RENDER_TIME      -> TOOLTIP_RENDER_TIME;
+            case COL_IDX_SERVER_RATIO     -> TOOLTIP_SERVER_RATIO;
+            case COL_IDX_FRONTEND_TIME    -> TOOLTIP_FRONTEND_TIME;
+            case COL_IDX_FCP_LCP_GAP      -> TOOLTIP_FCP_LCP_GAP;
+            case COL_IDX_STABILITY        -> TOOLTIP_STABILITY;
+            case COL_IDX_HEADROOM         -> TOOLTIP_HEADROOM;
+            case COL_IDX_IMPROVEMENT_AREA -> TOOLTIP_IMPROVEMENT_AREA;
+            case COL_IDX_FCP              -> TOOLTIP_FCP;
+            case COL_IDX_LCP              -> TOOLTIP_LCP;
+            case COL_IDX_CLS              -> TOOLTIP_CLS;
+            case COL_IDX_TTFB             -> TOOLTIP_TTFB;
+            case COL_IDX_REQS             -> TOOLTIP_REQS;
+            case COL_IDX_SIZE             -> TOOLTIP_SIZE;
+            case COL_IDX_ERRS             -> TOOLTIP_ERRS;
+            case COL_IDX_WARNS            -> TOOLTIP_WARNS;
+            default -> null;
+        };
+    }
+
     /**
-     * FCP contribution to the composite performance score: 15%.
-     */
-    public static final double SCORE_WEIGHT_FCP = 0.15;
+     * Returns the cell-level tooltip for a value in the Improvement Area column,
+     * or {@code null} if the value is unrecognised.
+     *
+     * @param value the improvement area label string
+     * @return tooltip explaining what the label means and how to act on it
+     */ // CHANGED: new — value-level tooltips for Improvement Area column
+    public static String getImprovementAreaValueTooltip(String value) {
+        if (value == null) return null;
+        return switch (value) {
+            case "None"                    -> VALUE_TOOLTIP_NONE;
+            case "Fix Network Failures"    -> VALUE_TOOLTIP_RELIABILITY;
+            case "Reduce Server Response"  -> VALUE_TOOLTIP_SERVER;
+            case "Optimise Heavy Assets"   -> VALUE_TOOLTIP_RESOURCE;
+            case "Reduce Render Work"      -> VALUE_TOOLTIP_CLIENT;
+            case "Reduce DOM Complexity"   -> VALUE_TOOLTIP_LAYOUT;
+            default -> null;
+        };
+    }
+
+    /**
+     * Returns the cell-level tooltip for a value in the Stability column,
+     * or {@code null} if the value is unrecognised.
+     *
+     * @param value the stability category string
+     * @return tooltip explaining the CLS range represented by this category
+     */ // CHANGED: new — value-level tooltips for Stability column
+    public static String getStabilityValueTooltip(String value) {
+        if (value == null) return null;
+        return switch (value) {
+            case "Stable"        -> VALUE_TOOLTIP_STABLE;
+            case "Minor Shifts"  -> VALUE_TOOLTIP_MINOR_SHIFTS;
+            case "Unstable"      -> VALUE_TOOLTIP_UNSTABLE;
+            default -> null;
+        };
+    }
 
     // ── Performance score weights ─────────────────────────────────────────────────────────────
-    /**
-     * CLS contribution to the composite performance score: 15%.
-     */
+    // NOTE: These were accidentally omitted in the last edit — restored here.
+
+    /** LCP contribution to the composite performance score: 40%. */
+    public static final double SCORE_WEIGHT_LCP = 0.40;
+
+    /** FCP contribution to the composite performance score: 15%. */
+    public static final double SCORE_WEIGHT_FCP = 0.15;
+
+    /** CLS contribution to the composite performance score: 15%. */
     public static final double SCORE_WEIGHT_CLS = 0.15;
-    /**
-     * TTFB contribution to the composite performance score: 15%.
-     */
+
+    /** TTFB contribution to the composite performance score: 15%. */
     public static final double SCORE_WEIGHT_TTFB = 0.15;
-    /**
-     * JS error count contribution to the composite performance score: 15%.
-     */
+
+    /** JS error count contribution to the composite performance score: 15%. */
     public static final double SCORE_WEIGHT_ERRORS = 0.15;
+
     /**
-     * Default info-bar text shown before any test runs.
+     * Minimum total metric weight required to produce a non-null performance score.
+     * SPA-stale samples have CLS(0.15) + errors(0.15) = 0.30, which is below this
+     * threshold, so their score is {@code null} instead of a misleading 100.
      */
-    public static final String INFO_DEFAULT =
-            "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
-                    + " Chrome DevTools Protocol."; // CHANGED: Gap 4 — [Help ↗] moved to a separate clickable button
-    /**
-     * URL opened by the Help button in the info bar.
-     */
-    public static final String HELP_URL =
-            "https://github.com/sagaraggarwal86/BPM-jmeter-plugin#readme"; // CHANGED: Gap 4
+    public static final double SCORE_MIN_WEIGHT = 0.45;
 
     // ── GUI info-bar state messages ───────────────────────────────────────────────────────────
-    /**
-     * Info-bar text shown when Selenium/WebDriver classes are absent from the classpath
-     * (Scenario A).
-     */
+
+    /** Info-bar text shown before any test runs. */
+    public static final String INFO_DEFAULT =
+            "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
+                    + " Chrome DevTools Protocol.";
+
+    /** URL opened by the Help button in the info bar. */
+    public static final String HELP_URL =
+            "https://github.com/sagaraggarwal86/BPM-jmeter-plugin#readme";
+
+    /** Info-bar text shown when Selenium/WebDriver classes are absent (Scenario A). */
     public static final String INFO_NO_SELENIUM =
             "\u26A0 Selenium/WebDriver Support plugin not found."
                     + " Install it via JMeter Plugins Manager.";
-    /**
-     * Info-bar text shown when no WebDriver Sampler data has arrived yet (Scenario B).
-     */
+
+    /** Info-bar text shown when no WebDriver Sampler data has arrived yet (Scenario B). */
     public static final String INFO_WAITING = "Waiting for WebDriver Sampler data...";
-    /**
-     * Info-bar text shown when all active threads use a non-Chrome browser (Scenario C).
-     */
+
+    /** Info-bar text shown when all active threads use a non-Chrome browser (Scenario C). */
     public static final String INFO_NON_CHROME =
             "\u26A0 Non-Chrome browser detected. CDP metrics require Chrome/Chromium.";
-    /**
-     * Info-bar text shown once the first BpmResult arrives and collection is active.
-     */
+
+    /** Info-bar text shown once the first BpmResult arrives and collection is active. */
     public static final String INFO_COLLECTING = "\u2139 Collecting...";
-    /**
-     * Classpath location of the bundled default properties template inside the JAR.
-     */
-    public static final String DEFAULT_PROPERTIES_RESOURCE = "/bpm-default.properties";
-    /**
-     * File name for the BPM properties file, placed under {@code <JMETER_HOME>/bin/}.
-     */
-    public static final String PROPERTIES_FILENAME = "bpm.properties";
 
     // ── Resource paths ────────────────────────────────────────────────────────────────────────
+
+    /** Classpath location of the bundled default properties template inside the JAR. */
+    public static final String DEFAULT_PROPERTIES_RESOURCE = "/bpm-default.properties";
+
+    /** File name for the BPM properties file, placed under {@code <JMETER_HOME>/bin/}. */
+    public static final String PROPERTIES_FILENAME = "bpm.properties";
+
     /**
      * First-line prefix of the properties file used to detect the embedded version string.
      * Format: {@code # Browser Performance Metrics (BPM) vX.Y}.
      */
     public static final String PROPERTIES_VERSION_PREFIX = "# Browser Performance Metrics (BPM) v";
-    /**
-     * Number of JSONL records written before the BufferedWriter is flushed to disk.
-     */
-    public static final int JSONL_FLUSH_INTERVAL = 10;
-    /**
-     * Interval in milliseconds between GUI live-update timer ticks.
-     */
-    public static final int GUI_UPDATE_INTERVAL_MS = 500;
 
     // ── I/O constants ─────────────────────────────────────────────────────────────────────────
-    /**
-     * Suffix of backup files created when the properties version is upgraded.
-     */
+
+    /** Number of JSONL records written before the BufferedWriter is flushed to disk. */
+    public static final int JSONL_FLUSH_INTERVAL = 10;
+
+    /** Interval in milliseconds between GUI live-update timer ticks. */
+    public static final int GUI_UPDATE_INTERVAL_MS = 500;
+
+    /** Suffix of backup files created when the properties version is upgraded. */
     public static final String PROPERTIES_BACKUP_SUFFIX = ".bak";
 
     private BpmConstants() {
         throw new UnsupportedOperationException("BpmConstants is a utility class");
-    }
-
-    /**
-     * Returns the tooltip text for the given full-model column index, or {@code null} for columns
-     * that have no tooltip (Label = index 0, Samples = index 1).
-     *
-     * @param modelColumnIndex column index in the 15-column full model (0-based)
-     * @return tooltip text, or {@code null} if the column has no tooltip
-     */
-    public static String getTooltip(int modelColumnIndex) {
-        return switch (modelColumnIndex) {
-            case COL_IDX_SCORE -> TOOLTIP_SCORE;
-            case COL_IDX_RENDER_TIME -> TOOLTIP_RENDER_TIME;
-            case COL_IDX_SERVER_RATIO -> TOOLTIP_SERVER_RATIO;
-            case COL_IDX_FCP_LCP_GAP -> TOOLTIP_FCP_LCP_GAP;
-            case COL_IDX_BOTTLENECK -> TOOLTIP_BOTTLENECK;
-            case COL_IDX_FCP -> TOOLTIP_FCP;
-            case COL_IDX_LCP -> TOOLTIP_LCP;
-            case COL_IDX_CLS -> TOOLTIP_CLS;
-            case COL_IDX_TTFB -> TOOLTIP_TTFB;
-            case COL_IDX_REQS -> TOOLTIP_REQS;
-            case COL_IDX_SIZE -> TOOLTIP_SIZE;
-            case COL_IDX_ERRS -> TOOLTIP_ERRS;
-            case COL_IDX_WARNS -> TOOLTIP_WARNS;
-            default -> null; // Label and Samples have no tooltip
-        };
     }
 }

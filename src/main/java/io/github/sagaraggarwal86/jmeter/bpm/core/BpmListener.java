@@ -1,20 +1,11 @@
 package io.github.sagaraggarwal86.jmeter.bpm.core;
 
-import io.github.sagaraggarwal86.jmeter.bpm.collectors.ConsoleCollector;
-import io.github.sagaraggarwal86.jmeter.bpm.collectors.DerivedMetricsCalculator;
-import io.github.sagaraggarwal86.jmeter.bpm.collectors.NetworkCollector;
-import io.github.sagaraggarwal86.jmeter.bpm.collectors.RuntimeCollector;
-import io.github.sagaraggarwal86.jmeter.bpm.collectors.WebVitalsCollector;
+import io.github.sagaraggarwal86.jmeter.bpm.collectors.*;
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
 import io.github.sagaraggarwal86.jmeter.bpm.error.BpmErrorHandler;
 import io.github.sagaraggarwal86.jmeter.bpm.error.LogOnceTracker;
 import io.github.sagaraggarwal86.jmeter.bpm.gui.BpmListenerGui; // CHANGED: §5.5 — GUI lifecycle wiring
-import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
-import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.RuntimeResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
+import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.output.JsonlWriter;
 import io.github.sagaraggarwal86.jmeter.bpm.output.SummaryJsonWriter;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
@@ -156,6 +147,7 @@ public class BpmListener extends AbstractTestElement
         webVitalsCollector.reset(); // CHANGED: §3.5 — explicit reset guards against future singleton reuse
         networkCollector = new NetworkCollector(propertiesManager.getNetworkTopN());
         runtimeCollector = new RuntimeCollector();
+        runtimeCollector.reset(); // CHANGED: per-action accuracy — clears per-thread layout/styleRecalc baselines
         consoleCollector = new ConsoleCollector(consoleSanitizer);
         derivedCalculator = new DerivedMetricsCalculator(propertiesManager);
 
@@ -549,8 +541,13 @@ public class BpmListener extends AbstractTestElement
             // Transfer browser-side buffered events to Java-side MetricsBuffer
             sessionManager.transferBufferedEvents(executor, buffer);
 
-            // Re-inject observers if page navigation destroyed the JavaScript context // CHANGED: post-navigation observer re-injection
-            sessionManager.ensureObserversInjected(executor);
+            // Re-inject observers if page navigation destroyed the JavaScript context. // CHANGED: post-navigation observer re-injection
+            // Returns true if a navigation was detected — used to reset per-thread delta baselines.
+            boolean navigated = sessionManager.ensureObserversInjected(executor); // CHANGED: per-action accuracy
+            if (navigated) { // CHANGED: per-action accuracy — reset collector baselines so deltas start fresh on new page
+                webVitalsCollector.resetThreadState(threadName);
+                runtimeCollector.resetThreadState(threadName);
+            }
 
             // Collect raw metrics per enabled tier
             long t0, vitalsMs = 0, networkMs = 0, runtimeMs = 0, consoleMs = 0;
@@ -592,7 +589,7 @@ public class BpmListener extends AbstractTestElement
                     vitals, network, runtime, console, sampleResult.getTime());
 
             debugLogger.logDerivedMetrics(sampleResult.getSampleLabel(),
-                    derived.performanceScore(), derived.bottleneck());
+                    derived.performanceScore(), derived.improvementArea());
 
             // Build BpmResult
             int iteration = iterationsByThread
@@ -707,9 +704,9 @@ public class BpmListener extends AbstractTestElement
             LabelAggregate agg = entry.getValue();
             Map<String, Object> stat = new HashMap<>();
             stat.put("label", entry.getKey());
-            stat.put("score", agg.getAverageScore());
+            stat.put("score", agg.getAverageScore()); // null when no scored samples — serializes as JSON null // CHANGED: per-action accuracy
             stat.put("lcp", agg.getAverageLcp());
-            stat.put("bottleneck", agg.getPrimaryBottleneck());
+            stat.put("bottleneck", agg.getPrimaryImprovementArea()); // CHANGED: renamed accessor
             stat.put("samples", agg.getSampleCount());
             labelStats.add(stat);
         }
@@ -737,6 +734,7 @@ public class BpmListener extends AbstractTestElement
 
         int totalSamples = 0;
         long totalWeightedScore = 0;
+        int totalScoredSamples = 0; // CHANGED: per-action accuracy — only count samples with non-null score
         long totalWeightedRender = 0;
         double totalWeightedRatio = 0;
         long totalWeightedGap = 0;
@@ -744,27 +742,34 @@ public class BpmListener extends AbstractTestElement
         for (Map.Entry<String, LabelAggregate> entry : labelAggregates.entrySet()) {
             LabelAggregate agg = entry.getValue();
             int samples = agg.getSampleCount();
-            int score = agg.getAverageScore();
+            Integer score = agg.getAverageScore(); // CHANGED: per-action accuracy — nullable
+            String scoreStr = score != null ? String.valueOf(score) : "—"; // CHANGED: per-action accuracy
             long renderTime = agg.getAverageRenderTime();
             double serverRatio = agg.getAverageServerRatio();
             long fcpLcpGap = agg.getAverageFcpLcpGap();
-            String bottleneck = agg.getPrimaryBottleneck();
+            String improvementArea = agg.getPrimaryImprovementArea(); // CHANGED: renamed
 
-            log.info(String.format("%-15s | %7d | %5d | %8d | %6.2f%% | %7d | %s",
-                    truncateLabel(entry.getKey()), samples, score, renderTime,
-                    serverRatio, fcpLcpGap, bottleneck));
+            log.info(String.format("%-15s | %7d | %5s | %8d | %6.2f%% | %7d | %s",
+                    truncateLabel(entry.getKey()), samples, scoreStr, renderTime,
+                    serverRatio, fcpLcpGap, improvementArea)); // CHANGED: renamed
 
             totalSamples += samples;
-            totalWeightedScore += (long) score * samples;
+            if (score != null) { // CHANGED: per-action accuracy — only aggregate non-null scores
+                totalWeightedScore += (long) score * samples;
+                totalScoredSamples += samples;
+            }
             totalWeightedRender += renderTime * samples;
             totalWeightedRatio += serverRatio * samples;
             totalWeightedGap += fcpLcpGap * samples;
         }
 
         if (totalSamples > 0) {
-            log.info(String.format("%-15s | %7d | %5d | %8d | %6.2f%% | %7d |",
+            String totalScoreStr = totalScoredSamples > 0 // CHANGED: per-action accuracy
+                    ? String.valueOf((int) (totalWeightedScore / totalScoredSamples))
+                    : "—";
+            log.info(String.format("%-15s | %7d | %5s | %8d | %6.2f%% | %7d |",
                     "TOTAL", totalSamples,
-                    (int) (totalWeightedScore / totalSamples),
+                    totalScoreStr, // CHANGED: per-action accuracy
                     totalWeightedRender / totalSamples,
                     totalWeightedRatio / totalSamples,
                     totalWeightedGap / totalSamples));
@@ -819,6 +824,7 @@ public class BpmListener extends AbstractTestElement
 
         private int sampleCount;
         private long totalScore;
+        private int scoredSampleCount; // CHANGED: per-action accuracy — counts only samples with non-null score
         private long totalRenderTime;
         private double totalServerRatio;
         private long totalFcpLcpGap;
@@ -830,7 +836,19 @@ public class BpmListener extends AbstractTestElement
         private long totalBytes;
         private int totalErrors;
         private int totalWarnings;
-        private String lastBottleneck = BpmConstants.BOTTLENECK_NONE;
+        private String lastImprovementArea = BpmConstants.BOTTLENECK_NONE; // CHANGED: renamed
+
+        // CHANGED: per-metric non-null counters
+        private int lcpCount;
+        private int fcpCount;
+        private int ttfbCount;
+        private int clsCount;
+
+        // CHANGED: new derived metric tracking
+        private long totalFrontendTime;
+        private int frontendTimeCount;
+        private long totalHeadroom;
+        private int headroomCount;
 
         /**
          * Updates the aggregate with a new sample's derived and raw metrics.
@@ -838,16 +856,31 @@ public class BpmListener extends AbstractTestElement
         public synchronized void update(DerivedMetrics derived, WebVitalsResult vitals,
                                         NetworkResult network, ConsoleResult console) {
             sampleCount++;
-            totalScore += derived.performanceScore();
             totalRenderTime += derived.renderTime();
             totalServerRatio += derived.serverClientRatio();
             totalFcpLcpGap += derived.fcpLcpGap();
 
+            // Accumulate score only when non-null — SPA-stale samples return null // CHANGED: per-action accuracy
+            if (derived.performanceScore() != null) {
+                totalScore += derived.performanceScore();
+                scoredSampleCount++;
+            }
+
+            // Accumulate new derived fields when non-null // CHANGED: new columns
+            if (derived.frontendTime() != null) {
+                totalFrontendTime += derived.frontendTime();
+                frontendTimeCount++;
+            }
+            if (derived.headroom() != null) {
+                totalHeadroom += derived.headroom();
+                headroomCount++;
+            }
+
             if (vitals != null) {
-                totalLcp  += vitals.lcp()  != null ? vitals.lcp()  : 0L; // CHANGED: null-safe unboxing (§3.2)
-                totalFcp  += vitals.fcp()  != null ? vitals.fcp()  : 0L;
-                totalTtfb += vitals.ttfb() != null ? vitals.ttfb() : 0L;
-                totalCls  += vitals.cls()  != null ? vitals.cls()  : 0.0;
+                if (vitals.lcp() != null)  { totalLcp  += vitals.lcp();  lcpCount++;  }
+                if (vitals.fcp() != null)  { totalFcp  += vitals.fcp();  fcpCount++;  }
+                if (vitals.ttfb() != null) { totalTtfb += vitals.ttfb(); ttfbCount++; }
+                if (vitals.cls() != null)  { totalCls  += vitals.cls();  clsCount++;  }
             }
             if (network != null) {
                 totalRequests += network.totalRequests();
@@ -858,18 +891,21 @@ public class BpmListener extends AbstractTestElement
                 totalWarnings += console.warnings();
             }
 
-            // Track the most recent bottleneck as representative
-            if (!BpmConstants.BOTTLENECK_NONE.equals(derived.bottleneck())) {
-                lastBottleneck = derived.bottleneck();
+            // Track the most recent non-None improvement area as representative // CHANGED: renamed
+            if (!BpmConstants.BOTTLENECK_NONE.equals(derived.improvementArea())) {
+                lastImprovementArea = derived.improvementArea();
             }
         }
 
         /** @return number of samples collected for this label */
         public synchronized int getSampleCount() { return sampleCount; }
 
-        /** @return weighted average performance score */
-        public synchronized int getAverageScore() {
-            return sampleCount > 0 ? (int) (totalScore / sampleCount) : 0;
+        /**
+         * @return weighted average performance score, or {@code null} if no sample
+         *         for this label had enough metric data to produce a score
+         */
+        public synchronized Integer getAverageScore() {
+            return scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : null;
         }
 
         /** @return average render time in ms */
@@ -887,24 +923,34 @@ public class BpmListener extends AbstractTestElement
             return sampleCount > 0 ? totalFcpLcpGap / sampleCount : 0;
         }
 
-        /** @return average LCP in ms */
+        /** @return average frontend time in ms, over samples with FCP+TTFB data only */ // CHANGED: new
+        public synchronized Long getAverageFrontendTime() {
+            return frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : null;
+        }
+
+        /** @return average headroom %, over samples with LCP data only */ // CHANGED: new
+        public synchronized Integer getAverageHeadroom() {
+            return headroomCount > 0 ? (int) (totalHeadroom / headroomCount) : null;
+        }
+
+        /** @return average LCP in ms, over non-null samples only */
         public synchronized long getAverageLcp() {
-            return sampleCount > 0 ? totalLcp / sampleCount : 0;
+            return lcpCount > 0 ? totalLcp / lcpCount : 0;
         }
 
-        /** @return average FCP in ms */
+        /** @return average FCP in ms, over non-null samples only */
         public synchronized long getAverageFcp() {
-            return sampleCount > 0 ? totalFcp / sampleCount : 0;
+            return fcpCount > 0 ? totalFcp / fcpCount : 0;
         }
 
-        /** @return average TTFB in ms */
+        /** @return average TTFB in ms, over non-null samples only */
         public synchronized long getAverageTtfb() {
-            return sampleCount > 0 ? totalTtfb / sampleCount : 0;
+            return ttfbCount > 0 ? totalTtfb / ttfbCount : 0;
         }
 
-        /** @return average CLS */
+        /** @return average CLS, over non-null samples only */
         public synchronized double getAverageCls() {
-            return sampleCount > 0 ? totalCls / sampleCount : 0.0;
+            return clsCount > 0 ? totalCls / clsCount : 0.0;
         }
 
         /** @return average requests per sample */
@@ -923,7 +969,7 @@ public class BpmListener extends AbstractTestElement
         /** @return cumulative warning count */
         public synchronized int getTotalWarnings() { return totalWarnings; }
 
-        /** @return the most recently seen non-none bottleneck label */
-        public synchronized String getPrimaryBottleneck() { return lastBottleneck; }
+        /** @return the most recently seen non-None improvement area label */ // CHANGED: renamed
+        public synchronized String getPrimaryImprovementArea() { return lastImprovementArea; }
     }
 }

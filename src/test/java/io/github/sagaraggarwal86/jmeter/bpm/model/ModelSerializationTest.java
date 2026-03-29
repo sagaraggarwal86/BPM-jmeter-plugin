@@ -1,6 +1,7 @@
 package io.github.sagaraggarwal86.jmeter.bpm.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED: renamed bottleneck constants
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +26,9 @@ class ModelSerializationTest {
                 List.of(new ResourceEntry("/static/dashboard.js", 290, 225000, 120)));
         RuntimeResult runtime = new RuntimeResult(18400000L, 1847, 12, 8);
         ConsoleResult console = new ConsoleResult(0, 1, List.of("Deprecation warning: ..."));
-        DerivedMetrics derived = new DerivedMetrics(800, 32.20, 760, 0.0,
-                "Client rendering", List.of("Client rendering"), 82);
+        DerivedMetrics derived = new DerivedMetrics(800L, 32.20, null, 760L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
+                List.of(BpmConstants.BOTTLENECK_CLIENT), 82); // CHANGED: 10-arg constructor, renamed fields
 
         BpmResult original = new BpmResult("1.0", "2026-03-26T14:30:22.451Z",
                 "Thread Group 1-1", 3, "Login Page", true, 2340,
@@ -100,8 +102,9 @@ class ModelSerializationTest {
     @Test
     @DisplayName("DerivedMetrics serverClientRatio preserves 2 decimal precision")
     void derivedMetrics_serverClientRatio_twoDecimalPrecision() throws Exception {
-        DerivedMetrics original = new DerivedMetrics(800, 32.20, 760, 0.0,
-                "Client rendering", List.of("Client rendering"), 82);
+        DerivedMetrics original = new DerivedMetrics(800L, 32.20, null, 760L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
+                List.of(BpmConstants.BOTTLENECK_CLIENT), 82); // CHANGED: 10-arg constructor
 
         String json = mapper.writeValueAsString(original);
         DerivedMetrics result = mapper.readValue(json, DerivedMetrics.class);
@@ -110,17 +113,18 @@ class ModelSerializationTest {
     }
 
     @Test
-    @DisplayName("DerivedMetrics bottlenecks array survives roundtrip")
-    void derivedMetrics_bottlenecksArray_preserved() throws Exception {
-        DerivedMetrics original = new DerivedMetrics(800, 32.20, 760, 5.0,
-                "Reliability issue", List.of("Reliability issue", "Server bottleneck"), 45);
+    @DisplayName("DerivedMetrics improvementAreas array survives roundtrip") // CHANGED: renamed
+    void derivedMetrics_improvementAreasArray_preserved() throws Exception {
+        DerivedMetrics original = new DerivedMetrics(800L, 32.20, null, 760L,
+                null, null, 5.0, BpmConstants.BOTTLENECK_RELIABILITY,
+                List.of(BpmConstants.BOTTLENECK_RELIABILITY, BpmConstants.BOTTLENECK_SERVER), 45); // CHANGED: 10-arg constructor
 
         String json = mapper.writeValueAsString(original);
         DerivedMetrics result = mapper.readValue(json, DerivedMetrics.class);
 
-        assertEquals("Reliability issue", result.bottleneck());
-        assertEquals(2, result.bottlenecks().size());
-        assertEquals("Server bottleneck", result.bottlenecks().get(1));
+        assertEquals(BpmConstants.BOTTLENECK_RELIABILITY, result.improvementArea()); // CHANGED: renamed accessor
+        assertEquals(2, result.improvementAreas().size()); // CHANGED: renamed accessor
+        assertEquals(BpmConstants.BOTTLENECK_SERVER, result.improvementAreas().get(1)); // CHANGED: renamed accessor
     }
 
     @Test

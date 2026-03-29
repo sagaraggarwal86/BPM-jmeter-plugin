@@ -97,29 +97,37 @@ public final class SummaryJsonWriter {
 
         int totalSamples = 0;
         long totalWeightedScore = 0;
+        int totalScoredSamples = 0; // CHANGED: per-action accuracy — only labels with non-null score contribute
         int slaBreaches = 0;
         ArrayNode detailsArray = objectMapper.createArrayNode();
 
         for (Map<String, Object> stat : labelStats) {
             String label = (String) stat.get("label");
-            int score = ((Number) stat.get("score")).intValue();
+            Number scoreNum = (Number) stat.get("score"); // CHANGED: per-action accuracy — nullable
             long lcp = ((Number) stat.get("lcp")).longValue();
             String bottleneck = (String) stat.get("bottleneck");
             int samples = ((Number) stat.get("samples")).intValue();
 
             totalSamples += samples;
-            totalWeightedScore += (long) score * samples;
+            if (scoreNum != null) { // CHANGED: per-action accuracy — skip null scores in weighted average
+                totalWeightedScore += (long) scoreNum.intValue() * samples;
+                totalScoredSamples += samples;
+            }
 
-            boolean lcpBreached = lcp > slaLcpPoor;
+            boolean lcpBreached = lcp > 0 && lcp > slaLcpPoor; // CHANGED: lcp=0 means no data, not a fast response
             if (lcpBreached) {
                 slaBreaches++;
             }
 
             ObjectNode detail = objectMapper.createObjectNode();
             detail.put("label", label);
-            detail.put("score", score);
+            if (scoreNum != null) { // CHANGED: per-action accuracy — omit score from JSON when null (insufficient data)
+                detail.put("score", scoreNum.intValue());
+            } else {
+                detail.putNull("score");
+            }
             detail.put("lcp", lcp);
-            detail.put("lcpVerdict", lcpBreached ? "FAIL" : "PASS");
+            detail.put("lcpVerdict", lcp > 0 ? (lcpBreached ? "FAIL" : "PASS") : "N/A"); // CHANGED: "N/A" when no LCP data
             if (lcpBreached) {
                 detail.put("breachedThreshold", slaLcpPoor);
             }
@@ -127,8 +135,9 @@ public final class SummaryJsonWriter {
             detailsArray.add(detail);
         }
 
-        int overallScore = totalSamples > 0
-                ? (int) (totalWeightedScore / totalSamples)
+        // Overall score computed only over labels that had scoreable data // CHANGED: per-action accuracy
+        int overallScore = totalScoredSamples > 0
+                ? (int) (totalWeightedScore / totalScoredSamples)
                 : 0;
 
         // Overall verdict: FAIL if any SLA breach or overall score below poor threshold

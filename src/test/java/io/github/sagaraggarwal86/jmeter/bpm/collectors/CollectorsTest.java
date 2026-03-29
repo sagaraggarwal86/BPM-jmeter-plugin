@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -86,8 +85,8 @@ class CollectorsTest {
         }
 
         @Test
-        @DisplayName("Missing values default to zero")
-        void collect_missingValues_defaultsToZero() {
+        @DisplayName("lcp=0 and fcp=0 are treated as unavailable (null), not perfect 0 ms values") // CHANGED: per-action accuracy — lcp=0/fcp=0 mean no event fired yet
+        void collect_zeroLcpFcp_returnsNull() { // CHANGED: per-action accuracy
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
                     .thenReturn(Map.of("lcp", 0.0, "fcp", 0.0, "cls", 0.0, "ttfb", 0.0));
 
@@ -95,7 +94,9 @@ class CollectorsTest {
             WebVitalsResult result = collector.collect(executor, buffer);
 
             assertNotNull(result);
-            assertEquals(0, result.lcp());
+            assertNull(result.lcp(), "lcp=0 means no LCP event fired — must be null, not a perfect 0 ms score"); // CHANGED: per-action accuracy
+            assertNull(result.fcp(), "fcp=0 means no FCP event fired — must be null, not a perfect 0 ms score"); // CHANGED: per-action accuracy
+            assertEquals(0, result.ttfb()); // ttfb=0 is a valid (very fast) first byte time, not guarded
         }
 
         @Test

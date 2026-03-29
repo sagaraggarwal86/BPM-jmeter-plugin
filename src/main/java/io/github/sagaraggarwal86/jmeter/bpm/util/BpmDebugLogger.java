@@ -114,12 +114,13 @@ public final class BpmDebugLogger {
      * @param score        computed performance score (0-100)
      * @param bottleneck   primary bottleneck label (e.g. {@link BpmConstants#BOTTLENECK_CLIENT})
      */
-    public void logDerivedMetrics(String samplerLabel, int score, String bottleneck) {
+    public void logDerivedMetrics(String samplerLabel, Integer score, String bottleneck) { // CHANGED: per-action accuracy — nullable Integer; null when SPA-stale
         if (!enabled) {
             return;
         }
-        LOG.debug("BPM: Derived metrics for '{}': score={}, bottleneck={}",
-                samplerLabel, score, bottleneck);
+        String scoreStr = score != null ? String.valueOf(score) : "—"; // CHANGED
+        LOG.debug("BPM: Derived metrics for '{}' score={}, bottleneck={}",
+                samplerLabel, scoreStr, bottleneck);
     }
 
     /**

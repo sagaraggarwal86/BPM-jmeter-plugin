@@ -1,13 +1,8 @@
 package io.github.sagaraggarwal86.jmeter.bpm.collectors;
 
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
+import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED: required after Gap 10 removed local weight constants
-import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
-import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ResourceEntry;
-import io.github.sagaraggarwal86.jmeter.bpm.model.RuntimeResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,44 +91,75 @@ public final class DerivedMetricsCalculator {
                 ? roundToTwoDecimals((double) ttfbVal / lcpVal * 100.0)
                 : 0.0;
 
+        // Frontend Time = FCP - TTFB (parse + blocking-script time before first paint) // CHANGED: new column
+        Long frontendTime = (fcp != null && ttfb != null)
+                ? Math.max(0L, fcpVal - ttfbVal)
+                : null;
+
         // FCP-LCP Gap = LCP - FCP (only meaningful when both available)
         long fcpLcpGap = (lcp != null && fcp != null) ? Math.max(0, lcpVal - fcpVal) : 0L; // CHANGED: Bug 10
+
+        // Stability Category from CLS value // CHANGED: new column
+        String stabilityCategory = null;
+        if (cls != null) {
+            if (cls <= properties.getSlaClsGood())       stabilityCategory = BpmConstants.STABILITY_STABLE;
+            else if (cls <= properties.getSlaClsPoor())  stabilityCategory = BpmConstants.STABILITY_MINOR_SHIFTS;
+            else                                          stabilityCategory = BpmConstants.STABILITY_UNSTABLE;
+        }
+
+        // Headroom = percentage of LCP budget remaining before Poor threshold // CHANGED: new column
+        Integer headroom = null;
+        if (lcp != null && lcpVal > 0) {
+            long lcpPoor = properties.getSlaLcpPoor();
+            headroom = (int) Math.max(0, Math.round(100.0 - ((double) lcpVal / lcpPoor * 100.0)));
+        }
 
         // Failed Request Rate = (failed / total) × 100
         double failedRequestRate = totalRequests > 0
                 ? roundToTwoDecimals((double) failedRequests / totalRequests * 100.0)
                 : 0.0;
 
-        // Performance Score (weighted composite, null-aware) // CHANGED: Bug 10
-        int performanceScore = computePerformanceScore(lcp, fcp, cls, ttfb, errorCount);
+        // Performance Score (weighted composite, null-aware) // CHANGED: Bug 10 / per-action accuracy — Integer (nullable)
+        Integer performanceScore = computePerformanceScore(lcp, fcp, cls, ttfb, errorCount);
 
-        // Bottleneck detection (all matches + first-match-wins primary)
-        List<String> bottlenecks = detectBottlenecks(
+        // Improvement Area detection (all matches + first-match-wins primary) // CHANGED: renamed from bottleneck
+        List<String> improvementAreas = detectImprovementAreas(
                 failedRequests, ttfbVal, lcpVal, slowest, renderTime, layoutCount, domNodes);
-        String bottleneck = bottlenecks.isEmpty() ? BpmConstants.BOTTLENECK_NONE : bottlenecks.get(0); // CHANGED (G-02): was local BOTTLENECK_NONE
+        String improvementArea = improvementAreas.isEmpty()
+                ? BpmConstants.BOTTLENECK_NONE
+                : improvementAreas.get(0);
 
         return new DerivedMetrics(
                 renderTime,
                 serverClientRatio,
+                frontendTime,       // CHANGED: new
                 fcpLcpGap,
+                stabilityCategory,  // CHANGED: new
+                headroom,           // CHANGED: new
                 failedRequestRate,
-                bottleneck,
-                bottlenecks,
+                improvementArea,    // CHANGED: renamed
+                improvementAreas,   // CHANGED: renamed
                 performanceScore
         );
     }
 
     /**
-     * Computes the weighted performance score (0-100) per design doc section 3.3.
+     * Computes the weighted performance score (0-100) per design doc section 3.3,
+     * or {@code null} when insufficient metric data is available for this action.
      *
      * <p>Each metric is scored individually against its SLA thresholds
      * (100 = good, 50 = needs work, 0 = poor), then combined via weighted average.
      * Null metrics (unavailable/stale) are excluded and remaining weights are
      * renormalized to ensure the score stays in [0, 100].</p>
      *
-     * @return 0 if no metrics are available; otherwise the renormalized weighted score
-     */
-    int computePerformanceScore(Long lcp, Long fcp, Double cls, Long ttfb, int errorCount) { // CHANGED: Bug 10 — boxed types for null-awareness
+     * <p>Returns {@code null} when the total available weight is below
+     * {@link BpmConstants#SCORE_MIN_WEIGHT} (0.45). This prevents SPA-stale samples
+     * — where only CLS (0.15) and errors (0.15) contribute, totalling 0.30 — from
+     * producing a misleading score of 100 due to both metrics being near-zero.</p>
+     *
+     * @return integer score in [0, 100], or {@code null} if insufficient data
+     */ // CHANGED: per-action accuracy — returns Integer (nullable); null when totalWeight < SCORE_MIN_WEIGHT
+    Integer computePerformanceScore(Long lcp, Long fcp, Double cls, Long ttfb, int errorCount) {
         double totalWeight = 0.0;
         double weightedSum = 0.0;
 
@@ -157,23 +183,29 @@ public final class DerivedMetricsCalculator {
                     * BpmConstants.SCORE_WEIGHT_TTFB;
             totalWeight += BpmConstants.SCORE_WEIGHT_TTFB;
         }
-        // Errors always contribute — they're from console capture, not browser navigation metrics
+        // Errors always contribute — captured regardless of navigation type
         weightedSum += scoreErrors(errorCount,
                 properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor())
                 * BpmConstants.SCORE_WEIGHT_ERRORS;
         totalWeight += BpmConstants.SCORE_WEIGHT_ERRORS;
 
+        // Insufficient data — return null rather than a misleading renormalized score. // CHANGED: per-action accuracy
+        // SPA-stale samples have only CLS (0.15) + errors (0.15) = 0.30 < SCORE_MIN_WEIGHT (0.45).
+        if (totalWeight < BpmConstants.SCORE_MIN_WEIGHT) {
+            return null;
+        }
+
         // Renormalize: scale to [0, 100] based on available metric weights
-        return totalWeight > 0 ? (int) Math.round(weightedSum / totalWeight) : 0;
+        return (int) Math.round(weightedSum / totalWeight);
     }
 
     /**
-     * Detects all applicable bottleneck labels per design doc section 3.4.
-     * Order is priority order — first element is the primary bottleneck.
-     */
-    List<String> detectBottlenecks(int failedRequests, long ttfb, long lcp,
-                                   List<ResourceEntry> slowest, long renderTime,
-                                   int layoutCount, int domNodes) {
+     * Detects all applicable Improvement Area labels per design doc section 3.4.
+     * Order is priority order — first element is the primary area.
+     */ // CHANGED: renamed from detectBottlenecks
+    List<String> detectImprovementAreas(int failedRequests, long ttfb, long lcp,
+                                        List<ResourceEntry> slowest, long renderTime,
+                                        int layoutCount, int domNodes) {
         List<String> detected = new ArrayList<>(6);
 
         // Priority 1: Reliability issue (failedRequests > 0)

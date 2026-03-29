@@ -1,17 +1,14 @@
 package io.github.sagaraggarwal86.jmeter.bpm.collectors;
 
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
-import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
-import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Layer 1 unit tests for SLA threshold classification (green/amber/red).

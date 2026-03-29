@@ -332,4 +332,23 @@ public final class JsSnippets {
      */
     public static final String SET_OBSERVER_MARKER =
             "window.__bpm_observer_active = true";
+
+    // ── Resource timing buffer ────────────────────────────────────────────────────────── // CHANGED: per-action accuracy — prevents silent entry drops on pages with >150 resources
+
+    /**
+     * Raises the browser's Resource Timing buffer to 500 entries (default is 150).
+     *
+     * <p>Chrome silently drops the oldest entries once the buffer is full. Pages with
+     * more than 150 sub-resources (ads, analytics, CDN assets) would have their oldest
+     * resource timing entries silently dropped before {@link #COLLECT_RESOURCE_TIMING}
+     * can drain them, causing {@code totalRequests} to be understated and the
+     * {@code slowest[]} list to miss entries that loaded before the buffer filled.</p>
+     *
+     * <p>Called once in {@code CdpSessionManager.openSession()} and once in
+     * {@code reInjectObservers()}. 500 is sufficient for all tested pages; if a page
+     * fires more than 500 resources before a collection cycle the count is still capped,
+     * but that is an edge case beyond practical concern.</p>
+     */
+    public static final String SET_RESOURCE_BUFFER_SIZE =
+            "performance.setResourceTimingBufferSize(500)"; // CHANGED: per-action accuracy
 }

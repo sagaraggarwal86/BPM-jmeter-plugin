@@ -27,9 +27,9 @@ class BpmTableModelTest {
     }
 
     private BpmResult createResult(String label, int score, long lcp) {
-        WebVitalsResult vitals = new WebVitalsResult(500L, lcp, 0.02, 300L); // CHANGED: L suffix — WebVitalsResult fcp/ttfb are Long, not long
-        DerivedMetrics derived = new DerivedMetrics(lcp - 300, 30.0, lcp - 500, 0.0,
-                "—", List.of(), score);
+        WebVitalsResult vitals = new WebVitalsResult(500L, lcp, 0.02, 300L);
+        DerivedMetrics derived = new DerivedMetrics(lcp - 300, 30.0, null, lcp - 500,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), score); // CHANGED: new 10-arg constructor
         return new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
                 label, true, 2000, vitals, null, null, null, derived);
     }
@@ -97,8 +97,8 @@ class BpmTableModelTest {
     }
 
     @Test
-    @DisplayName("Column count matches TOTAL_COLUMN_COUNT (15)")
-    void columnCount_matches15() {
+    @DisplayName("Column count matches TOTAL_COLUMN_COUNT (18)") // CHANGED: 15 → 18 (3 new derived columns)
+    void columnCount_matches18() {
         assertEquals(BpmConstants.TOTAL_COLUMN_COUNT, model.getColumnCount());
     }
 

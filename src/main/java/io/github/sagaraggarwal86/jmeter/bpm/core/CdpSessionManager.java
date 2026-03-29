@@ -61,6 +61,9 @@ public final class CdpSessionManager {
             executor.enableDomain(domain);
         }
 
+        // Raise resource timing buffer to 500 (default 150 causes silent drops on busy pages) // CHANGED: per-action accuracy
+        executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE);
+
         // Inject PerformanceObserver for LCP + CLS (combined, buffered: true)
         executor.executeScript(JsSnippets.INJECT_OBSERVERS);
 
@@ -99,6 +102,9 @@ public final class CdpSessionManager {
             executor.enableDomain(domain); // CHANGED (G-05)
         } // CHANGED (G-05)
 
+        // Raise resource timing buffer to 500 (default 150 causes silent drops on busy pages) // CHANGED: per-action accuracy
+        executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE);
+
         // Use REINJECT_OBSERVERS (not INJECT_OBSERVERS) — resets window.__bpm_cls = 0
         executor.executeScript(JsSnippets.REINJECT_OBSERVERS); // CHANGED (G-05)
 
@@ -125,16 +131,21 @@ public final class CdpSessionManager {
      * Re-injection only fires after full page navigations.</p>
      *
      * @param executor the CDP command executor
+     * @return {@code true} if observers were re-injected (a navigation was detected),
+     *         {@code false} if the existing observers are still active. // CHANGED: per-action accuracy — callers use this signal to reset per-thread delta baselines
      */
-    public void ensureObserversInjected(CdpCommandExecutor executor) { // CHANGED: new method — post-navigation observer re-injection
+    public boolean ensureObserversInjected(CdpCommandExecutor executor) { // CHANGED: return type void → boolean for per-action accuracy
         Boolean present = Boolean.TRUE.equals(
                 executor.executeScript(JsSnippets.CHECK_OBSERVERS_PRESENT));
         if (!present) {
+            executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE); // CHANGED: per-action accuracy — re-arm buffer on navigation
             executor.executeScript(JsSnippets.INJECT_OBSERVERS);
             executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK);
             executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
             log.debug("BPM: Observers re-injected after page navigation.");
+            return true; // CHANGED: signal navigation to caller
         }
+        return false; // CHANGED: no navigation
     }
 
     /**

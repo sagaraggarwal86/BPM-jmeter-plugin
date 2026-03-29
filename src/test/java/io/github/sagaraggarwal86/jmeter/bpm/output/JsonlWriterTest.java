@@ -2,6 +2,7 @@ package io.github.sagaraggarwal86.jmeter.bpm.output;
 
 import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
 import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants; // CHANGED
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -23,7 +24,8 @@ class JsonlWriterTest {
     Path tempDir;
 
     private BpmResult createMinimalResult(String label) {
-        DerivedMetrics derived = new DerivedMetrics(0, 0.0, 0, 0.0, "—", List.of(), 50);
+        DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50); // CHANGED: 10-arg constructor
         return new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
                 label, true, 100, null, null, null, null, derived);
     }

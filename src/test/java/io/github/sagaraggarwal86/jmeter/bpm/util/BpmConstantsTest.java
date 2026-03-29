@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class BpmConstantsTest {
 
     @Test
-    @DisplayName("All 15 column headers defined and match expected count")
+    @DisplayName("All 18 column headers defined and match expected count") // CHANGED: 15 → 18 (3 new always-visible columns)
     void allColumnHeaders_matchExpectedCount() {
-        assertEquals(15, BpmConstants.ALL_COLUMN_HEADERS.length);
-        assertEquals(15, BpmConstants.TOTAL_COLUMN_COUNT);
-        assertEquals(7, BpmConstants.ALWAYS_VISIBLE_COLUMN_COUNT);
+        assertEquals(18, BpmConstants.ALL_COLUMN_HEADERS.length);
+        assertEquals(18, BpmConstants.TOTAL_COLUMN_COUNT);
+        assertEquals(10, BpmConstants.ALWAYS_VISIBLE_COLUMN_COUNT); // CHANGED: 7 → 10
         assertEquals(8, BpmConstants.RAW_COLUMN_COUNT);
     }
 
@@ -35,6 +35,10 @@ class BpmConstantsTest {
         assertNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_SAMPLES));
         assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_SCORE));
         assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_RENDER_TIME));
+        assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_FRONTEND_TIME));  // CHANGED: new column
+        assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_STABILITY));      // CHANGED: new column
+        assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_HEADROOM));       // CHANGED: new column
+        assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_IMPROVEMENT_AREA)); // CHANGED: renamed
         assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_FCP));
         assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_LCP));
         assertNotNull(BpmConstants.getTooltip(BpmConstants.COL_IDX_CLS));

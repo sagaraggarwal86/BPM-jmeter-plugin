@@ -2,11 +2,7 @@ package io.github.sagaraggarwal86.jmeter.bpm.gui;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.sagaraggarwal86.jmeter.bpm.core.BpmListener;
-import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
-import io.github.sagaraggarwal86.jmeter.bpm.model.NetworkResult;
-import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
+import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.output.CsvExporter;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 import org.apache.jmeter.samplers.Clearable;
@@ -15,33 +11,10 @@ import org.apache.jmeter.visualizers.gui.AbstractListenerGui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import javax.swing.table.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -426,25 +399,36 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
         int totalSamples = 0;
         long totalWeightedScore = 0;
+        int totalScoredSamples = 0; // CHANGED: per-action accuracy — only labels with non-null scores
         int goodCount = 0, needsWorkCount = 0, poorCount = 0;
 
         for (var entry : aggregates.entrySet()) {
             var agg = entry.getValue();
             int samples = agg.getSampleCount();
-            int score = agg.getAverageScore();
+            Integer score = agg.getAverageScore(); // CHANGED: per-action accuracy — nullable
             totalSamples += samples;
-            totalWeightedScore += (long) score * samples;
-            if (score >= scoreGood) { goodCount++; }
-            else if (score >= scorePoor) { needsWorkCount++; }
-            else { poorCount++; }
+            if (score != null) { // CHANGED: per-action accuracy — skip SPA-stale labels
+                totalWeightedScore += (long) score * samples;
+                totalScoredSamples += samples;
+                if (score >= scoreGood) { goodCount++; }
+                else if (score >= scorePoor) { needsWorkCount++; }
+                else { poorCount++; }
+            }
         }
 
-        int overallScore = totalSamples > 0 ? (int) (totalWeightedScore / totalSamples) : 0;
-        scoreLabel.setText(String.valueOf(overallScore));
-        scoreBar.setValue(overallScore);
-        scoreBar.setString(String.valueOf(overallScore));
-        scoreBar.setForeground(overallScore >= scoreGood ? COLOR_GOOD
-                : overallScore >= scorePoor ? COLOR_NEEDS_WORK : COLOR_POOR);
+        if (totalScoredSamples > 0) { // CHANGED: per-action accuracy — show "—" when no scored samples
+            int overallScore = (int) (totalWeightedScore / totalScoredSamples);
+            scoreLabel.setText(String.valueOf(overallScore));
+            scoreBar.setValue(overallScore);
+            scoreBar.setString(String.valueOf(overallScore));
+            scoreBar.setForeground(overallScore >= scoreGood ? COLOR_GOOD
+                    : overallScore >= scorePoor ? COLOR_NEEDS_WORK : COLOR_POOR);
+        } else {
+            scoreLabel.setText("\u2014");
+            scoreBar.setValue(0);
+            scoreBar.setString("\u2014");
+            scoreBar.setForeground(Color.GRAY);
+        }
         scoreCategoryLabel.setText(String.format("Good: %d  Needs Work: %d  Poor: %d",
                 goodCount, needsWorkCount, poorCount));
     }
@@ -646,9 +630,15 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         final String label;
         int sampleCount;
         long totalScore;
+        int scoredSampleCount; // CHANGED: per-action accuracy
         long totalRenderTime;
         double totalServerRatio;
+        long totalFrontendTime;   // CHANGED: new
+        int frontendTimeCount;    // CHANGED: new
         long totalFcpLcpGap;
+        String lastStabilityCategory = null; // CHANGED: new
+        long totalHeadroom;       // CHANGED: new
+        int headroomCount;        // CHANGED: new
         long totalFcp;
         long totalLcp;
         double totalCls;
@@ -657,7 +647,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         long totalBytes;
         int totalErrors;
         int totalWarnings;
-        String lastBottleneck = BpmConstants.BOTTLENECK_NONE;
+        String lastImprovementArea = BpmConstants.BOTTLENECK_NONE; // CHANGED: renamed
 
         RowData(String label) { this.label = label; }
 
@@ -665,11 +655,19 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             sampleCount++;
             DerivedMetrics d = result.derived();
             if (d != null) {
-                totalScore += d.performanceScore();
+                if (d.performanceScore() != null) {
+                    totalScore += d.performanceScore();
+                    scoredSampleCount++;
+                }
                 totalRenderTime += d.renderTime();
                 totalServerRatio += d.serverClientRatio();
                 totalFcpLcpGap += d.fcpLcpGap();
-                if (!BpmConstants.BOTTLENECK_NONE.equals(d.bottleneck())) { lastBottleneck = d.bottleneck(); }
+                if (d.frontendTime() != null) { totalFrontendTime += d.frontendTime(); frontendTimeCount++; } // CHANGED: new
+                if (d.stabilityCategory() != null) { lastStabilityCategory = d.stabilityCategory(); }        // CHANGED: new
+                if (d.headroom() != null) { totalHeadroom += d.headroom(); headroomCount++; }                  // CHANGED: new
+                if (!BpmConstants.BOTTLENECK_NONE.equals(d.improvementArea())) {                               // CHANGED: renamed
+                    lastImprovementArea = d.improvementArea();
+                }
             }
             WebVitalsResult v = result.webVitals();
             if (v != null) {
@@ -687,9 +685,15 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         void mergeFrom(RowData other) {
             sampleCount += other.sampleCount;
             totalScore += other.totalScore;
+            scoredSampleCount += other.scoredSampleCount;
             totalRenderTime += other.totalRenderTime;
             totalServerRatio += other.totalServerRatio;
+            totalFrontendTime += other.totalFrontendTime; // CHANGED: new
+            frontendTimeCount += other.frontendTimeCount; // CHANGED: new
             totalFcpLcpGap += other.totalFcpLcpGap;
+            if (other.lastStabilityCategory != null) lastStabilityCategory = other.lastStabilityCategory; // CHANGED: new
+            totalHeadroom += other.totalHeadroom;         // CHANGED: new
+            headroomCount += other.headroomCount;         // CHANGED: new
             totalFcp += other.totalFcp;
             totalLcp += other.totalLcp;
             totalCls += other.totalCls;
@@ -703,26 +707,33 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         Object getColumn(int index) {
             int n = Math.max(sampleCount, 1);
             return switch (index) {
-                case BpmConstants.COL_IDX_LABEL -> label;
-                case BpmConstants.COL_IDX_SAMPLES -> sampleCount;
-                case BpmConstants.COL_IDX_SCORE -> (int) (totalScore / n);
-                case BpmConstants.COL_IDX_RENDER_TIME -> totalRenderTime / n;
-                case BpmConstants.COL_IDX_SERVER_RATIO -> String.format("%.2f%%", totalServerRatio / n);
-                case BpmConstants.COL_IDX_FCP_LCP_GAP -> totalFcpLcpGap / n;
-                case BpmConstants.COL_IDX_BOTTLENECK -> "TOTAL".equals(label) ? "" : lastBottleneck;
-                case BpmConstants.COL_IDX_FCP -> totalFcp / n;
-                case BpmConstants.COL_IDX_LCP -> totalLcp / n;
-                case BpmConstants.COL_IDX_CLS -> String.format("%.3f", totalCls / n);
-                case BpmConstants.COL_IDX_TTFB -> totalTtfb / n;
-                case BpmConstants.COL_IDX_REQS -> totalRequests / n;
-                case BpmConstants.COL_IDX_SIZE -> totalBytes / n / 1024;
-                case BpmConstants.COL_IDX_ERRS -> totalErrors;
-                case BpmConstants.COL_IDX_WARNS -> totalWarnings;
+                case BpmConstants.COL_IDX_LABEL            -> label;
+                case BpmConstants.COL_IDX_SAMPLES          -> sampleCount;
+                case BpmConstants.COL_IDX_SCORE            ->
+                        scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : "—";
+                case BpmConstants.COL_IDX_RENDER_TIME      -> totalRenderTime / n;
+                case BpmConstants.COL_IDX_SERVER_RATIO     -> String.format("%.2f%%", totalServerRatio / n);
+                case BpmConstants.COL_IDX_FRONTEND_TIME    -> // CHANGED: new
+                        frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : "—";
+                case BpmConstants.COL_IDX_FCP_LCP_GAP      -> totalFcpLcpGap / n;
+                case BpmConstants.COL_IDX_STABILITY        -> // CHANGED: new
+                        lastStabilityCategory != null ? lastStabilityCategory : "—";
+                case BpmConstants.COL_IDX_HEADROOM         -> // CHANGED: new
+                        headroomCount > 0 ? (int) (totalHeadroom / headroomCount) + "%" : "—";
+                case BpmConstants.COL_IDX_IMPROVEMENT_AREA -> "TOTAL".equals(label) ? "" : lastImprovementArea; // CHANGED: renamed
+                case BpmConstants.COL_IDX_FCP              -> totalFcp / n;
+                case BpmConstants.COL_IDX_LCP              -> totalLcp / n;
+                case BpmConstants.COL_IDX_CLS              -> String.format("%.3f", totalCls / n);
+                case BpmConstants.COL_IDX_TTFB             -> totalTtfb / n;
+                case BpmConstants.COL_IDX_REQS             -> totalRequests / n;
+                case BpmConstants.COL_IDX_SIZE             -> totalBytes / n / 1024;
+                case BpmConstants.COL_IDX_ERRS             -> totalErrors;
+                case BpmConstants.COL_IDX_WARNS            -> totalWarnings;
                 default -> "";
             };
         }
 
-        int getScore() { return sampleCount > 0 ? (int) (totalScore / sampleCount) : 0; }
+        int getScore() { return scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : 0; }
     }
 
     class BpmCellRenderer extends DefaultTableCellRenderer {
@@ -745,10 +756,21 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 else if (score > 0 && score < scoreGood) { c.setBackground(ROW_TINT_AMBER); }
             }
             applySlaColor(c, modelCol, value);
-            if (modelCol != BpmConstants.COL_IDX_LABEL && modelCol != BpmConstants.COL_IDX_BOTTLENECK) {
-                setHorizontalAlignment(SwingConstants.RIGHT);
-            } else {
+            // Text columns left-aligned; numeric columns right-aligned // CHANGED: added new text columns
+            if (modelCol == BpmConstants.COL_IDX_LABEL
+                    || modelCol == BpmConstants.COL_IDX_IMPROVEMENT_AREA
+                    || modelCol == BpmConstants.COL_IDX_STABILITY) {
                 setHorizontalAlignment(SwingConstants.LEFT);
+            } else {
+                setHorizontalAlignment(SwingConstants.RIGHT);
+            }
+            // Value-level cell tooltips for Improvement Area and Stability columns // CHANGED: new
+            if (modelCol == BpmConstants.COL_IDX_IMPROVEMENT_AREA && value instanceof String s) {
+                setToolTipText(BpmConstants.getImprovementAreaValueTooltip(s));
+            } else if (modelCol == BpmConstants.COL_IDX_STABILITY && value instanceof String s) {
+                setToolTipText(BpmConstants.getStabilityValueTooltip(s));
+            } else {
+                setToolTipText(null);
             }
             return c;
         }
@@ -772,6 +794,18 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 case BpmConstants.COL_IDX_CLS -> { double v = toDoubleFromFormatted(value); c.setForeground(v <= clsGood ? COLOR_GOOD : v <= clsPoor ? COLOR_NEEDS_WORK : COLOR_POOR); }
                 case BpmConstants.COL_IDX_TTFB -> { long v = toLong(value); c.setForeground(v <= ttfbGood ? COLOR_GOOD : v <= ttfbPoor ? COLOR_NEEDS_WORK : COLOR_POOR); }
                 case BpmConstants.COL_IDX_ERRS -> { int e = toInt(value); c.setForeground(e == 0 ? COLOR_GOOD : COLOR_POOR); }
+                case BpmConstants.COL_IDX_STABILITY -> { // CHANGED: new — colour-code stability category
+                    if (BpmConstants.STABILITY_STABLE.equals(value))        c.setForeground(COLOR_GOOD);
+                    else if (BpmConstants.STABILITY_MINOR_SHIFTS.equals(value)) c.setForeground(COLOR_NEEDS_WORK);
+                    else if (BpmConstants.STABILITY_UNSTABLE.equals(value)) c.setForeground(COLOR_POOR);
+                }
+                case BpmConstants.COL_IDX_HEADROOM -> { // CHANGED: new — green if plenty of budget, amber if tight, red if critical
+                    String hStr = value instanceof String s ? s.replace("%", "").trim() : "";
+                    try {
+                        int h = Integer.parseInt(hStr);
+                        c.setForeground(h > 50 ? COLOR_GOOD : h > 20 ? COLOR_NEEDS_WORK : COLOR_POOR);
+                    } catch (NumberFormatException ignored) { }
+                }
                 default -> { }
             }
         }

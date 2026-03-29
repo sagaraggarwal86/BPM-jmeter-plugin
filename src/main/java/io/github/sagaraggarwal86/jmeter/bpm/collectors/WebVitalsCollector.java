@@ -25,9 +25,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * the old LCP value lingers because no new {@code largest-contentful-paint} event
  * fires for client-side route changes. This collector tracks the previous LCP
  * value per thread and returns {@code null} if LCP is unchanged, indicating
- * no new LCP event occurred for this action.</p>
+ * no new LCP event occurred for this action. Same logic applies to FCP and TTFB.</p>
  *
- * <p>Thread safety: previous LCP tracking uses {@link ConcurrentHashMap}
+ * <p><strong>Zero-value guard:</strong> {@code lcp=0} and {@code fcp=0} mean the browser
+ * has not yet fired an LCP or FCP event (e.g. the page is still loading). These are
+ * treated as {@code null} (unavailable) rather than as perfect 0 ms values, preventing
+ * them from inflating the performance score.</p>
+ *
+ * <p><strong>Per-action CLS:</strong> CLS accumulates across the lifetime of a page view.
+ * To report per-action CLS (how much layout shift this specific user action caused),
+ * this collector tracks the previous CLS value per thread and returns the positive delta.
+ * On page navigation (signalled by {@link #resetThreadState}), the baseline resets to 0
+ * so the first post-navigation sample captures the full CLS of the new page load.</p>
+ *
+ * <p>Thread safety: all per-thread tracking uses {@link ConcurrentHashMap}
  * keyed by thread name.</p>
  */
 public final class WebVitalsCollector implements MetricsCollector<WebVitalsResult> {
@@ -45,6 +56,13 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
 
     /** Tracks the last seen TTFB value per thread for SPA stale detection. */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
     private final ConcurrentHashMap<String, Double> previousTtfbByThread = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks the last seen CLS value per thread for per-action delta computation.
+     * Key: thread name, Value: previous CLS score (page-session accumulated at last collection).
+     * Reset to 0 on navigation via {@link #resetThreadState}.
+     */ // CHANGED: per-action accuracy — CLS stored as delta, not page-session total
+    private final ConcurrentHashMap<String, Double> previousClsByThread = new ConcurrentHashMap<>();
 
     /**
      * Collects Web Vitals metrics from the browser.
@@ -79,6 +97,9 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
         if (previousLcp != null && Double.compare(previousLcp, lcp) == 0 && lcp > 0) {
             log.debug("BPM: LCP unchanged ({} ms) — SPA stale detection, marking LCP null.", lcp);
             lcpResult = null;
+        } else if (lcp == 0) { // CHANGED: per-action accuracy — lcp=0 means no event fired yet, not a perfect 0 ms value
+            log.debug("BPM: LCP is 0 — no LCP event fired yet, marking LCP null.");
+            lcpResult = null;
         } else {
             lcpResult = Math.round(lcp);
         }
@@ -89,6 +110,9 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
         Double previousFcp = previousFcpByThread.get(threadName);
         if (previousFcp != null && Double.compare(previousFcp, fcp) == 0 && fcp > 0) {
             log.debug("BPM: FCP unchanged ({} ms) — SPA stale detection, marking FCP null.", fcp);
+            fcpResult = null;
+        } else if (fcp == 0) { // CHANGED: per-action accuracy — fcp=0 means no event fired yet, not a perfect 0 ms value
+            log.debug("BPM: FCP is 0 — no FCP event fired yet, marking FCP null.");
             fcpResult = null;
         } else {
             fcpResult = Math.round(fcp);
@@ -106,16 +130,41 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
         }
         previousTtfbByThread.put(threadName, ttfb);
 
-        return new WebVitalsResult(fcpResult, lcpResult, cls, ttfbResult);
+        // CLS delta — per-action layout shift, not page-session accumulated total // CHANGED: per-action accuracy
+        // previousClsByThread is reset to 0 on page navigation via resetThreadState(),
+        // so the first post-navigation sample captures the full CLS of the new page load.
+        double previousCls = previousClsByThread.getOrDefault(threadName, 0.0);
+        double clsDelta = Math.max(0.0, cls - previousCls);
+        previousClsByThread.put(threadName, cls);
+
+        return new WebVitalsResult(fcpResult, lcpResult, clsDelta, ttfbResult); // CHANGED: clsDelta replaces raw cls
     }
 
     /**
-     * Resets the per-thread tracking state. Called during {@code testStarted()}.
+     * Resets per-thread delta baselines for a specific thread after a page navigation.
+     *
+     * <p>Called by {@code BpmListener.collectMetrics()} when
+     * {@code CdpSessionManager.ensureObserversInjected()} detects a navigation.
+     * Clearing the previous values causes the next collection to treat all metrics
+     * as fresh (no stale detection, CLS baseline reset to 0).</p>
+     *
+     * @param threadName the JMeter thread name whose state should be reset
+     */ // CHANGED: per-action accuracy — navigation-aware per-thread reset
+    public void resetThreadState(String threadName) {
+        previousLcpByThread.remove(threadName);
+        previousFcpByThread.remove(threadName);
+        previousTtfbByThread.remove(threadName);
+        previousClsByThread.remove(threadName);
+    }
+
+    /**
+     * Resets all per-thread tracking state. Called during {@code testStarted()}.
      */
     public void reset() {
         previousLcpByThread.clear();
         previousFcpByThread.clear();  // CHANGED: Bug 12
         previousTtfbByThread.clear(); // CHANGED: Bug 12
+        previousClsByThread.clear();  // CHANGED: per-action accuracy
     }
 
     /**

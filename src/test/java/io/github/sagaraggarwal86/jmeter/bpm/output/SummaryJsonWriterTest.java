@@ -72,4 +72,35 @@ class SummaryJsonWriterTest {
         Path result = SummaryJsonWriter.deriveSummaryPath(input);
         assertEquals("bpm-results-summary.json", result.getFileName().toString());
     }
+
+    @Test
+    @DisplayName("SPA-stale labels with null score are excluded from overall score without NPE") // CHANGED: per-action accuracy
+    void write_nullScore_excludedFromOverallScore() throws Exception {
+        Path jsonlPath = tempDir.resolve("test.jsonl");
+        Files.createFile(jsonlPath);
+
+        // Mix of a scored label (full page load) and a null-score label (SPA-stale)
+        List<Map<String, Object>> stats = List.of(
+                Map.of("label", "Launch", "score", 100, "lcp", 500L, "bottleneck", "—", "samples", 10),
+                Map.of("label", "SPA_Click", "lcp", 0L, "bottleneck", "—", "samples", 10) // no "score" key → null
+        );
+
+        // Must not throw NullPointerException
+        new SummaryJsonWriter().write(jsonlPath, stats, 4000L, 50);
+
+        Path summaryPath = tempDir.resolve("test-summary.json");
+        assertTrue(Files.exists(summaryPath), "Summary file should be written even with null scores");
+
+        JsonNode root = mapper.readTree(summaryPath.toFile());
+        // Overall score should be 100 (only the scored label contributes), not 50 (which would mean null treated as 0)
+        assertEquals(100, root.get("overallScore").asInt(),
+                "Overall score must exclude SPA-stale null-score labels");
+        assertEquals("PASS", root.get("verdict").asText());
+        assertEquals(0, root.get("slaBreaches").asInt(), "lcp=0 (no data) must not count as SLA breach");
+
+        // SPA-stale detail must have null score node
+        JsonNode spaDetail = root.get("details").get(1);
+        assertTrue(spaDetail.get("score").isNull(), "SPA-stale label score must be JSON null");
+        assertEquals("N/A", spaDetail.get("lcpVerdict").asText(), "lcp=0 verdict must be N/A");
+    }
 }
