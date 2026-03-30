@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -48,6 +49,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             DateTimeFormatter.ofPattern("MM/dd/yy HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private JTextField filenameField;
+    private JButton browseButton;          // CHANGED: field — needed to disable during test run (Feature #2)
     private JTextField startOffsetField;
     private JTextField endOffsetField;
     private ColumnSelectorPopup columnSelector;
@@ -70,7 +72,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private boolean testRunning;
     private Instant testStartTime;
 
-    // All 15 TableColumn objects stored at init — used for add/remove column visibility
+    // All 18 TableColumn objects stored at init — used for add/remove column visibility
     private TableColumn[] allColumns;
 
     public BpmListenerGui() {
@@ -101,7 +103,11 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         resultsTable.setDefaultRenderer(Object.class, new BpmCellRenderer());
         resultsTable.getTableHeader().setReorderingAllowed(false);
         resultsTable.setTableHeader(new TooltipTableHeader(resultsTable.getColumnModel()));
-        resultsTable.setAutoCreateRowSorter(true);
+
+        // Custom row sorter: pins TOTAL to bottom regardless of sort direction,
+        // and provides correct per-column comparators for mixed-type columns. // CHANGED: Feature #3 + Bug #1
+        TotalPinnedRowSorter sorter = new TotalPinnedRowSorter(tableModel);
+        resultsTable.setRowSorter(sorter);
 
         // Store all columns for add/remove visibility toggling
         TableColumnModel cm = resultsTable.getColumnModel();
@@ -145,7 +151,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         inner.add(new JLabel("Filename"), BorderLayout.WEST);
         filenameField = new JTextField(BpmConstants.DEFAULT_OUTPUT_FILENAME, 30);
         inner.add(filenameField, BorderLayout.CENTER);
-        JButton browseButton = new JButton("Browse...");
+        browseButton = new JButton("Browse..."); // CHANGED: Feature #2 — stored as field for disable during test
         browseButton.addActionListener(e -> browseFile());
         inner.add(browseButton, BorderLayout.EAST);
 
@@ -194,7 +200,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
         fieldset.add(new JLabel("Transaction Names:"));
         transactionNamesField = new JTextField(12);
-        transactionNamesField.addActionListener(e -> applyTransactionFilter());
         fieldset.add(transactionNamesField);
 
         regexCheckBox = new JCheckBox("RegEx");
@@ -202,6 +207,17 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
         includeExcludeCombo = new JComboBox<>(new String[]{"Include", "Exclude"});
         fieldset.add(includeExcludeCombo);
+
+        // Apply button: re-evaluates transaction name + regex + include/exclude against // CHANGED: Feature #1
+        // already-collected rows. Offset filtering is applied at ingest time in drainGuiQueue.
+        JButton applyFilterButton = new JButton("Apply");
+        applyFilterButton.setToolTipText(
+                "Filter visible rows by transaction name. Offset filters apply to live data only.");
+        applyFilterButton.addActionListener(e -> applyTransactionFilter());
+        fieldset.add(applyFilterButton);
+
+        // Enter key on transactionNamesField also triggers filter // CHANGED: Feature #1
+        transactionNamesField.addActionListener(e -> applyTransactionFilter());
 
         return fieldset;
     }
@@ -261,6 +277,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
     @Override
     public TestElement createTestElement() {
+        // Return a brand-new listener with no data — do NOT wire to any existing active instance. // CHANGED: Bug #2
         BpmListener listener = new BpmListener();
         modifyTestElement(listener);
         return listener;
@@ -291,19 +308,38 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         includeExcludeCombo.setSelectedItem(
                 element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
         if (element instanceof BpmListener listener) {
-            this.listenerRef = listener;
-            this.propertiesRef = listener.getPropertiesManager();
-            if (listener.getGuiUpdateQueue() != null && !updateTimer.isRunning()) {
-                testRunning = true;
-                updateTimer.start();
+            // Only wire to listener if it already has active data. // CHANGED: Bug #2
+            // A freshly created listener has a null queue — don't inherit data from
+            // any existing active instance; just show a blank GUI for the new listener.
+            boolean hasActiveData = listener.getGuiUpdateQueue() != null;
+            if (hasActiveData) {
+                this.listenerRef = listener;
+                this.propertiesRef = listener.getPropertiesManager();
+                if (!updateTimer.isRunning()) {
+                    testRunning = true;
+                    updateTimer.start();
+                }
+            } else {
+                // Fresh listener — sever any stale reference and reset the display // CHANGED: Bug #2
+                this.listenerRef = listener;
+                this.propertiesRef = null;
+                clearDisplayOnly(); // clear GUI state without calling listener.clearData()
             }
         }
     }
 
     @Override
     public void clearData() {
+        // Called by JMeter "Clear" / "Clear All" — reset everything. // CHANGED: Feature #4
         if (listenerRef != null) { listenerRef.clearData(); }
+        clearDisplayOnly();
+    }
+
+    /** Resets only the GUI display without touching the backend listener state. // CHANGED: Bug #2 helper
+     *  Used both by clearData() and by configure() when wiring a fresh listener. */
+    private void clearDisplayOnly() {
         tableModel.clear();
+        tableModel.fireTableDataChanged();
         resetScoreBox();
         columnSelector.resetToDefaults();
         applyColumnVisibility();
@@ -312,6 +348,11 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         testEndField.setText("");
         testDurationField.setText("");
         testStartTime = null;
+        // Restore interactive state in case clear is called mid-test // CHANGED: Feature #4
+        testRunning = false;
+        filenameField.setEditable(true);
+        if (browseButton != null) { browseButton.setEnabled(true); }
+        if (updateTimer != null && updateTimer.isRunning()) { updateTimer.stop(); }
     }
 
     private void drainGuiQueue() {
@@ -371,6 +412,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         testStartField.setText(TIME_FMT.format(testStartTime));
         testEndField.setText("");
         testDurationField.setText("");
+        // Disable file controls during test run // CHANGED: Feature #2
+        filenameField.setEditable(false);
+        browseButton.setEnabled(false);
+        saveTableDataButton.setEnabled(false);
         if (!updateTimer.isRunning()) { updateTimer.start(); }
     }
 
@@ -387,6 +432,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         }
         updateTimer.stop();
         drainGuiQueue();
+        // Re-enable file controls after test ends // CHANGED: Feature #2
+        filenameField.setEditable(true);
+        browseButton.setEnabled(true);
+        saveTableDataButton.setEnabled(tableModel.getRowCount() > 0);
     }
 
     private void updateScoreBox(BpmListener listener) {
@@ -578,6 +627,24 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         @Override public int getColumnCount() { return BpmConstants.TOTAL_COLUMN_COUNT; }
         @Override public String getColumnName(int column) { return BpmConstants.ALL_COLUMN_HEADERS[column]; }
         @Override public Object getValueAt(int rowIndex, int columnIndex) { return getFilteredValueAt(rowIndex, columnIndex); }
+
+        /**
+         * Declares per-column types so the row sorter picks the right comparator. // CHANGED: Bug #1
+         * String is used for formatted columns (ratio, headroom, stability, improvement area)
+         * so the custom TotalPinnedRowSorter comparators can handle them correctly.
+         */
+        @Override
+        public Class<?> getColumnClass(int col) {
+            return switch (col) {
+                case BpmConstants.COL_IDX_LABEL,
+                     BpmConstants.COL_IDX_SERVER_RATIO,
+                     BpmConstants.COL_IDX_HEADROOM,
+                     BpmConstants.COL_IDX_STABILITY,
+                     BpmConstants.COL_IDX_IMPROVEMENT_AREA,
+                     BpmConstants.COL_IDX_CLS -> String.class;
+                default -> Object.class; // TotalPinnedRowSorter handles numeric vs "—" per column
+            };
+        }
 
         Object getFilteredValueAt(int rowIndex, int columnIndex) {
             List<RowData> filtered = getFilteredRows();
@@ -821,6 +888,130 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         private double toDoubleFromFormatted(Object value) {
             if (value instanceof Number n) { return n.doubleValue(); }
             try { return Double.parseDouble(value.toString().trim()); } catch (NumberFormatException e) { return 0.0; }
+        }
+    }
+
+    /**
+     * Custom row sorter that:
+     * (a) always pins the TOTAL row to the last view position regardless of sort direction, // CHANGED: Feature #3
+     * (b) provides per-column comparators that handle mixed-type columns ("—" / numeric). // CHANGED: Bug #1
+     *
+     * <p>Implementation: A RowFilter excludes the TOTAL model row from the sorter's
+     * sort pass. The three index-conversion methods are overridden to inject TOTAL
+     * back at the last view position and to report the correct total view row count.
+     */
+    private static class TotalPinnedRowSorter extends TableRowSorter<BpmTableModel> {
+
+        TotalPinnedRowSorter(BpmTableModel model) {
+            super(model);
+            installTotalFilter();
+            installComparators();
+        }
+
+        // ── TOTAL pinning ────────────────────────────────────────────────────
+
+        /** Installs a RowFilter that hides the last model row (TOTAL) from the sorter.
+         *  TOTAL is then injected back at the end via the index overrides below. */
+        private void installTotalFilter() {
+            setRowFilter(new RowFilter<BpmTableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends BpmTableModel, ? extends Integer> e) {
+                    int count = getModel().getRowCount();
+                    // Include all rows except the last one (TOTAL).
+                    // When model is empty or has only 1 row, include nothing (avoids -1 index).
+                    return count > 1 && e.getIdentifier() < count - 1;
+                }
+            });
+        }
+
+        @Override
+        public int getViewRowCount() {
+            int base = super.getViewRowCount(); // count of non-TOTAL visible rows
+            // Add 1 slot for TOTAL if model has at least one row (which would be TOTAL)
+            return getModel().getRowCount() > 0 ? base + 1 : base;
+        }
+
+        @Override
+        public int convertRowIndexToModel(int viewIndex) {
+            // The last view index always maps to the last model row (TOTAL).
+            int count = getModel().getRowCount();
+            if (count > 0 && viewIndex == super.getViewRowCount()) {
+                return count - 1;
+            }
+            return super.convertRowIndexToModel(viewIndex);
+        }
+
+        @Override
+        public int convertRowIndexToView(int modelIndex) {
+            // The last model row (TOTAL) always maps to the last view index.
+            int count = getModel().getRowCount();
+            if (count > 0 && modelIndex == count - 1) {
+                return super.getViewRowCount(); // = getViewRowCount() - 1
+            }
+            return super.convertRowIndexToView(modelIndex);
+        }
+
+        // Re-install filter on model changes so the excluded-last-row index stays current.
+        @Override public void modelStructureChanged() { installTotalFilter(); super.modelStructureChanged(); }
+        @Override public void allRowsChanged()        { installTotalFilter(); super.allRowsChanged(); }
+        @Override public void rowsInserted(int f, int e) { installTotalFilter(); super.rowsInserted(f, e); }
+        @Override public void rowsDeleted(int f, int e)  { installTotalFilter(); super.rowsDeleted(f, e); }
+        @Override public void rowsUpdated(int f, int e)  { installTotalFilter(); super.rowsUpdated(f, e); }
+
+        // ── Per-column comparators ────────────────────────────────────────────
+
+        /**
+         * Installs comparators for every column so sorting works correctly regardless
+         * of whether the cell value is a formatted String, a Number, or the "—" sentinel. // CHANGED: Bug #1
+         */
+        private void installComparators() {
+            for (int col = 0; col < BpmConstants.TOTAL_COLUMN_COUNT; col++) {
+                setComparator(col, buildComparator(col));
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private Comparator<Object> buildComparator(int col) {
+            return switch (col) {
+                // Pure alphabetic string columns
+                case BpmConstants.COL_IDX_LABEL,
+                     BpmConstants.COL_IDX_STABILITY,
+                     BpmConstants.COL_IDX_IMPROVEMENT_AREA ->
+                        Comparator.comparing(v -> v == null ? "" : v.toString());
+
+                // Percentage-formatted strings: strip "%" then compare numerically;
+                // "—" sorts as -1 (SPA rows appear first in ASC, last in DESC)
+                case BpmConstants.COL_IDX_SERVER_RATIO,
+                     BpmConstants.COL_IDX_HEADROOM ->
+                        (a, b) -> Double.compare(parsePercent(a), parsePercent(b));
+
+                // Float-formatted string (CLS)
+                case BpmConstants.COL_IDX_CLS ->
+                        (a, b) -> Double.compare(parseDouble(a), parseDouble(b));
+
+                // Columns that can return Integer, Long, or "—" (SPA-stale)
+                // "—" sorts as Long.MIN_VALUE (SPA rows first in ASC)
+                default -> (a, b) -> Long.compare(parseLong(a), parseLong(b));
+            };
+        }
+
+        private static double parsePercent(Object v) {
+            if (v == null || "—".equals(v)) return -1.0;
+            try { return Double.parseDouble(v.toString().replace("%", "").trim()); }
+            catch (NumberFormatException e) { return -1.0; }
+        }
+
+        private static double parseDouble(Object v) {
+            if (v == null || "—".equals(v)) return -1.0;
+            try { return Double.parseDouble(v.toString().trim()); }
+            catch (NumberFormatException e) { return -1.0; }
+        }
+
+        private static long parseLong(Object v) {
+            if (v == null || "—".equals(v)) return Long.MIN_VALUE;
+            if (v instanceof Number n) return n.longValue();
+            try { return Long.parseLong(v.toString().trim()); }
+            catch (NumberFormatException e) { return Long.MIN_VALUE; }
         }
     }
 
