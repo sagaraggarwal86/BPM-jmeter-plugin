@@ -30,6 +30,7 @@ import javax.swing.SwingUtilities;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -66,8 +67,8 @@ public class BpmListener extends AbstractTestElement
      * Outcome of the file-exists check performed at test start.
      * Determines whether the JSONL writer opens in append or overwrite mode,
      * or whether the test should be stopped before writing begins.
-     */ // CHANGED: Feature #3 — file-exists dialog
-    private enum FileOpenMode { APPEND, OVERWRITE, DONT_START }
+     */ // CHANGED: Feature #3 — file-exists dialog; CHANGED: Feature #3 (this session) — APPEND removed
+    private enum FileOpenMode { OVERWRITE, DONT_START }
 
     // CHANGED: Static reference to the instance that received testStarted() — cloned instances
     // that receive sampleOccurred() without testStarted() delegate to this active instance.
@@ -84,6 +85,14 @@ public class BpmListener extends AbstractTestElement
 
     /** Returns true if "Don't Start" was chosen and the engine stop is in progress. */ // CHANGED: Defect #2
     public static boolean isDontStartPending() { return dontStartPending; }
+
+    /**
+     * CAS lock — only the first instance to call testStarted() in a run proceeds through full
+     * setup (file dialog, writer open, GUI notify). All subsequent clone instances return early.
+     * Reset unconditionally in testEnded() so the next run always gets a fresh lock.
+     */ // CHANGED: replace activeInstance != null guard — AtomicBoolean CAS is race-free
+    private static final AtomicBoolean testStartLock = new AtomicBoolean(false);
+
 
     /**
      * True only when this instance completed a full {@link #testStarted(String)} (i.e. the test
@@ -164,6 +173,14 @@ public class BpmListener extends AbstractTestElement
         // CHANGED: Defect #2 — if another BpmListener in this test run already chose DONT_START,
         // skip all processing on clones so they don't proceed past the cancelled decision.
         if (dontStartPending) { return; }
+        // CHANGED: replace activeInstance != null guard — CAS ensures exactly one instance wins the
+        // lock regardless of timing. activeInstance could be stale (non-null from a previous run)
+        // and would silently skip the dialog; AtomicBoolean.compareAndSet is always race-free.
+        if (!testStartLock.compareAndSet(false, true)) {
+            log.debug("BPM: testStarted() — clone instance skipped (CAS lock held by primary instance).");
+            return;
+        }
+        log.debug("BPM: testStarted() — this instance won the CAS lock: {}", System.identityHashCode(this));
 
         testActuallyStarted = false; // CHANGED: Defect #2 — reset; set true only at successful test start
 
@@ -201,26 +218,25 @@ public class BpmListener extends AbstractTestElement
         String outputPath = resolveOutputPath();
         try {
             Path outputFile = Path.of(outputPath);
-            boolean append = false;
-            if (Files.exists(outputFile)) { // CHANGED: Feature #3 (prev session) — file-exists check
-                // CHANGED: Feature #2 — only show the dialog when the path was explicitly provided
-                // by the user (via -Jbpm.output or the GUI field). When the path is the default
-                // fallback, always overwrite silently — no dialog shown.
+            // CHANGED: Feature #3 (this session) — APPEND removed; only Overwrite / Don't Start
+            if (Files.exists(outputFile)) {
+                // Only show the dialog when the path was explicitly provided by the user.
+                // Default-path files are always silently overwritten — no dialog.
                 if (isUserProvidedOutputPath()) {
                     FileOpenMode mode = resolveFileOpenMode(outputFile);
                     if (mode == FileOpenMode.DONT_START) {
                         log.info("BPM: Test cancelled — output file conflict: {}", outputFile);
-                        dontStartPending = true; // CHANGED: Defect #2 — signal GUI to preserve loaded data; also blocks clones
-                        stopTestEngine(cachedEngine); // CHANGED: Defect #2 — pass cached ref obtained before dialog
+                        dontStartPending = true;
+                        stopTestEngine(cachedEngine);
                         return;
                     }
-                    append = (mode == FileOpenMode.APPEND);
+                    // mode == OVERWRITE: fall through to open below
                 } else {
                     log.info("BPM: Default output file exists — overwriting: {}", outputFile);
                 }
             }
-            jsonlWriter.open(outputFile, append); // CHANGED: Feature #3
-            log.info("BPM: JSONL output file: {} ({})", outputPath, append ? "append" : "overwrite");
+            jsonlWriter.open(outputFile); // always overwrite (TRUNCATE_EXISTING)
+            log.info("BPM: JSONL output file opened (overwrite): {}", outputPath);
         } catch (IOException e) {
             log.warn("BPM: Failed to open JSONL output file: {}. JSONL writing disabled.", outputPath, e);
         }
@@ -371,6 +387,8 @@ public class BpmListener extends AbstractTestElement
      */
     @Override
     public void testEnded(String host) {
+        // CHANGED: reset CAS lock unconditionally so the next run always gets a fresh gate
+        testStartLock.set(false);
         // CHANGED: Defect #2 — always clear flag on test end so the next run starts clean
         dontStartPending = false;
 
@@ -534,29 +552,30 @@ public class BpmListener extends AbstractTestElement
     /**
      * Determines how to handle an existing JSONL output file.
      *
-     * <p>In CLI mode (no GuiPackage): always appends silently — no dialog available.</p>
+     * <p>In CLI mode (no GuiPackage): always overwrites silently — no dialog available.</p>
      * <p>In GUI mode: blocks the calling thread via {@code SwingUtilities.invokeAndWait}
-     * to show a modal JOptionPane. Returns {@link FileOpenMode#DONT_START} if the dialog
-     * is dismissed without a selection.</p>
+     * to show a modal JOptionPane with two choices: Overwrite or Don't Start.
+     * Returns {@link FileOpenMode#DONT_START} if the dialog is dismissed without a selection.</p>
      *
      * @param outputFile the file that already exists on disk
      * @return the chosen open mode; never null
-     */ // CHANGED: Feature #3
+     */ // CHANGED: Feature #3; CHANGED: Feature #3 (this session) — removed Append option
     private FileOpenMode resolveFileOpenMode(Path outputFile) {
         try {
             if (org.apache.jmeter.gui.GuiPackage.getInstance() == null) {
-                // CLI mode — append silently; no interactive dialog available
-                log.info("BPM: Output file exists — appending (CLI mode): {}", outputFile);
-                return FileOpenMode.APPEND;
+                // CLI mode — overwrite silently; no interactive dialog available
+                log.info("BPM: Output file exists — overwriting (CLI mode): {}", outputFile);
+                return FileOpenMode.OVERWRITE;
             }
         } catch (Exception e) {
-            return FileOpenMode.APPEND;
+            return FileOpenMode.OVERWRITE;
         }
 
         // GUI mode — ask the user on the EDT, block until answered
-        int[] choice = {JOptionPane.CLOSED_OPTION}; // default: treat close as Don't Start
+        // Options: index 0 = Overwrite, index 1 / close = Don't Start
+        int[] choice = {JOptionPane.CLOSED_OPTION};
         try {
-            String[] options = {"Append", "Overwrite", "Don't Start"};
+            String[] options = {"Overwrite", "Don't Start"}; // CHANGED: Feature #3 — Append removed
             Runnable showDialog = () -> choice[0] = JOptionPane.showOptionDialog(
                     null,
                     "Output file already exists:\n" + outputFile
@@ -577,8 +596,7 @@ public class BpmListener extends AbstractTestElement
         }
 
         return switch (choice[0]) {
-            case 0 -> FileOpenMode.APPEND;
-            case 1 -> FileOpenMode.OVERWRITE;
+            case 0 -> FileOpenMode.OVERWRITE;  // CHANGED: Feature #3 — index 0 is now Overwrite
             default -> FileOpenMode.DONT_START;
         };
     }
@@ -794,11 +812,11 @@ public class BpmListener extends AbstractTestElement
                     derived
             );
 
-            // Write to JSONL
-            if (jsonlWriter.isOpen()) {
+            // Write to JSONL — write() logs WARN internally when writer is not open (Defect #2)
+            if (jsonlWriter != null) { // CHANGED: Defect #2 — removed isOpen() guard so write() WARN fires if writer is closed
                 long writeStart = System.currentTimeMillis();
                 jsonlWriter.write(bpmResult);
-                debugLogger.logJsonlWrite(1, 0, System.currentTimeMillis() - writeStart); // CHANGED: P5 — call site was missing; byte count passed as 0 (JsonlWriter does not expose last write size; avoiding API change)
+                debugLogger.logJsonlWrite(1, 0, System.currentTimeMillis() - writeStart);
             }
 
             // Queue for GUI update

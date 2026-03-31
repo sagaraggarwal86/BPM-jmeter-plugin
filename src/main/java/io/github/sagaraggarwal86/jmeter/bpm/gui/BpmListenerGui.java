@@ -80,6 +80,13 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
      *  fired by setSelected/setSelectedItem listeners during programmatic configuration. */
     private boolean configuringElement = false; // CHANGED: Defect #2 guard
 
+    /**
+     * Set to {@code true} by {@link #createTestElement()} so that the immediately following
+     * {@link #configure(TestElement)} call knows it is wiring a brand-new element and must
+     * blank the display. Cleared on first configure() use.
+     */ // CHANGED: Defect #1 (this session) — new listener must show blank GUI
+    private boolean pendingFreshClear = false;
+
     /** Raw BpmResult records from the current test or loaded file — source of truth for retroactive filter rebuilds. */
     // CHANGED: Defect #2 — enables retroactive offset re-filtering by rebuilding aggregates from raw records
     private final List<BpmResult> allRawResults = new ArrayList<>();
@@ -300,6 +307,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         listener.removeProperty(BpmConstants.TEST_ELEMENT_TRANSACTION_NAMES);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_REGEX);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_INCLUDE);
+        pendingFreshClear = true; // CHANGED: Defect #1 — signal configure() to blank display for this new element
         return listener;
     }
 
@@ -330,36 +338,40 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             includeExcludeCombo.setSelectedItem(
                     element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
             if (element instanceof BpmListener listener) {
-                // Only wire to listener if it already has active data. // CHANGED: Bug #2
-                // A freshly created listener has a null queue — don't inherit data from
-                // any existing active instance; just show a blank GUI for the new listener.
-                boolean hasActiveData = listener.getGuiUpdateQueue() != null;
-                if (hasActiveData) {
-                    this.listenerRef = listener;
-                    this.propertiesRef = listener.getPropertiesManager();
+                // CHANGED: Defect #1 (this session) — brand-new element created via createTestElement():
+                // clear the shared GUI so the user sees a blank slate, then return.
+                // Fields above were already set to empty/default (properties were stripped).
+                if (pendingFreshClear) {
+                    pendingFreshClear = false;
+                    clearDisplayOnly();
+                    return;
+                }
+
+                // CHANGED: Defects #1 #2 #3 — never call clearDisplayOnly() from configure().
+                // Display data (table, score, time fields) persists across Save, navigate-away/back,
+                // and test-start configure() calls. Only clearData() (user-initiated) or
+                // testStarted() (new run) may clear the display.
+                // Use getActiveInstance() — not guiUpdateQueue presence — to determine live state.
+                // guiUpdateQueue is transient: null after deserialization even when data still exists.
+                BpmListener active = BpmListener.getActiveInstance();
+                if (active != null) {
+                    // Live test running — wire to the active instance and ensure timer is running.
+                    this.listenerRef = active;
+                    this.propertiesRef = active.getPropertiesManager();
                     if (!updateTimer.isRunning()) {
                         testRunning = true;
                         updateTimer.start();
                     }
                 } else {
+                    // No active test — wire to element, leave display data intact.
                     this.listenerRef = listener;
-                    this.propertiesRef = null;
-                    // CHANGED: Defect #4 — when user clicks the BPM Listener during a running test,
-                    // JMeter calls configure() with the original element (guiUpdateQueue == null,
-                    // so hasActiveData is false). Without this guard, clearDisplayOnly() would stop
-                    // the update timer and wipe a table that is actively being populated.
-                    // Fix: if a live test is in progress, wire to the active instance instead and
-                    // keep (or restart) the timer — never call clearDisplayOnly().
-                    BpmListener active = BpmListener.getActiveInstance();
-                    if (active != null) {
-                        this.listenerRef = active;
-                        this.propertiesRef = active.getPropertiesManager();
-                        if (!updateTimer.isRunning()) {
-                            testRunning = true;
-                            updateTimer.start();
-                        }
-                    } else {
-                        clearDisplayOnly(); // CHANGED: Defect #3 — always clear for a fresh listener with no active test; previous guard (getRowCount() == 0) allowed stale data from a prior file-load to bleed into a newly added listener
+                    this.propertiesRef = listener.getPropertiesManager();
+                    if (testRunning) {
+                        // Guard: timer may have been started by a prior stale configure() call;
+                        // stop it now that we know no test is active.
+                        testRunning = false;
+                        if (updateTimer.isRunning()) { updateTimer.stop(); }
+                        updateFilterFieldsEnabled();
                     }
                 }
             }
@@ -377,17 +389,18 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
     /**
      * Resets only the GUI display without touching the backend listener state or any output file.
-     * Used both by clearData() and by configure() when wiring a fresh listener.
+     * Called only from {@link #clearData()} (user-initiated Clear/Clear All).
+     * Never called from {@code configure()} — display data must persist across Save and navigate events.
      *
      * <p>Filter fields (start/end offset, transaction names, regex, include/exclude) are reset
      * to their defaults here. The reset is wrapped in a {@code configuringElement} guard to
      * suppress the {@link #applyAllFilters()} listeners that fire on setSelected/setSelectedItem.</p>
      *
-     * <p>The filename field is intentionally <em>not</em> cleared — Defect #2 confirmed correct.</p>
+     * <p>The filename field is intentionally <em>not</em> cleared.</p>
      *
      * <p>NOTE: clearData()/clearDisplayOnly() never write to or truncate the JSONL file or any
      * other output — only in-memory and UI state is reset.</p>
-     */ // CHANGED: Defect #1 — filter field resets added; Defect #2 Javadoc clarification
+     */ // CHANGED: Defect #1 filter resets; Defects #1 #2 #3 Javadoc: removed configure() reference
     private void clearDisplayOnly() {
         allRawResults.clear();
         tableModel.clear();
@@ -462,20 +475,21 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
     public void testStarted() {
         if (BpmListener.isDontStartPending()) { return; } // CHANGED: Defect #2 — user chose "Don't Start"; preserve loaded file data
-        // CHANGED: Defect #2 — clear raw record store and table so new run starts with fresh display
+        // CHANGED: Feature #3 (this session) — Append removed; always clear for a new test run
         allRawResults.clear();
         tableModel.clear();
         tableModel.fireTableDataChanged();
+        resetScoreBox();
+        testEndField.setText("");
+        testDurationField.setText("");
         testRunning = true;
         testStartTime = Instant.now();
         testStartField.setText(TIME_FMT.format(testStartTime));
-        testEndField.setText("");
-        testDurationField.setText("");
         // Disable file controls during test run // CHANGED: Feature #2 (prev session)
         filenameField.setEditable(false);
         browseButton.setEnabled(false);
         saveTableDataButton.setEnabled(false);
-        updateFilterFieldsEnabled(); // CHANGED: Feature #1 — replaces explicit startOffsetField.setEnabled(false) / endOffsetField.setEnabled(false)
+        updateFilterFieldsEnabled(); // CHANGED: Feature #1 — disables start/end offset during test execution
         if (!updateTimer.isRunning()) { updateTimer.start(); }
     }
 
@@ -641,7 +655,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             tableModel.addOrUpdateResult(r);
         }
         tableModel.fireTableDataChanged();
-        saveTableDataButton.setEnabled(tableModel.getRowCount() > 0);
+        saveTableDataButton.setEnabled(!testRunning && tableModel.getRowCount() > 0); // CHANGED: Feature #1 — disabled during test execution
         updateFilterFieldsEnabled(); // CHANGED: Feature #1
         if (testRunning) {
             // CHANGED: Defect #1 — when start offset is active during live test, update Start
@@ -708,18 +722,19 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     }
 
     /**
-     * Synchronizes the enabled state of filter fields to the current row count.
-     * Call this whenever either the row count or test-running state changes.
+     * Synchronizes the enabled state of filter fields to the current test-running state and row count.
+     * Call this whenever either the row count or {@code testRunning} changes.
      *
      * <ul>
-     *   <li>Offset fields and Apply Filters — always enabled (Change #1, Change #2).</li>
+     *   <li>Offset fields — disabled during test execution (Feature #1); enabled otherwise.</li>
+     *   <li>Apply Filters — always enabled (Change #2).</li>
      *   <li>Transaction-names, regex, include/exclude — enabled when the table has data.</li>
      * </ul>
-     */ // CHANGED: Feature #1; Change #1; Change #2
+     */ // CHANGED: Feature #1; Change #1; Change #2; Defects #1 #2 #3
     private void updateFilterFieldsEnabled() {
         boolean hasRows = tableModel.getRowCount() > 0;
-        startOffsetField.setEnabled(true);  // CHANGED: Change #1 — always enabled irrespective of data or test state
-        endOffsetField.setEnabled(true);    // CHANGED: Change #1 — always enabled irrespective of data or test state
+        startOffsetField.setEnabled(!testRunning); // CHANGED: Feature #1 — disabled during test execution
+        endOffsetField.setEnabled(!testRunning);   // CHANGED: Feature #1 — disabled during test execution
         transactionNamesField.setEnabled(hasRows);
         regexCheckBox.setEnabled(hasRows);
         includeExcludeCombo.setEnabled(hasRows);

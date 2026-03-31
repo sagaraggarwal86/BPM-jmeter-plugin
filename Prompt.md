@@ -2,6 +2,27 @@
 
 ---
 
+## 0. Session Initialization [MANDATORY — DO THIS FIRST]
+
+Before reading any other file in this project:
+
+1. **Locate and read `docs/Claude.md`** — path: `Claude.md`
+2. From it, load into active context:
+   - Architecture Map (Section 2)
+   - Key Invariants & Hard Constraints (Section 3)
+   - Current State — Open Items (Section 4)
+   - Change Log (Section 5)
+   - Standing Instructions (Section 6)
+3. **Do not read any source file** until `Claude.md` has been fully processed.
+4. If `Claude.md` is missing or incomplete, **stop and notify** before proceeding.
+5. After loading, confirm with one line:
+   > `"Session prompt loaded. [N] open items found. Last change log entry: [date | area]. Ready."`
+
+Only after that confirmation may you read additional files requested in the session.
+
+---
+
+
 ## 1. Prohibitions [STRICT]
 
 - Never change git history or Java 17 implementation
@@ -27,8 +48,8 @@
 - Conflicting requirements: flag the conflict, pause, and wait for decision
 - Rollback: revert to last explicitly approved file set, then ask how to proceed
 - If context grows large, summarize confirmed state before continuing
-- **`BPM_session_prompt.md` must be updated at the end of every session** that produces confirmed
-  changes. Present the updated `BPM_session_prompt.md` alongside all other changed files.
+- **`Claude.md` must be updated at the end of every session** that produces confirmed
+  changes. Present the updated `CLAUDE.md` alongside all other changed files.
   Append a row to the Change Log using the format:
   > `"Update Change Log: [date] | [area] | [what changed] | [done/in-progress]"`
   Never edit past rows.

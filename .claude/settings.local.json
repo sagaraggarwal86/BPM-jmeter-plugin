@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//mnt/f/Projects/**)",
-      "Bash(mvn clean:*)"
+      "Bash(mvn clean:*)",
+      "Bash(cmd /c \"cd /d F:\\\\Projects\\\\BPM-jmeter-plugin && mvn clean package -DskipTests 2>&1\")"
     ]
   }
 }
