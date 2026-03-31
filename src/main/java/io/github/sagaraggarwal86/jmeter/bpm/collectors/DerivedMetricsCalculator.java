@@ -51,6 +51,55 @@ public final class DerivedMetricsCalculator {
     }
 
     /**
+     * Scores a long metric: 100 if ≤ good, 50 if ≤ poor, 0 if > poor.
+     */
+    private static double scoreMetricLong(long value, long good, long poor) {
+        if (value <= good) {
+            return 100.0;
+        }
+        if (value <= poor) {
+            return 50.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * Scores a double metric: 100 if ≤ good, 50 if ≤ poor, 0 if > poor.
+     */
+    private static double scoreMetricDouble(double value, double good, double poor) {
+        if (value <= good) {
+            return 100.0;
+        }
+        if (value <= poor) {
+            return 50.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * Scores JS error count against configurable SLA thresholds.
+     * 100 if count ≤ good threshold, 50 if ≤ poor threshold, 0 if above poor.
+     */
+    private static double scoreErrors(int errorCount, int good, int poor) {
+        if (errorCount <= good) {
+            return 100.0;
+        }
+        if (errorCount <= poor) {
+            return 50.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * Rounds a double to 2 decimal places using HALF_UP rounding.
+     */
+    private static double roundToTwoDecimals(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    /**
      * Computes all derived metrics from raw collector results.
      *
      * @param vitals          Web Vitals result; may be null (SPA stale detection)
@@ -64,15 +113,15 @@ public final class DerivedMetricsCalculator {
                                   RuntimeResult runtime, ConsoleResult console,
                                   long samplerDuration) {
         // Extract raw values — keep nullable for score computation // CHANGED: Bug 10 — null-aware scoring
-        Long fcp  = vitals != null ? vitals.fcp()  : null;
-        Long lcp  = vitals != null ? vitals.lcp()  : null;
+        Long fcp = vitals != null ? vitals.fcp() : null;
+        Long lcp = vitals != null ? vitals.lcp() : null;
         Double cls = vitals != null ? vitals.cls() : null;
         Long ttfb = vitals != null ? vitals.ttfb() : null;
 
         // Primitive defaults for derived metric computation
-        long lcpVal  = lcp  != null ? lcp  : 0L;
+        long lcpVal = lcp != null ? lcp : 0L;
         long ttfbVal = ttfb != null ? ttfb : 0L;
-        long fcpVal  = fcp  != null ? fcp  : 0L;
+        long fcpVal = fcp != null ? fcp : 0L;
 
         int totalRequests = network != null ? network.totalRequests() : 0;
         int failedRequests = network != null ? network.failedRequests() : 0;
@@ -102,9 +151,9 @@ public final class DerivedMetricsCalculator {
         // Stability Category from CLS value // CHANGED: new column
         String stabilityCategory = null;
         if (cls != null) {
-            if (cls <= properties.getSlaClsGood())       stabilityCategory = BpmConstants.STABILITY_STABLE;
-            else if (cls <= properties.getSlaClsPoor())  stabilityCategory = BpmConstants.STABILITY_MINOR_SHIFTS;
-            else                                          stabilityCategory = BpmConstants.STABILITY_UNSTABLE;
+            if (cls <= properties.getSlaClsGood()) stabilityCategory = BpmConstants.STABILITY_STABLE;
+            else if (cls <= properties.getSlaClsPoor()) stabilityCategory = BpmConstants.STABILITY_MINOR_SHIFTS;
+            else stabilityCategory = BpmConstants.STABILITY_UNSTABLE;
         }
 
         // Headroom = percentage of LCP budget remaining before Poor threshold // CHANGED: new column
@@ -246,54 +295,5 @@ public final class DerivedMetricsCalculator {
         }
 
         return detected;
-    }
-
-    /**
-     * Scores a long metric: 100 if ≤ good, 50 if ≤ poor, 0 if > poor.
-     */
-    private static double scoreMetricLong(long value, long good, long poor) {
-        if (value <= good) {
-            return 100.0;
-        }
-        if (value <= poor) {
-            return 50.0;
-        }
-        return 0.0;
-    }
-
-    /**
-     * Scores a double metric: 100 if ≤ good, 50 if ≤ poor, 0 if > poor.
-     */
-    private static double scoreMetricDouble(double value, double good, double poor) {
-        if (value <= good) {
-            return 100.0;
-        }
-        if (value <= poor) {
-            return 50.0;
-        }
-        return 0.0;
-    }
-
-    /**
-     * Scores JS error count against configurable SLA thresholds.
-     * 100 if count ≤ good threshold, 50 if ≤ poor threshold, 0 if above poor.
-     */
-    private static double scoreErrors(int errorCount, int good, int poor) {
-        if (errorCount <= good) {
-            return 100.0;
-        }
-        if (errorCount <= poor) {
-            return 50.0;
-        }
-        return 0.0;
-    }
-
-    /**
-     * Rounds a double to 2 decimal places using HALF_UP rounding.
-     */
-    private static double roundToTwoDecimals(double value) {
-        return BigDecimal.valueOf(value)
-                .setScale(2, RoundingMode.HALF_UP)
-                .doubleValue();
     }
 }

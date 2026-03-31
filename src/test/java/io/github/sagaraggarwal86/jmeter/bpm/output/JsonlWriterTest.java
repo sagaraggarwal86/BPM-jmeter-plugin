@@ -118,7 +118,8 @@ class JsonlWriterTest {
     }
 
     @Test
-    @DisplayName("open(path, true) appends records after existing content") // CHANGED: Feature #3 — append mode
+    @DisplayName("open(path, true) appends records after existing content")
+        // CHANGED: Feature #3 — append mode
     void open_appendMode_appendsToExistingFile() throws IOException {
         Path path = tempDir.resolve("append.jsonl");
 

@@ -6,13 +6,13 @@
 
 Before reading any other file in this project:
 
-1. **Locate and read `docs/Claude.md`** — path: `Claude.md`
+1. **Locate and read `Claude.md`** — path: `Claude.md`
 2. From it, load into active context:
-   - Architecture Map (Section 2)
-   - Key Invariants & Hard Constraints (Section 3)
-   - Current State — Open Items (Section 4)
-   - Change Log (Section 5)
-   - Standing Instructions (Section 6)
+    - Architecture Map (Section 2)
+    - Key Invariants & Hard Constraints (Section 3)
+    - Current State — Open Items (Section 4)
+    - Change Log (Section 5)
+    - Standing Instructions (Section 6)
 3. **Do not read any source file** until `Claude.md` has been fully processed.
 4. If `Claude.md` is missing or incomplete, **stop and notify** before proceeding.
 5. After loading, confirm with one line:
@@ -21,7 +21,6 @@ Before reading any other file in this project:
 Only after that confirmation may you read additional files requested in the session.
 
 ---
-
 
 ## 1. Prohibitions [STRICT]
 
@@ -105,51 +104,51 @@ technical documentation, and UI/UX expertise.
   selenium-chrome-driver, Jackson) — thin JAR deployment, zero runtime footprint
 - **Package root:** `io.github.sagaraggarwal86.jmeter.bpm`
 - **Key Modules:**
-  - `core` — `BpmListener` (SampleListener + TestStateListener + Clearable), `CdpSessionManager`
-    (CDP lifecycle, observer injection, navigation detection), `ChromeCdpCommandExecutor`
-    (Selenium isolation via lazy `Class.forName()`), `CdpCommandExecutor` (testable interface),
-    `MetricsBuffer` (thread-safe event ring buffer)
-  - `collectors` — `MetricsCollector` interface; `WebVitalsCollector` (FCP, LCP, CLS, TTFB via
-    PerformanceObserver + Navigation Timing — per-action deltas, null for SPA-stale);
-    `NetworkCollector` (Resource Timing API, top-N slowest + all failed);
-    `RuntimeCollector` (Performance.getMetrics — per-action layout/style deltas);
-    `ConsoleCollector` (console.error/warn intercept, `ConsoleSanitizer`);
-    `DerivedMetricsCalculator` (score, improvement area, render time, server ratio, frontendTime,
-    stabilityCategory, headroom — zero CDP overhead)
-  - `model` — Jackson-annotated immutable records: `BpmResult`, `WebVitalsResult`,
-    `NetworkResult`, `ResourceEntry`, `RuntimeResult`, `ConsoleResult`, `DerivedMetrics`
-    (10-field record; 3 nullable fields: `frontendTime`, `stabilityCategory`, `headroom`;
-    `performanceScore` is `Integer` nullable — `null` means SPA-stale, never 0 or 100)
-  - `output` — `JsonlWriter` (one record per sampler, flush every 10), `SummaryJsonWriter`
-    (CI verdict JSON at test end), `CsvExporter` (Save Table Data)
-  - `gui` — `BpmListenerGui` (Swing panel extending `AbstractListenerGui`; 18-column live table;
-    `TotalPinnedRowSorter`; `BpmCellRenderer`; filter controls with Apply button);
-    `ColumnSelectorPopup` (toggles raw columns 10–17)
-  - `config` — `BpmPropertiesManager` (auto-generate, version-detect, backup/upgrade,
-    typed property access with `-J` flag overrides)
-  - `error` — `BpmErrorHandler` (per-thread state machine: HEALTHY → RE_INIT_NEEDED → DISABLED),
-    `LogOnceTracker`
-  - `util` — `BpmConstants` (single source of truth for all column indices, labels, property keys,
-    SLA defaults, score weights), `BpmDebugLogger` (gated; `Integer` score — never `int`),
-    `ConsoleSanitizer` (8 regex patterns for sensitive data redaction), `JsSnippets` (all CDP JS)
+    - `core` — `BpmListener` (SampleListener + TestStateListener + Clearable), `CdpSessionManager`
+      (CDP lifecycle, observer injection, navigation detection), `ChromeCdpCommandExecutor`
+      (Selenium isolation via lazy `Class.forName()`), `CdpCommandExecutor` (testable interface),
+      `MetricsBuffer` (thread-safe event ring buffer)
+    - `collectors` — `MetricsCollector` interface; `WebVitalsCollector` (FCP, LCP, CLS, TTFB via
+      PerformanceObserver + Navigation Timing — per-action deltas, null for SPA-stale);
+      `NetworkCollector` (Resource Timing API, top-N slowest + all failed);
+      `RuntimeCollector` (Performance.getMetrics — per-action layout/style deltas);
+      `ConsoleCollector` (console.error/warn intercept, `ConsoleSanitizer`);
+      `DerivedMetricsCalculator` (score, improvement area, render time, server ratio, frontendTime,
+      stabilityCategory, headroom — zero CDP overhead)
+    - `model` — Jackson-annotated immutable records: `BpmResult`, `WebVitalsResult`,
+      `NetworkResult`, `ResourceEntry`, `RuntimeResult`, `ConsoleResult`, `DerivedMetrics`
+      (10-field record; 3 nullable fields: `frontendTime`, `stabilityCategory`, `headroom`;
+      `performanceScore` is `Integer` nullable — `null` means SPA-stale, never 0 or 100)
+    - `output` — `JsonlWriter` (one record per sampler, flush every 10), `SummaryJsonWriter`
+      (CI verdict JSON at test end), `CsvExporter` (Save Table Data)
+    - `gui` — `BpmListenerGui` (Swing panel extending `AbstractListenerGui`; 18-column live table;
+      `TotalPinnedRowSorter`; `BpmCellRenderer`; filter controls with Apply button);
+      `ColumnSelectorPopup` (toggles raw columns 10–17)
+    - `config` — `BpmPropertiesManager` (auto-generate, version-detect, backup/upgrade,
+      typed property access with `-J` flag overrides)
+    - `error` — `BpmErrorHandler` (per-thread state machine: HEALTHY → RE_INIT_NEEDED → DISABLED),
+      `LogOnceTracker`
+    - `util` — `BpmConstants` (single source of truth for all column indices, labels, property keys,
+      SLA defaults, score weights), `BpmDebugLogger` (gated; `Integer` score — never `int`),
+      `ConsoleSanitizer` (8 regex patterns for sensitive data redaction), `JsSnippets` (all CDP JS)
 - **Metric Tiers (all ON by default, configurable via `bpm.properties`):**
-  - Tier 1 Web Vitals — FCP, LCP, CLS, TTFB
-  - Tier 2 Network — total requests/bytes, top-N slowest resources, all failed resources
-  - Tier 3 Runtime — JS heap, DOM nodes, layout count delta, style recalc count delta
-  - Tier 4 Console — JS error/warning count, sanitized messages
-  - Tier 5 Full Trace — excluded from v1 (10–15 % overhead)
+    - Tier 1 Web Vitals — FCP, LCP, CLS, TTFB
+    - Tier 2 Network — total requests/bytes, top-N slowest resources, all failed resources
+    - Tier 3 Runtime — JS heap, DOM nodes, layout count delta, style recalc count delta
+    - Tier 4 Console — JS error/warning count, sanitized messages
+    - Tier 5 Full Trace — excluded from v1 (10–15 % overhead)
 - **18-column GUI table (always-visible 0–9; raw/toggleable 10–17):**
   Label · Smpl · Score · Rndr(ms) · Srvr(%) · Front(ms) · Gap(ms) · Stability · Headroom ·
   Improvement Area | FCP(ms) · LCP(ms) · CLS · TTFB(ms) · Reqs · Size(KB) · Errs · Warns
 - **Derived metrics (zero CDP overhead):**
-  - Performance Score (0–100): LCP 40%, FCP 15%, CLS 15%, TTFB 15%, errors 15%.
-    `null` when available metric weight < 0.45 (SPA-stale: only CLS+errors = 0.30).
-  - Improvement Area (first-match-wins): Fix Network Failures → Reduce Server Response →
-    Optimise Heavy Assets → Reduce Render Work → Reduce DOM Complexity → None
-  - Stability: Stable (CLS ≤ 0.10) / Minor Shifts (≤ 0.25) / Unstable (> 0.25)
-  - Headroom: `max(0, 100 − LCP/lcpPoor × 100)` % — LCP budget remaining before Poor threshold
-  - frontendTime: `FCP − TTFB` — browser parse + blocking-script time before first paint
-  - renderTime: `LCP − TTFB`; serverClientRatio: `(TTFB/LCP) × 100`; fcpLcpGap: `LCP − FCP`
+    - Performance Score (0–100): LCP 40%, FCP 15%, CLS 15%, TTFB 15%, errors 15%.
+      `null` when available metric weight < 0.45 (SPA-stale: only CLS+errors = 0.30).
+    - Improvement Area (first-match-wins): Fix Network Failures → Reduce Server Response →
+      Optimise Heavy Assets → Reduce Render Work → Reduce DOM Complexity → None
+    - Stability: Stable (CLS ≤ 0.10) / Minor Shifts (≤ 0.25) / Unstable (> 0.25)
+    - Headroom: `max(0, 100 − LCP/lcpPoor × 100)` % — LCP budget remaining before Poor threshold
+    - frontendTime: `FCP − TTFB` — browser parse + blocking-script time before first paint
+    - renderTime: `LCP − TTFB`; serverClientRatio: `(TTFB/LCP) × 100`; fcpLcpGap: `LCP − FCP`
 - **CDP strategy:** Lazy Selenium loading via `Class.forName()`; all Selenium imports confined to
   `ChromeCdpCommandExecutor`; PerformanceObserver injection for LCP/CLS; Resource Timing API for
   network; resource timing buffer size 500 to prevent silent drops; `ensureObserversInjected()`
@@ -160,7 +159,7 @@ technical documentation, and UI/UX expertise.
 - **Configuration:** `bpm.properties` in `<JMETER_HOME>/bin/`, auto-generated from bundled
   template, version-detected with `.bak` upgrade. Two `-J` overrides: `bpm.output`, `bpm.debug`.
 - **Deployment:** Thin JAR → JMeter `lib/ext/`; requires WebDriver Sampler plugin (`jpgc-webdriver`)
-  + Chrome/Chromium. Maven Central via Publisher Portal.
+    + Chrome/Chromium. Maven Central via Publisher Portal.
 - **CI/CD:** GitHub Actions — `build.yml` (Windows + Ubuntu matrix, `mvn clean verify`),
   `release.yml` (Maven Central on `v*.*.*` tag), `codeql.yml` (weekly scan),
   `dependabot-auto-merge.yml`.
@@ -173,16 +172,16 @@ technical documentation, and UI/UX expertise.
   The `derived.improvementAreas` array is the primary AI correlation signal. AI capability will
   be provider-agnostic (OpenAI-compatible endpoints), consistent with the approach proven in JAAR.
 - **Key constraints:**
-  - `performanceScore` is `Integer` (nullable) everywhere — unboxing `null` to `int` will NPE
-    and silently abort JSONL writes (root cause of past `testEnded` WARN)
-  - `BpmConstants` is the single source of truth — never hardcode column indices, label strings,
-    or property keys outside it
-  - JSONL schema (`DerivedMetrics`, `BpmResult` `@JsonProperty` names) is public and backward-
-    compatible — field renames are breaking changes
-  - `BpmConstants.TEST_ELEMENT_*` key strings are stored in `.jmx` files — renaming breaks
-    existing test plans
-  - Selenium types confined to `ChromeCdpCommandExecutor` — lazy class loading
-  - Chrome-only via CDP — acknowledged constraint, documented not hidden
-  - Pure observer — never crashes the test; all exceptions caught; graceful degradation
-  - UI preserves `AbstractListenerGui` and `Clearable` contracts
-  - `TotalPinnedRowSorter` must pin TOTAL to last view row for all sort directions
+    - `performanceScore` is `Integer` (nullable) everywhere — unboxing `null` to `int` will NPE
+      and silently abort JSONL writes (root cause of past `testEnded` WARN)
+    - `BpmConstants` is the single source of truth — never hardcode column indices, label strings,
+      or property keys outside it
+    - JSONL schema (`DerivedMetrics`, `BpmResult` `@JsonProperty` names) is public and backward-
+      compatible — field renames are breaking changes
+    - `BpmConstants.TEST_ELEMENT_*` key strings are stored in `.jmx` files — renaming breaks
+      existing test plans
+    - Selenium types confined to `ChromeCdpCommandExecutor` — lazy class loading
+    - Chrome-only via CDP — acknowledged constraint, documented not hidden
+    - Pure observer — never crashes the test; all exceptions caught; graceful degradation
+    - UI preserves `AbstractListenerGui` and `Clearable` contracts
+    - `TotalPinnedRowSorter` must pin TOTAL to last view row for all sort directions

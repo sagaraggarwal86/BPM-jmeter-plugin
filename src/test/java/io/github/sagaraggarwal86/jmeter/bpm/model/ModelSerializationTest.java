@@ -113,7 +113,8 @@ class ModelSerializationTest {
     }
 
     @Test
-    @DisplayName("DerivedMetrics improvementAreas array survives roundtrip") // CHANGED: renamed
+    @DisplayName("DerivedMetrics improvementAreas array survives roundtrip")
+        // CHANGED: renamed
     void derivedMetrics_improvementAreasArray_preserved() throws Exception {
         DerivedMetrics original = new DerivedMetrics(800L, 32.20, null, 760L,
                 null, null, 5.0, BpmConstants.BOTTLENECK_RELIABILITY,

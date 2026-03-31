@@ -85,7 +85,8 @@ class CollectorsTest {
         }
 
         @Test
-        @DisplayName("lcp=0 and fcp=0 are treated as unavailable (null), not perfect 0 ms values") // CHANGED: per-action accuracy — lcp=0/fcp=0 mean no event fired yet
+        @DisplayName("lcp=0 and fcp=0 are treated as unavailable (null), not perfect 0 ms values")
+            // CHANGED: per-action accuracy — lcp=0/fcp=0 mean no event fired yet
         void collect_zeroLcpFcp_returnsNull() { // CHANGED: per-action accuracy
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
                     .thenReturn(Map.of("lcp", 0.0, "fcp", 0.0, "cls", 0.0, "ttfb", 0.0));

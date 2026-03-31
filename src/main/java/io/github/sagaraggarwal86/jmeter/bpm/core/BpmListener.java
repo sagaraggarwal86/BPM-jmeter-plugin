@@ -7,7 +7,6 @@ import io.github.sagaraggarwal86.jmeter.bpm.error.LogOnceTracker;
 import io.github.sagaraggarwal86.jmeter.bpm.gui.BpmListenerGui; // CHANGED: §5.5 — GUI lifecycle wiring
 import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.output.JsonlWriter;
-// SummaryJsonWriter intentionally removed — Feature #1: summary JSON generation disabled
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmDebugLogger;
 import io.github.sagaraggarwal86.jmeter.bpm.util.ConsoleSanitizer;
@@ -21,18 +20,18 @@ import org.apache.jmeter.threads.JMeterVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+// SummaryJsonWriter intentionally removed — Feature #1: summary JSON generation disabled
 
 /**
  * Main BPM listener — captures browser performance metrics from WebDriver Sampler
@@ -62,14 +61,17 @@ public class BpmListener extends AbstractTestElement
 
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BpmListener.class);
-
     /**
-     * Outcome of the file-exists check performed at test start.
-     * Determines whether the JSONL writer opens in append or overwrite mode,
-     * or whether the test should be stopped before writing begins.
-     */ // CHANGED: Feature #3 — file-exists dialog; CHANGED: Feature #3 (this session) — APPEND removed
-    private enum FileOpenMode { OVERWRITE, DONT_START }
-
+     * Per-element-name primary-instance registry.
+     * Maps each distinct BpmListener element name to the first instance that won setup for it.
+     * Clones of the same element (name collision) skip setup and delegate sampleOccurred() to
+     * the registered primary. Cleared per-element in testEnded() so each run starts fresh.
+     *
+     * <p>Replaces the old global {@code AtomicBoolean testStartLock} which allowed only ONE
+     * BpmListener element per test plan to run setup — breaking the file-exists dialog when
+     * a later element had an existing user-provided path.</p>
+     */ // CHANGED: Defect — per-name primary registry replaces global testStartLock
+    private static final ConcurrentHashMap<String, BpmListener> primaryByName = new ConcurrentHashMap<>();
     // CHANGED: Static reference to the instance that received testStarted() — cloned instances
     // that receive sampleOccurred() without testStarted() delegate to this active instance.
     private static volatile BpmListener activeInstance;
@@ -82,27 +84,58 @@ public class BpmListener extends AbstractTestElement
      * or in {@link #testEnded(String)} after the engine stops.
      */ // CHANGED: Defect #2
     private static volatile boolean dontStartPending = false;
-
-    /** Returns true if "Don't Start" was chosen and the engine stop is in progress. */ // CHANGED: Defect #2
-    public static boolean isDontStartPending() { return dontStartPending; }
-
-    /**
-     * CAS lock — only the first instance to call testStarted() in a run proceeds through full
-     * setup (file dialog, writer open, GUI notify). All subsequent clone instances return early.
-     * Reset unconditionally in testEnded() so the next run always gets a fresh lock.
-     */ // CHANGED: replace activeInstance != null guard — AtomicBoolean CAS is race-free
-    private static final AtomicBoolean testStartLock = new AtomicBoolean(false);
-
-
     /**
      * True only when this instance completed a full {@link #testStarted(String)} (i.e. the test
      * actually started). False for DONT_START returns and for clones that never ran testStarted.
      * Guards {@link #testEnded(String)} so only the owner instance notifies the GUI.
      */ // CHANGED: Defect #2
     private transient boolean testActuallyStarted = false;
-
-    /** Engine reference cached at the very start of testStarted() for use in stopTestEngine(). */ // CHANGED: Defect #2
+    /**
+     * Engine reference cached at the very start of testStarted() for use in stopTestEngine().
+     */ // CHANGED: Defect #2
     private transient org.apache.jmeter.engine.JMeterEngine cachedEngine;
+    private transient BpmPropertiesManager propertiesManager;
+    private transient BpmDebugLogger debugLogger;
+    private transient JsonlWriter jsonlWriter;
+
+    // ── Per-test state (reset in testStarted) ──────────────────────────────────────────────
+    // summaryJsonWriter removed — Feature #1: summary JSON generation disabled
+    private transient BpmErrorHandler errorHandler;
+    private transient LogOnceTracker logOnceTracker;
+    private transient CdpSessionManager sessionManager;
+    private transient ConsoleSanitizer consoleSanitizer;
+    // Collectors
+    private transient WebVitalsCollector webVitalsCollector;
+    private transient NetworkCollector networkCollector;
+    private transient RuntimeCollector runtimeCollector;
+    private transient ConsoleCollector consoleCollector;
+    private transient DerivedMetricsCalculator derivedCalculator;
+    // Per-thread CDP executors and buffers
+    private transient ConcurrentHashMap<String, CdpCommandExecutor> executorsByThread;
+    private transient ConcurrentHashMap<String, MetricsBuffer> buffersByThread;
+    /**
+     * Queue for GUI updates — drained by the 500ms Swing Timer in BpmListenerGui.
+     */
+    private transient ConcurrentLinkedQueue<BpmResult> guiUpdateQueue;
+    // Health counters
+    private transient AtomicInteger samplesCollected;
+    private transient AtomicLong totalCollectionTimeMs;
+    // Per-label running aggregates for log summary and summary JSON
+    private transient ConcurrentHashMap<String, LabelAggregate> labelAggregates;
+    // Selenium availability flag (checked once per test)
+    private transient volatile boolean seleniumAvailable;
+    private transient volatile boolean seleniumChecked;
+    // Info bar override for Scenario A/C states — read by BpmListenerGui.drainGuiQueue() // CHANGED: §5.7
+    private transient volatile String infoBarOverride;
+    // Per-thread iteration counter
+    private transient ConcurrentHashMap<String, AtomicInteger> iterationsByThread;
+
+    /**
+     * Returns true if "Don't Start" was chosen and the engine stop is in progress.
+     */ // CHANGED: Defect #2
+    public static boolean isDontStartPending() {
+        return dontStartPending;
+    }
 
     /**
      * Returns the currently active (initialized) BpmListener instance, or null
@@ -112,47 +145,12 @@ public class BpmListener extends AbstractTestElement
         return activeInstance;
     }
 
-    // ── Per-test state (reset in testStarted) ──────────────────────────────────────────────
-
-    private transient BpmPropertiesManager propertiesManager;
-    private transient BpmDebugLogger debugLogger;
-    private transient JsonlWriter jsonlWriter;
-    // summaryJsonWriter removed — Feature #1: summary JSON generation disabled
-    private transient BpmErrorHandler errorHandler;
-    private transient LogOnceTracker logOnceTracker;
-    private transient CdpSessionManager sessionManager;
-    private transient ConsoleSanitizer consoleSanitizer;
-
-    // Collectors
-    private transient WebVitalsCollector webVitalsCollector;
-    private transient NetworkCollector networkCollector;
-    private transient RuntimeCollector runtimeCollector;
-    private transient ConsoleCollector consoleCollector;
-    private transient DerivedMetricsCalculator derivedCalculator;
-
-    // Per-thread CDP executors and buffers
-    private transient ConcurrentHashMap<String, CdpCommandExecutor> executorsByThread;
-    private transient ConcurrentHashMap<String, MetricsBuffer> buffersByThread;
-
-    /** Queue for GUI updates — drained by the 500ms Swing Timer in BpmListenerGui. */
-    private transient ConcurrentLinkedQueue<BpmResult> guiUpdateQueue;
-
-    // Health counters
-    private transient AtomicInteger samplesCollected;
-    private transient AtomicLong totalCollectionTimeMs;
-
-    // Per-label running aggregates for log summary and summary JSON
-    private transient ConcurrentHashMap<String, LabelAggregate> labelAggregates;
-
-    // Selenium availability flag (checked once per test)
-    private transient volatile boolean seleniumAvailable;
-    private transient volatile boolean seleniumChecked;
-
-    // Info bar override for Scenario A/C states — read by BpmListenerGui.drainGuiQueue() // CHANGED: §5.7
-    private transient volatile String infoBarOverride;
-
-    // Per-thread iteration counter
-    private transient ConcurrentHashMap<String, AtomicInteger> iterationsByThread;
+    /**
+     * Truncates a label to 15 characters for log summary formatting.
+     */
+    private static String truncateLabel(String label) {
+        return label.length() > 15 ? label.substring(0, 12) + "..." : label;
+    }
 
     // ── TestStateListener ──────────────────────────────────────────────────────────────────
 
@@ -172,15 +170,24 @@ public class BpmListener extends AbstractTestElement
     public void testStarted(String host) {
         // CHANGED: Defect #2 — if another BpmListener in this test run already chose DONT_START,
         // skip all processing on clones so they don't proceed past the cancelled decision.
-        if (dontStartPending) { return; }
-        // CHANGED: replace activeInstance != null guard — CAS ensures exactly one instance wins the
-        // lock regardless of timing. activeInstance could be stale (non-null from a previous run)
-        // and would silently skip the dialog; AtomicBoolean.compareAndSet is always race-free.
-        if (!testStartLock.compareAndSet(false, true)) {
-            log.debug("BPM: testStarted() — clone instance skipped (CAS lock held by primary instance).");
+        if (dontStartPending) {
             return;
         }
-        log.debug("BPM: testStarted() — this instance won the CAS lock: {}", System.identityHashCode(this));
+        // CHANGED: Defect — per-element UUID key replaces getName().
+        // Multiple distinct listeners often share the same default name; UUID (stamped at
+        // createTestElement time) is unique per element and inherited by clones, so:
+        //   • First call for a UUID → putIfAbsent returns null → this instance is primary
+        //   • Clone calls with same UUID → putIfAbsent returns existing entry → skip
+        // Fall back to getName() for elements loaded from old .jmx files without a UUID.
+        String elementId = getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, "").trim();
+        if (elementId.isEmpty()) {
+            elementId = getName();
+        }
+        if (primaryByName.putIfAbsent(elementId, this) != null) {
+            log.debug("BPM: testStarted() — clone instance skipped for element id '{}'", elementId);
+            return;
+        }
+        log.debug("BPM: testStarted() — this instance is primary for element id '{}'", elementId);
 
         testActuallyStarted = false; // CHANGED: Defect #2 — reset; set true only at successful test start
 
@@ -190,7 +197,8 @@ public class BpmListener extends AbstractTestElement
         cachedEngine = null; // CHANGED: Defect #2
         try {
             cachedEngine = org.apache.jmeter.threads.JMeterContextService.getContext().getEngine();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Load configuration
         propertiesManager = new BpmPropertiesManager();
@@ -292,14 +300,18 @@ public class BpmListener extends AbstractTestElement
      */
     @Override
     public void sampleOccurred(SampleEvent event) {
-        // CHANGED: Delegate to the active (initialized) instance — JMeter may invoke
-        // sampleOccurred on a cloned BpmListener that never received testStarted().
-        // The clone forwards the event to the instance that owns the writers, collectors,
-        // and GUI-connected queue.
+        // CHANGED: Defect — delegate to this element's primary instance (not the global activeInstance).
+        // JMeter may invoke sampleOccurred on a cloned BpmListener that never received testStarted().
+        // The clone forwards the event to the primary instance that owns the writers, collectors,
+        // and GUI-connected queue for this specific element name.
         if (errorHandler == null) {
-            BpmListener active = activeInstance;
-            if (active != null && active != this) {
-                active.sampleOccurred(event);
+            String elementId = getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, "").trim();
+            if (elementId.isEmpty()) {
+                elementId = getName();
+            }
+            BpmListener primary = primaryByName.get(elementId);
+            if (primary != null && primary != this) {
+                primary.sampleOccurred(event);
             }
             return;
         }
@@ -352,20 +364,24 @@ public class BpmListener extends AbstractTestElement
 
         } catch (Exception e) {
             // Never let exceptions propagate to JMeter
-            log.warn("BPM: Unexpected error in sampleOccurred: {}", e.getMessage());
+            log.warn("BPM: Unexpected error in sampleOccurred", e);
             if (debugLogger != null) { // CHANGED: null-guard — debugLogger is transient; may be null if testStarted() was never called
                 debugLogger.log("sampleOccurred exception: {}", e.toString());
             }
         }
     }
 
-    /** {@inheritDoc} — Not used. */
+    /**
+     * {@inheritDoc} — Not used.
+     */
     @Override
     public void sampleStarted(SampleEvent e) {
         // No action needed
     }
 
-    /** {@inheritDoc} — Not used. */
+    /**
+     * {@inheritDoc} — Not used.
+     */
     @Override
     public void sampleStopped(SampleEvent e) {
         // No action needed
@@ -387,8 +403,12 @@ public class BpmListener extends AbstractTestElement
      */
     @Override
     public void testEnded(String host) {
-        // CHANGED: reset CAS lock unconditionally so the next run always gets a fresh gate
-        testStartLock.set(false);
+        // CHANGED: Defect — remove this element's entry so the next run gets a fresh slot
+        String elementId = getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, "").trim();
+        if (elementId.isEmpty()) {
+            elementId = getName();
+        }
+        primaryByName.remove(elementId);
         // CHANGED: Defect #2 — always clear flag on test end so the next run starts clean
         dontStartPending = false;
 
@@ -419,7 +439,7 @@ public class BpmListener extends AbstractTestElement
             }
 
         } catch (Exception e) {
-            log.warn("BPM: Error during testEnded: {}", e.getMessage());
+            log.warn("BPM: Error during testEnded", e);
         }
 
         if (debugLogger != null) { // CHANGED: null-guard — testEnded() may be called without testStarted()
@@ -978,173 +998,5 @@ public class BpmListener extends AbstractTestElement
         }
         executorsByThread.clear();
         buffersByThread.clear();
-    }
-
-    /**
-     * Truncates a label to 15 characters for log summary formatting.
-     */
-    private static String truncateLabel(String label) {
-        return label.length() > 15 ? label.substring(0, 12) + "..." : label;
-    }
-
-    // ── Inner class: LabelAggregate ────────────────────────────────────────────────────────
-
-    /**
-     * Thread-safe running aggregate for a single sampler label.
-     *
-     * <p>Uses synchronized methods since updates come from multiple JMeter threads.
-     * Stores running totals for weighted-average computation at summary time.</p>
-     */
-    public static class LabelAggregate {
-
-        private int sampleCount;
-        private long totalScore;
-        private int scoredSampleCount; // CHANGED: per-action accuracy — counts only samples with non-null score
-        private long totalRenderTime;
-        private double totalServerRatio;
-        private long totalFcpLcpGap;
-        private long totalLcp;
-        private long totalFcp;
-        private long totalTtfb;
-        private double totalCls;
-        private int totalRequests;
-        private long totalBytes;
-        private int totalErrors;
-        private int totalWarnings;
-        private String lastImprovementArea = BpmConstants.BOTTLENECK_NONE; // CHANGED: renamed
-
-        // CHANGED: per-metric non-null counters
-        private int lcpCount;
-        private int fcpCount;
-        private int ttfbCount;
-        private int clsCount;
-
-        // CHANGED: new derived metric tracking
-        private long totalFrontendTime;
-        private int frontendTimeCount;
-        private long totalHeadroom;
-        private int headroomCount;
-
-        /**
-         * Updates the aggregate with a new sample's derived and raw metrics.
-         */
-        public synchronized void update(DerivedMetrics derived, WebVitalsResult vitals,
-                                        NetworkResult network, ConsoleResult console) {
-            sampleCount++;
-            totalRenderTime += derived.renderTime();
-            totalServerRatio += derived.serverClientRatio();
-            totalFcpLcpGap += derived.fcpLcpGap();
-
-            // Accumulate score only when non-null — SPA-stale samples return null // CHANGED: per-action accuracy
-            if (derived.performanceScore() != null) {
-                totalScore += derived.performanceScore();
-                scoredSampleCount++;
-            }
-
-            // Accumulate new derived fields when non-null // CHANGED: new columns
-            if (derived.frontendTime() != null) {
-                totalFrontendTime += derived.frontendTime();
-                frontendTimeCount++;
-            }
-            if (derived.headroom() != null) {
-                totalHeadroom += derived.headroom();
-                headroomCount++;
-            }
-
-            if (vitals != null) {
-                if (vitals.lcp() != null)  { totalLcp  += vitals.lcp();  lcpCount++;  }
-                if (vitals.fcp() != null)  { totalFcp  += vitals.fcp();  fcpCount++;  }
-                if (vitals.ttfb() != null) { totalTtfb += vitals.ttfb(); ttfbCount++; }
-                if (vitals.cls() != null)  { totalCls  += vitals.cls();  clsCount++;  }
-            }
-            if (network != null) {
-                totalRequests += network.totalRequests();
-                totalBytes += network.totalBytes();
-            }
-            if (console != null) {
-                totalErrors += console.errors();
-                totalWarnings += console.warnings();
-            }
-
-            // Track the most recent non-None improvement area as representative // CHANGED: renamed
-            if (!BpmConstants.BOTTLENECK_NONE.equals(derived.improvementArea())) {
-                lastImprovementArea = derived.improvementArea();
-            }
-        }
-
-        /** @return number of samples collected for this label */
-        public synchronized int getSampleCount() { return sampleCount; }
-
-        /**
-         * @return weighted average performance score, or {@code null} if no sample
-         *         for this label had enough metric data to produce a score
-         */
-        public synchronized Integer getAverageScore() {
-            return scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : null;
-        }
-
-        /** @return average render time in ms */
-        public synchronized long getAverageRenderTime() {
-            return sampleCount > 0 ? totalRenderTime / sampleCount : 0;
-        }
-
-        /** @return average server ratio as percentage */
-        public synchronized double getAverageServerRatio() {
-            return sampleCount > 0 ? totalServerRatio / sampleCount : 0.0;
-        }
-
-        /** @return average FCP-LCP gap in ms */
-        public synchronized long getAverageFcpLcpGap() {
-            return sampleCount > 0 ? totalFcpLcpGap / sampleCount : 0;
-        }
-
-        /** @return average frontend time in ms, over samples with FCP+TTFB data only */ // CHANGED: new
-        public synchronized Long getAverageFrontendTime() {
-            return frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : null;
-        }
-
-        /** @return average headroom %, over samples with LCP data only */ // CHANGED: new
-        public synchronized Integer getAverageHeadroom() {
-            return headroomCount > 0 ? (int) (totalHeadroom / headroomCount) : null;
-        }
-
-        /** @return average LCP in ms, over non-null samples only */
-        public synchronized long getAverageLcp() {
-            return lcpCount > 0 ? totalLcp / lcpCount : 0;
-        }
-
-        /** @return average FCP in ms, over non-null samples only */
-        public synchronized long getAverageFcp() {
-            return fcpCount > 0 ? totalFcp / fcpCount : 0;
-        }
-
-        /** @return average TTFB in ms, over non-null samples only */
-        public synchronized long getAverageTtfb() {
-            return ttfbCount > 0 ? totalTtfb / ttfbCount : 0;
-        }
-
-        /** @return average CLS, over non-null samples only */
-        public synchronized double getAverageCls() {
-            return clsCount > 0 ? totalCls / clsCount : 0.0;
-        }
-
-        /** @return average requests per sample */
-        public synchronized int getAverageRequests() {
-            return sampleCount > 0 ? totalRequests / sampleCount : 0;
-        }
-
-        /** @return average total bytes per sample */
-        public synchronized long getAverageBytes() {
-            return sampleCount > 0 ? totalBytes / sampleCount : 0;
-        }
-
-        /** @return cumulative error count */
-        public synchronized int getTotalErrors() { return totalErrors; }
-
-        /** @return cumulative warning count */
-        public synchronized int getTotalWarnings() { return totalWarnings; }
-
-        /** @return the most recently seen non-None improvement area label */ // CHANGED: renamed
-        public synchronized String getPrimaryImprovementArea() { return lastImprovementArea; }
     }
 }

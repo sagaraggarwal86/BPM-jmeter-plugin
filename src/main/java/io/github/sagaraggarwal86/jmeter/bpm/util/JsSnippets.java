@@ -28,12 +28,6 @@ package io.github.sagaraggarwal86.jmeter.bpm.util;
  */
 public final class JsSnippets {
 
-    private JsSnippets() {
-        throw new UnsupportedOperationException("JsSnippets is a utility class");
-    }
-
-    // ── Observer injection ────────────────────────────────────────────────────────────────────
-
     /**
      * JavaScript executed once at CDP session initialisation. Registers two
      * {@code PerformanceObserver} instances that accumulate LCP and CLS values into
@@ -61,7 +55,7 @@ public final class JsSnippets {
                   window.__bpm_lcp = entries[entries.length - 1].startTime;
                 }
               }).observe({type: 'largest-contentful-paint', buffered: true});
-
+            
               // CLS: accumulate layout-shift values, ignoring shifts caused by user input.
               window.__bpm_cls = window.__bpm_cls || 0;
               new PerformanceObserver(function(list) {
@@ -72,7 +66,7 @@ public final class JsSnippets {
                   }
                 }
               }).observe({type: 'layout-shift', buffered: true});
-
+            
               // CHANGED: Bug 11 — Synchronous seed from performance buffer.
               // Observer callbacks are queued as tasks (async), so if collectMetrics()
               // runs immediately after injection, window.__bpm_lcp would still be 0.
@@ -90,7 +84,7 @@ public final class JsSnippets {
             })();
             """;
 
-    // CHANGED (G-05): New constant — safe re-injection script for CDP session recovery.
+    // ── Observer injection ────────────────────────────────────────────────────────────────────
     /**
      * JavaScript executed when a CDP session is re-initialised mid-test (error recovery path).
      *
@@ -122,7 +116,7 @@ public final class JsSnippets {
                   window.__bpm_lcp = entries[entries.length - 1].startTime;
                 }
               }).observe({type: 'largest-contentful-paint', buffered: true});
-
+            
               // CLS: reset to 0 before registering a new observer to prevent double-counting.
               // The old session's CLS was already flushed to JSONL before re-init was triggered.
               window.__bpm_cls = 0;
@@ -134,7 +128,7 @@ public final class JsSnippets {
                   }
                 }
               }).observe({type: 'layout-shift', buffered: true});
-
+            
               // CHANGED: Bug 11 — Synchronous seed (same as INJECT_OBSERVERS).
               var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
               if (lcpEntries.length > 0) {
@@ -143,8 +137,7 @@ public final class JsSnippets {
             })();
             """;
 
-    // ── Web Vitals collection ─────────────────────────────────────────────────────────────────
-
+    // CHANGED (G-05): New constant — safe re-injection script for CDP session recovery.
     /**
      * JavaScript executed once per sampler to read all four Web Vitals in a single round-trip.
      * Returns a plain JavaScript object that Selenium converts to a {@code Map<String, Object>}
@@ -180,8 +173,7 @@ public final class JsSnippets {
             })();
             """;
 
-    // ── CDP command names ─────────────────────────────────────────────────────────────────────
-
+    // ── Web Vitals collection ─────────────────────────────────────────────────────────────────
     /**
      * CDP domain method name passed to {@code CdpCommandExecutor.executeCdpCommand()} by
      * {@code RuntimeCollector} to retrieve Chrome runtime performance metrics.
@@ -191,36 +183,31 @@ public final class JsSnippets {
      * {@code RecalcStyleCount}.
      *
      * @see <a href="https://chromedevtools.github.io/devtools-protocol/tot/Performance/#method-getMetrics">
-     *      CDP Performance.getMetrics</a>
+     * CDP Performance.getMetrics</a>
      */
     public static final String CDP_METHOD_PERFORMANCE_GET_METRICS = "Performance.getMetrics";
 
+    // ── CDP command names ─────────────────────────────────────────────────────────────────────
     /**
      * CDP domain name passed to {@code CdpCommandExecutor.enableDomain()} to activate the
      * Performance domain before calling {@link #CDP_METHOD_PERFORMANCE_GET_METRICS}.
      */
     public static final String CDP_DOMAIN_PERFORMANCE = "Performance";
-
     /**
      * CDP domain name passed to {@code CdpCommandExecutor.enableDomain()} to activate Network
      * event capture ({@code Network.responseReceived}, {@code Network.loadingFailed}, etc.).
      */
     public static final String CDP_DOMAIN_NETWORK = "Network";
-
     /**
      * CDP domain name passed to {@code CdpCommandExecutor.enableDomain()} to activate Page-level
      * events (navigations, load events) used for session lifecycle management.
      */
     public static final String CDP_DOMAIN_PAGE = "Page";
-
     /**
      * CDP domain name passed to {@code CdpCommandExecutor.enableDomain()} to activate Log
      * domain events, which surface browser console messages as CDP events.
      */
     public static final String CDP_DOMAIN_LOG = "Log";
-
-    // ── Resource Timing (supplementary) ──────────────────────────────────────────────────────
-
     /**
      * JavaScript that reads all {@code resource} performance entries accumulated since the last
      * call (or page load), then clears the browser's performance buffer to avoid double-counting
@@ -259,8 +246,7 @@ public final class JsSnippets {
             })();
             """;
 
-    // ── Console event capture ────────────────────────────────────────────────────────────────  // CHANGED — new constant
-
+    // ── Resource Timing (supplementary) ──────────────────────────────────────────────────────
     /**
      * JavaScript executed once at CDP session initialisation to intercept
      * {@code console.error()} and {@code console.warn()} calls.
@@ -298,7 +284,9 @@ public final class JsSnippets {
             })();
             """;
 
-    /**                                                                                         // CHANGED — new constant
+    // ── Console event capture ────────────────────────────────────────────────────────────────  // CHANGED — new constant
+    /**
+     * // CHANGED — new constant
      * JavaScript that drains the browser-side console message buffer and clears it.
      *
      * <p>Returns a JavaScript array of {@code {level, text}} objects. Selenium converts
@@ -314,9 +302,6 @@ public final class JsSnippets {
               return buf;
             })();
             """;
-
-    // ── Observer presence detection ─────────────────────────────────────────────────────── // CHANGED: new constants for post-navigation re-injection
-
     /**
      * Checks whether BPM observers are active in the current page context.
      * Returns {@code true} if observers were injected into this page, {@code false}
@@ -326,15 +311,13 @@ public final class JsSnippets {
     public static final String CHECK_OBSERVERS_PRESENT =
             "return typeof window.__bpm_observer_active !== 'undefined'";
 
+    // ── Observer presence detection ─────────────────────────────────────────────────────── // CHANGED: new constants for post-navigation re-injection
     /**
      * Sets the observer-active marker after successful observer injection.
      * Destroyed automatically when the page navigates (JavaScript context reset).
      */
     public static final String SET_OBSERVER_MARKER =
             "window.__bpm_observer_active = true";
-
-    // ── Resource timing buffer ────────────────────────────────────────────────────────── // CHANGED: per-action accuracy — prevents silent entry drops on pages with >150 resources
-
     /**
      * Raises the browser's Resource Timing buffer to 500 entries (default is 150).
      *
@@ -351,4 +334,10 @@ public final class JsSnippets {
      */
     public static final String SET_RESOURCE_BUFFER_SIZE =
             "performance.setResourceTimingBufferSize(500)"; // CHANGED: per-action accuracy
+
+    // ── Resource timing buffer ────────────────────────────────────────────────────────── // CHANGED: per-action accuracy — prevents silent entry drops on pages with >150 resources
+
+    private JsSnippets() {
+        throw new UnsupportedOperationException("JsSnippets is a utility class");
+    }
 }

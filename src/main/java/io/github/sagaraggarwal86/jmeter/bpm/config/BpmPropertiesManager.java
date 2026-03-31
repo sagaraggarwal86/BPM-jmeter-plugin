@@ -1,5 +1,6 @@
 package io.github.sagaraggarwal86.jmeter.bpm.config;
 
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 import org.apache.jmeter.util.JMeterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,28 +80,8 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
     private static final String KEY_DEBUG = "bpm.debug";
     private static final String KEY_BPM_OUTPUT = "bpm.output"; // CHANGED: P6 — needed for bpm.properties middle tier in getOutputPath()
 
-    // Hardcoded defaults (lowest priority fallback)
-    private static final String DEFAULT_OUTPUT_PATH = "bpm-results.jsonl";
-    private static final boolean DEFAULT_DEBUG = false;
+    // Shared default for all four metric toggles (no single BpmConstants counterpart)
     private static final boolean DEFAULT_METRIC_ENABLED = true;
-    private static final int DEFAULT_NETWORK_TOP_N = 5;
-    private static final long DEFAULT_SLA_FCP_GOOD = 1800L;
-    private static final long DEFAULT_SLA_FCP_POOR = 3000L;
-    private static final long DEFAULT_SLA_LCP_GOOD = 2500L;
-    private static final long DEFAULT_SLA_LCP_POOR = 4000L;
-    private static final double DEFAULT_SLA_CLS_GOOD = 0.1;
-    private static final double DEFAULT_SLA_CLS_POOR = 0.25;
-    private static final long DEFAULT_SLA_TTFB_GOOD = 800L;
-    private static final long DEFAULT_SLA_TTFB_POOR = 1800L;
-    private static final int DEFAULT_SLA_JSERRORS_GOOD = 0;
-    private static final int DEFAULT_SLA_JSERRORS_POOR = 5; // CHANGED: Gap 2 — aligned with design doc §3.3
-    private static final int DEFAULT_SLA_SCORE_GOOD = 90;
-    private static final int DEFAULT_SLA_SCORE_POOR = 50;
-    private static final double DEFAULT_BOTTLENECK_SERVER_RATIO = 60.0;
-    private static final double DEFAULT_BOTTLENECK_RESOURCE_RATIO = 40.0;
-    private static final double DEFAULT_BOTTLENECK_CLIENT_RATIO = 60.0;
-    private static final double DEFAULT_BOTTLENECK_LAYOUT_FACTOR = 0.5;
-    private static final boolean DEFAULT_SECURITY_SANITIZE = true;
 
     private volatile Properties properties;
 
@@ -144,7 +125,7 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
             return propValue.trim();
         }
         // Hardcoded default (lowest priority)
-        return DEFAULT_OUTPUT_PATH;
+        return BpmConstants.DEFAULT_OUTPUT_FILENAME;
     }
 
     // ======================== Debug ========================
@@ -162,7 +143,7 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
         if (jFlag != null && !jFlag.isBlank()) {
             return Boolean.parseBoolean(jFlag);
         }
-        return getBooleanProperty(KEY_DEBUG, DEFAULT_DEBUG);
+        return getBooleanProperty(KEY_DEBUG, BpmConstants.DEFAULT_BPM_DEBUG);
     }
 
     // ======================== Metric Toggles ========================
@@ -199,7 +180,7 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
      * @return number of slowest resources to capture in network tier
      */
     public int getNetworkTopN() {
-        return getIntProperty(KEY_NETWORK_TOP_N, DEFAULT_NETWORK_TOP_N);
+        return getIntProperty(KEY_NETWORK_TOP_N, BpmConstants.DEFAULT_NETWORK_TOP_N);
     }
 
     // ======================== SLA Thresholds ========================
@@ -208,84 +189,84 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
      * @return FCP good threshold in milliseconds
      */
     public long getSlaFcpGood() {
-        return getLongProperty(KEY_SLA_FCP_GOOD, DEFAULT_SLA_FCP_GOOD);
+        return getLongProperty(KEY_SLA_FCP_GOOD, BpmConstants.DEFAULT_SLA_FCP_GOOD);
     }
 
     /**
      * @return FCP poor threshold in milliseconds
      */
     public long getSlaFcpPoor() {
-        return getLongProperty(KEY_SLA_FCP_POOR, DEFAULT_SLA_FCP_POOR);
+        return getLongProperty(KEY_SLA_FCP_POOR, BpmConstants.DEFAULT_SLA_FCP_POOR);
     }
 
     /**
      * @return LCP good threshold in milliseconds
      */
     public long getSlaLcpGood() {
-        return getLongProperty(KEY_SLA_LCP_GOOD, DEFAULT_SLA_LCP_GOOD);
+        return getLongProperty(KEY_SLA_LCP_GOOD, BpmConstants.DEFAULT_SLA_LCP_GOOD);
     }
 
     /**
      * @return LCP poor threshold in milliseconds
      */
     public long getSlaLcpPoor() {
-        return getLongProperty(KEY_SLA_LCP_POOR, DEFAULT_SLA_LCP_POOR);
+        return getLongProperty(KEY_SLA_LCP_POOR, BpmConstants.DEFAULT_SLA_LCP_POOR);
     }
 
     /**
      * @return CLS good threshold (unitless)
      */
     public double getSlaClsGood() {
-        return getDoubleProperty(KEY_SLA_CLS_GOOD, DEFAULT_SLA_CLS_GOOD);
+        return getDoubleProperty(KEY_SLA_CLS_GOOD, BpmConstants.DEFAULT_SLA_CLS_GOOD);
     }
 
     /**
      * @return CLS poor threshold (unitless)
      */
     public double getSlaClsPoor() {
-        return getDoubleProperty(KEY_SLA_CLS_POOR, DEFAULT_SLA_CLS_POOR);
+        return getDoubleProperty(KEY_SLA_CLS_POOR, BpmConstants.DEFAULT_SLA_CLS_POOR);
     }
 
     /**
      * @return TTFB good threshold in milliseconds
      */
     public long getSlaTtfbGood() {
-        return getLongProperty(KEY_SLA_TTFB_GOOD, DEFAULT_SLA_TTFB_GOOD);
+        return getLongProperty(KEY_SLA_TTFB_GOOD, BpmConstants.DEFAULT_SLA_TTFB_GOOD);
     }
 
     /**
      * @return TTFB poor threshold in milliseconds
      */
     public long getSlaTtfbPoor() {
-        return getLongProperty(KEY_SLA_TTFB_POOR, DEFAULT_SLA_TTFB_POOR);
+        return getLongProperty(KEY_SLA_TTFB_POOR, BpmConstants.DEFAULT_SLA_TTFB_POOR);
     }
 
     /**
      * @return JS errors good threshold (count)
      */
     public int getSlaJsErrorsGood() {
-        return getIntProperty(KEY_SLA_JSERRORS_GOOD, DEFAULT_SLA_JSERRORS_GOOD);
+        return getIntProperty(KEY_SLA_JSERRORS_GOOD, BpmConstants.DEFAULT_SLA_JSERRORS_GOOD);
     }
 
     /**
      * @return JS errors poor threshold (count)
      */
     public int getSlaJsErrorsPoor() {
-        return getIntProperty(KEY_SLA_JSERRORS_POOR, DEFAULT_SLA_JSERRORS_POOR);
+        return getIntProperty(KEY_SLA_JSERRORS_POOR, BpmConstants.DEFAULT_SLA_JSERRORS_POOR);
     }
 
     /**
      * @return Performance score good threshold
      */
     public int getSlaScoreGood() {
-        return getIntProperty(KEY_SLA_SCORE_GOOD, DEFAULT_SLA_SCORE_GOOD);
+        return getIntProperty(KEY_SLA_SCORE_GOOD, BpmConstants.DEFAULT_SLA_SCORE_GOOD);
     }
 
     /**
      * @return Performance score poor threshold
      */
     public int getSlaScorePoor() {
-        return getIntProperty(KEY_SLA_SCORE_POOR, DEFAULT_SLA_SCORE_POOR);
+        return getIntProperty(KEY_SLA_SCORE_POOR, BpmConstants.DEFAULT_SLA_SCORE_POOR);
     }
 
     // ======================== Bottleneck Thresholds ========================
@@ -294,28 +275,28 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
      * @return Server bottleneck ratio threshold (TTFB as % of LCP)
      */
     public double getBottleneckServerRatio() {
-        return getDoubleProperty(KEY_BOTTLENECK_SERVER_RATIO, DEFAULT_BOTTLENECK_SERVER_RATIO);
+        return getDoubleProperty(KEY_BOTTLENECK_SERVER_RATIO, BpmConstants.DEFAULT_BOTTLENECK_SERVER_RATIO);
     }
 
     /**
      * @return Resource bottleneck ratio threshold (slowest resource as % of LCP)
      */
     public double getBottleneckResourceRatio() {
-        return getDoubleProperty(KEY_BOTTLENECK_RESOURCE_RATIO, DEFAULT_BOTTLENECK_RESOURCE_RATIO);
+        return getDoubleProperty(KEY_BOTTLENECK_RESOURCE_RATIO, BpmConstants.DEFAULT_BOTTLENECK_RESOURCE_RATIO);
     }
 
     /**
      * @return Client rendering bottleneck ratio threshold (render time as % of LCP)
      */
     public double getBottleneckClientRatio() {
-        return getDoubleProperty(KEY_BOTTLENECK_CLIENT_RATIO, DEFAULT_BOTTLENECK_CLIENT_RATIO);
+        return getDoubleProperty(KEY_BOTTLENECK_CLIENT_RATIO, BpmConstants.DEFAULT_BOTTLENECK_CLIENT_RATIO);
     }
 
     /**
      * @return Layout thrashing factor (layoutCount &gt; domNodes * factor)
      */
     public double getBottleneckLayoutThrashFactor() {
-        return getDoubleProperty(KEY_BOTTLENECK_LAYOUT_FACTOR, DEFAULT_BOTTLENECK_LAYOUT_FACTOR);
+        return getDoubleProperty(KEY_BOTTLENECK_LAYOUT_FACTOR, BpmConstants.DEFAULT_BOTTLENECK_LAYOUT_THRASH_FACTOR);
     }
 
     // ======================== Security ========================
@@ -324,7 +305,7 @@ public class BpmPropertiesManager { // CHANGED: removed final — tests subclass
      * @return true if console message sanitization is enabled
      */
     public boolean isSanitizeEnabled() {
-        return getBooleanProperty(KEY_SECURITY_SANITIZE, DEFAULT_SECURITY_SANITIZE);
+        return getBooleanProperty(KEY_SECURITY_SANITIZE, BpmConstants.DEFAULT_SECURITY_SANITIZE);
     }
 
     // ======================== Internal ========================

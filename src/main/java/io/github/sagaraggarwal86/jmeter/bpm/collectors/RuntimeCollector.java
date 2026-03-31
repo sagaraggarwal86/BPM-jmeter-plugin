@@ -60,6 +60,13 @@ public final class RuntimeCollector implements MetricsCollector<RuntimeResult> {
      */ // CHANGED: per-action accuracy
     private final ConcurrentHashMap<String, Integer> previousStyleRecalcByThread = new ConcurrentHashMap<>();
 
+    private static double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        return 0.0;
+    }
+
     /**
      * Collects runtime metrics via CDP {@code Performance.getMetrics}.
      *
@@ -135,12 +142,5 @@ public final class RuntimeCollector implements MetricsCollector<RuntimeResult> {
     public void reset() {
         previousLayoutCountByThread.clear();
         previousStyleRecalcByThread.clear();
-    }
-
-    private static double toDouble(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        return 0.0;
     }
 }

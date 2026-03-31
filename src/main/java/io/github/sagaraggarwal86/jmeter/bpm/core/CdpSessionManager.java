@@ -35,7 +35,9 @@ public final class CdpSessionManager {
 
     private static final Logger log = LoggerFactory.getLogger(CdpSessionManager.class);
 
-    /** CDP domains to enable for metric collection. */
+    /**
+     * CDP domains to enable for metric collection.
+     */
     private static final String[] CDP_DOMAINS = {
             JsSnippets.CDP_DOMAIN_NETWORK,
             JsSnippets.CDP_DOMAIN_PERFORMANCE,
@@ -45,7 +47,8 @@ public final class CdpSessionManager {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, List<Map<String, Object>>>> RESOURCE_TIMING_TYPE =
-            new TypeReference<>() {};
+            new TypeReference<>() {
+            };
 
     /**
      * Opens a CDP session: enables domains and injects all observer/hook scripts.
@@ -82,6 +85,7 @@ public final class CdpSessionManager {
     // registering a new PerformanceObserver, so a stale first observer cannot stack with the new
     // one and double every subsequent layout-shift contribution.
     // openSession() is unchanged — it remains correct for first-time initialisation.
+
     /**
      * Re-injects observers after a CDP session re-initialization.
      *
@@ -132,7 +136,7 @@ public final class CdpSessionManager {
      *
      * @param executor the CDP command executor
      * @return {@code true} if observers were re-injected (a navigation was detected),
-     *         {@code false} if the existing observers are still active. // CHANGED: per-action accuracy — callers use this signal to reset per-thread delta baselines
+     * {@code false} if the existing observers are still active. // CHANGED: per-action accuracy — callers use this signal to reset per-thread delta baselines
      */
     public boolean ensureObserversInjected(CdpCommandExecutor executor) { // CHANGED: return type void → boolean for per-action accuracy
         Boolean present = Boolean.TRUE.equals(
