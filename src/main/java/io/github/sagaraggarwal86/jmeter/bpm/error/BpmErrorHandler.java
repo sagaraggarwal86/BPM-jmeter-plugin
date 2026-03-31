@@ -32,6 +32,7 @@ public final class BpmErrorHandler {
     private final AtomicInteger reInitCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
     private final LogOnceTracker logOnceTracker;
+
     /**
      * Creates a new error handler with the given log-once tracker.
      *
@@ -58,6 +59,7 @@ public final class BpmErrorHandler {
         switch (currentState) {
             case HEALTHY -> {
                 threadStates.put(threadName, ThreadState.RE_INIT_NEEDED);
+                log.warn("BPM: [{}] collection error", threadName, exception);
                 logOnceTracker.warnOnce(threadName, "collection-error",
                         "CDP collection error. Will attempt re-init. Cause: " + exception.getMessage());
             }
@@ -85,6 +87,7 @@ public final class BpmErrorHandler {
     public void handleSessionError(String threadName, Exception exception) {
         failureCount.incrementAndGet();
         threadStates.put(threadName, ThreadState.DISABLED);
+        log.warn("BPM: [{}] session re-init failed", threadName, exception);
         logOnceTracker.warnOnce(threadName, "session-disabled",
                 "CDP re-init failed. BPM disabled for this thread. Cause: " + exception.getMessage());
     }

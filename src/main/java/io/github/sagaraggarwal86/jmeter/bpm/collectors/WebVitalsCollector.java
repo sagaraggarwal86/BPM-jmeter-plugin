@@ -51,10 +51,14 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
      */
     private final ConcurrentHashMap<String, Double> previousLcpByThread = new ConcurrentHashMap<>();
 
-    /** Tracks the last seen FCP value per thread for SPA stale detection. */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
+    /**
+     * Tracks the last seen FCP value per thread for SPA stale detection.
+     */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
     private final ConcurrentHashMap<String, Double> previousFcpByThread = new ConcurrentHashMap<>();
 
-    /** Tracks the last seen TTFB value per thread for SPA stale detection. */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
+    /**
+     * Tracks the last seen TTFB value per thread for SPA stale detection.
+     */ // CHANGED: Bug 12 — FCP/TTFB stale tracking
     private final ConcurrentHashMap<String, Double> previousTtfbByThread = new ConcurrentHashMap<>();
 
     /**
@@ -63,6 +67,16 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
      * Reset to 0 on navigation via {@link #resetThreadState}.
      */ // CHANGED: per-action accuracy — CLS stored as delta, not page-session total
     private final ConcurrentHashMap<String, Double> previousClsByThread = new ConcurrentHashMap<>();
+
+    /**
+     * Safely converts a JavaScript number result to double.
+     */
+    private static double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        return 0.0;
+    }
 
     /**
      * Collects Web Vitals metrics from the browser.
@@ -165,15 +179,5 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
         previousFcpByThread.clear();  // CHANGED: Bug 12
         previousTtfbByThread.clear(); // CHANGED: Bug 12
         previousClsByThread.clear();  // CHANGED: per-action accuracy
-    }
-
-    /**
-     * Safely converts a JavaScript number result to double.
-     */
-    private static double toDouble(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        return 0.0;
     }
 }

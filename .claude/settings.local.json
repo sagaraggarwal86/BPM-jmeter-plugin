@@ -3,7 +3,11 @@
     "allow": [
       "Read(//mnt/f/Projects/**)",
       "Bash(mvn clean:*)",
-      "Bash(cmd /c \"cd /d F:\\\\Projects\\\\BPM-jmeter-plugin && mvn clean package -DskipTests 2>&1\")"
+      "Bash(cmd /c \"cd /d F:\\\\Projects\\\\BPM-jmeter-plugin && mvn clean package -DskipTests 2>&1\")",
+      "Bash(mvn:*)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(cmd /c \"cd /d F:\\\\Projects\\\\BPM-jmeter-plugin && mvn clean verify -Dgpg.skip=true\" 2>&1)",
+      "Bash(BASH_ENV=\"\" HOME=\"\" mvn.cmd clean verify -Dgpg.skip=true -f F:/Projects/BPM-jmeter-plugin/pom.xml 2>&1)"
     ]
   }
 }

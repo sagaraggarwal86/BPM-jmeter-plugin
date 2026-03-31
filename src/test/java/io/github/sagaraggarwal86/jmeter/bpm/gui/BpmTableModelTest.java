@@ -19,11 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("GUI Table Model")
 class BpmTableModelTest {
 
-    private BpmListenerGui.BpmTableModel model;
+    private BpmTableModel model;
 
     @BeforeEach
     void setUp() {
-        model = new BpmListenerGui.BpmTableModel();
+        model = new BpmTableModel();
     }
 
     private BpmResult createResult(String label, int score, long lcp) {
@@ -97,7 +97,8 @@ class BpmTableModelTest {
     }
 
     @Test
-    @DisplayName("Column count matches TOTAL_COLUMN_COUNT (18)") // CHANGED: 15 → 18 (3 new derived columns)
+    @DisplayName("Column count matches TOTAL_COLUMN_COUNT (18)")
+        // CHANGED: 15 → 18 (3 new derived columns)
     void columnCount_matches18() {
         assertEquals(BpmConstants.TOTAL_COLUMN_COUNT, model.getColumnCount());
     }

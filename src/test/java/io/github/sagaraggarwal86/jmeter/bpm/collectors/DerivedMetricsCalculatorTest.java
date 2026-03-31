@@ -29,8 +29,11 @@ class DerivedMetricsCalculatorTest {
             protected Path resolvePropertiesPath() {
                 return Path.of(System.getProperty("java.io.tmpdir"), "bpm-test-calc.properties");
             }
+
             @Override
-            public String getJMeterProperty(String key) { return null; }
+            public String getJMeterProperty(String key) {
+                return null;
+            }
         };
         props.load();
         calculator = new DerivedMetricsCalculator(props);
@@ -129,7 +132,8 @@ class DerivedMetricsCalculatorTest {
     // ── New derived columns ───────────────────────────────────────────────────
 
     @Test
-    @DisplayName("frontendTime = FCP - TTFB when both present") // CHANGED: new
+    @DisplayName("frontendTime = FCP - TTFB when both present")
+        // CHANGED: new
     void compute_frontendTime_isFcpMinusTtfb() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(500L, 1000L, 0.01, 200L), null, null, null, 2000);
@@ -138,7 +142,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("frontendTime is null when FCP or TTFB is null") // CHANGED: new
+    @DisplayName("frontendTime is null when FCP or TTFB is null")
+        // CHANGED: new
     void compute_frontendTime_nullWhenSpaStale() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);
@@ -146,7 +151,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("stabilityCategory = Stable when CLS <= 0.10") // CHANGED: new
+    @DisplayName("stabilityCategory = Stable when CLS <= 0.10")
+        // CHANGED: new
     void compute_stabilityCategory_stable() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(500L, 1000L, 0.05, 200L), null, null, null, 2000);
@@ -154,7 +160,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("stabilityCategory = Minor Shifts when CLS between 0.10 and 0.25") // CHANGED: new
+    @DisplayName("stabilityCategory = Minor Shifts when CLS between 0.10 and 0.25")
+        // CHANGED: new
     void compute_stabilityCategory_minorShifts() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(500L, 1000L, 0.15, 200L), null, null, null, 2000);
@@ -162,7 +169,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("stabilityCategory = Unstable when CLS > 0.25") // CHANGED: new
+    @DisplayName("stabilityCategory = Unstable when CLS > 0.25")
+        // CHANGED: new
     void compute_stabilityCategory_unstable() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(500L, 1000L, 0.30, 200L), null, null, null, 2000);
@@ -170,7 +178,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("stabilityCategory is null when CLS is null") // CHANGED: new
+    @DisplayName("stabilityCategory is null when CLS is null")
+        // CHANGED: new
     void compute_stabilityCategory_nullWhenClsNull() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(null, null, null, null), null, null, null, 2000);
@@ -178,7 +187,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("headroom = 90% when LCP=400ms and poor threshold=4000ms") // CHANGED: new
+    @DisplayName("headroom = 90% when LCP=400ms and poor threshold=4000ms")
+        // CHANGED: new
     void compute_headroom_fastPageHighHeadroom() {
         // 100 - (400/4000 * 100) = 90%
         DerivedMetrics result = calculator.compute(
@@ -188,7 +198,8 @@ class DerivedMetricsCalculatorTest {
     }
 
     @Test
-    @DisplayName("headroom is null when LCP is null") // CHANGED: new
+    @DisplayName("headroom is null when LCP is null")
+        // CHANGED: new
     void compute_headroom_nullWhenLcpNull() {
         DerivedMetrics result = calculator.compute(
                 new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);

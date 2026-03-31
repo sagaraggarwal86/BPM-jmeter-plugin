@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class BpmConstantsTest {
 
     @Test
-    @DisplayName("All 18 column headers defined and match expected count") // CHANGED: 15 → 18 (3 new always-visible columns)
+    @DisplayName("All 18 column headers defined and match expected count")
+        // CHANGED: 15 → 18 (3 new always-visible columns)
     void allColumnHeaders_matchExpectedCount() {
         assertEquals(18, BpmConstants.ALL_COLUMN_HEADERS.length);
         assertEquals(18, BpmConstants.TOTAL_COLUMN_COUNT);

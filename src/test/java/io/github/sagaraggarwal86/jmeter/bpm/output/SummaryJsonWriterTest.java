@@ -74,7 +74,8 @@ class SummaryJsonWriterTest {
     }
 
     @Test
-    @DisplayName("SPA-stale labels with null score are excluded from overall score without NPE") // CHANGED: per-action accuracy
+    @DisplayName("SPA-stale labels with null score are excluded from overall score without NPE")
+        // CHANGED: per-action accuracy
     void write_nullScore_excludedFromOverallScore() throws Exception {
         Path jsonlPath = tempDir.resolve("test.jsonl");
         Files.createFile(jsonlPath);
