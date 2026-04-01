@@ -1,6 +1,9 @@
 package io.github.sagaraggarwal86.jmeter.bpm.gui;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiProviderConfig;
+import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiProviderRegistry;
+import io.github.sagaraggarwal86.jmeter.bpm.ai.report.BpmAiReportLauncher;
 import io.github.sagaraggarwal86.jmeter.bpm.core.BpmListener;
 import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
 import io.github.sagaraggarwal86.jmeter.bpm.output.CsvExporter;
@@ -75,6 +78,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private JLabel scoreCategoryLabel;
     private JButton saveTableDataButton;
     private JButton applyFiltersButton;     // CHANGED: Change #2 — Apply Filters button
+    private JComboBox<AiProviderConfig> aiProviderCombo;
+    private JButton generateAiReportButton;
     private Timer updateTimer;
     private transient BpmListener listenerRef;
     private transient io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager propertiesRef;
@@ -184,8 +189,24 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setPreferredSize(new Dimension(800, 300));
 
-        // Save button — centered at bottom
-        JPanel savePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
+        // Bottom panel — AI report + Save button
+        JPanel savePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
+
+        // AI provider dropdown
+        aiProviderCombo = new JComboBox<>();
+        aiProviderCombo.setPreferredSize(new Dimension(160, 26));
+        refreshAiProviders();
+        savePanel.add(new JLabel("AI:"));
+        savePanel.add(aiProviderCombo);
+
+        // Generate AI Report button
+        generateAiReportButton = new JButton("Generate AI Report");
+        generateAiReportButton.setEnabled(false);
+        generateAiReportButton.addActionListener(e -> launchAiReport());
+        savePanel.add(generateAiReportButton);
+
+        savePanel.add(Box.createHorizontalStrut(12));
+
         saveTableDataButton = new JButton("Save Table Data");
         saveTableDataButton.setEnabled(false);
         saveTableDataButton.addActionListener(e -> saveTableData());
@@ -512,6 +533,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         columnSelector.resetToDefaults();
         applyColumnVisibility();
         saveTableDataButton.setEnabled(false);
+        updateAiButtonState();
         testStartField.setText("");
         testEndField.setText("");
         testDurationField.setText("");
@@ -617,6 +639,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         filenameField.setEditable(false);
         browseButton.setEnabled(false);
         saveTableDataButton.setEnabled(false);
+        updateAiButtonState();
         updateFilterFieldsEnabled(); // CHANGED: Feature #1 — disables start/end offset during test execution
         if (!updateTimer.isRunning()) {
             updateTimer.start();
@@ -645,6 +668,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         browseButton.setEnabled(true);
         updateFilterFieldsEnabled(); // CHANGED: Feature #1 — replaces explicit startOffsetField.setEnabled(true) / endOffsetField.setEnabled(true)
         saveTableDataButton.setEnabled(tableModel.getRowCount() > 0);
+        refreshAiProviders();
+        updateAiButtonState();
     }
 
     private void updateScoreBox(BpmListener listener) {
@@ -807,6 +832,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         }
         tableModel.fireTableDataChanged();
         saveTableDataButton.setEnabled(!testRunning && tableModel.getRowCount() > 0); // CHANGED: Feature #1 — disabled during test execution
+        updateAiButtonState();
         updateFilterFieldsEnabled(); // CHANGED: Feature #1
         if (testRunning) {
             // CHANGED: Defect #1 — when start offset is active during live test, update Start
@@ -1015,5 +1041,65 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         } catch (IOException e) {
             log.warn("BPM: Failed to save CSV: {}", outputPath, e);
         }
+    }
+
+    // ── AI Report ─────────────────────────────────────────────────────────────
+
+    private void refreshAiProviders() {
+        aiProviderCombo.removeAllItems();
+        try {
+            java.io.File jmeterHome = null;
+            String home = System.getProperty("jmeter.home",
+                    System.getenv("JMETER_HOME"));
+            if (home != null && !home.isBlank()) {
+                jmeterHome = new java.io.File(home);
+            }
+            java.util.List<AiProviderConfig> providers =
+                    AiProviderRegistry.loadConfiguredProviders(jmeterHome);
+            for (AiProviderConfig p : providers) {
+                aiProviderCombo.addItem(p);
+            }
+        } catch (Exception e) {
+            log.warn("BPM: Failed to load AI providers: {}", e.getMessage());
+        }
+        updateAiButtonState();
+    }
+
+    private void updateAiButtonState() {
+        boolean hasData = tableModel != null && tableModel.getRowCount() > 0;
+        boolean hasProvider = aiProviderCombo.getItemCount() > 0
+                && aiProviderCombo.getSelectedItem() != null;
+        generateAiReportButton.setEnabled(!testRunning && hasData && hasProvider);
+    }
+
+    private void launchAiReport() {
+        AiProviderConfig config = (AiProviderConfig) aiProviderCombo.getSelectedItem();
+        if (config == null) return;
+
+        // Resolve output directory — next to JSONL file, or user's home
+        Path outputDir;
+        String filePath = filenameField.getText().trim();
+        if (!filePath.isEmpty()) {
+            Path jsonlPath = Path.of(filePath);
+            outputDir = jsonlPath.getParent() != null ? jsonlPath.getParent() : Path.of(".");
+        } else {
+            outputDir = Path.of(System.getProperty("user.home", "."));
+        }
+
+        // Get aggregates — from live listener or rebuild from table data
+        java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> aggregates = null;
+        if (listenerRef != null && listenerRef.getLabelAggregates() != null
+                && !listenerRef.getLabelAggregates().isEmpty()) {
+            aggregates = listenerRef.getLabelAggregates();
+        }
+
+        // Get properties ref
+        io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager props = propertiesRef;
+        if (props == null) {
+            props = new io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager();
+            props.load();
+        }
+
+        BpmAiReportLauncher.launch(this, aggregates, props, config, outputDir, generateAiReportButton);
     }
 }

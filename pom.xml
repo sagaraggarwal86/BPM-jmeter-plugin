@@ -153,6 +153,15 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- ── Compile: bundled into plugin JAR via maven-shade ── -->
+
+        <dependency>
+            <!-- Markdown to HTML rendering for AI-generated reports -->
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>0.24.0</version>
+        </dependency>
+
         <!-- ── Test ── -->
 
         <dependency>
@@ -287,6 +296,40 @@
                 </configuration>
             </plugin>
 
+            <!-- ── Shade: bundle CommonMark into plugin JAR ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.commonmark:commonmark</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.commonmark</pattern>
+                                    <shadedPattern>io.github.sagaraggarwal86.shaded.commonmark</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- ── JaCoCo: instrument → report → enforce 90% line coverage ── -->
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -337,6 +380,8 @@
                                  ChromeCdpCommandExecutor — requires Selenium/ChromeDriver -->
                             <excludes>
                                 <exclude>**/gui/**</exclude>
+                                <exclude>**/ai/**</exclude>
+                                <exclude>**/cli/**</exclude>
                                 <exclude>**/BpmListener.class</exclude>
                                 <exclude>**/BpmListener$*.class</exclude>
                                 <exclude>**/LabelAggregate.class</exclude>
