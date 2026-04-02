@@ -4,24 +4,42 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Zero-dependency command-line argument parser for the BPM CLI report generator.
+ * Zero-dependency command-line argument parser for the BPM AI Report Generator.
  *
- * <p>Parses required and optional arguments, validates constraints, and
- * accumulates all errors (not fail-fast) so the user sees every problem
+ * <p>Generates an AI-powered browser performance analysis report from a
+ * BPM JSONL results file. Designed as a standalone post-processing tool
+ * that runs after a JMeter test.</p>
+ *
+ * <p>Accumulates all errors (not fail-fast) so the user sees every problem
  * in a single invocation.</p>
  */
 public final class CliArgs {
 
+    private final List<String> errors = new ArrayList<>();
+    // ── Required ─────────────────────────────────────────────────────────────
     private Path inputFile;
+    // ── Output ───────────────────────────────────────────────────────────────
     private Path outputFile;
+    // ── AI Provider ──────────────────────────────────────────────────────────
     private String provider;
     private Path configFile;
+    // ── Filter Options ───────────────────────────────────────────────────────
+    private int chartInterval = 0;
+    private String search;
+    private boolean regex;
+    private boolean exclude;
+    // ── Report Metadata ──────────────────────────────────────────────────────
+    private String scenarioName = "";
+    private String description = "";
+    private int virtualUsers = 0;
+    // ── Help ─────────────────────────────────────────────────────────────────
     private boolean help;
-    private final List<String> errors = new ArrayList<>();
 
-    private CliArgs() { }
+    private CliArgs() {
+    }
 
     /**
      * Parses command-line arguments and returns a populated CliArgs instance.
@@ -36,86 +54,56 @@ public final class CliArgs {
         return cli;
     }
 
-    private void doParse(String[] args) {
-        for (int i = 0; i < args.length; i++) {
-            String token = args[i];
-            switch (token) {
-                case "-h", "--help" -> help = true;
-                case "-i", "--input" -> {
-                    if (i + 1 < args.length) inputFile = Path.of(args[++i]);
-                    else errors.add("--input requires a file path.");
-                }
-                case "-o", "--output" -> {
-                    if (i + 1 < args.length) outputFile = Path.of(args[++i]);
-                    else errors.add("--output requires a file path.");
-                }
-                case "--provider" -> {
-                    if (i + 1 < args.length) provider = args[++i].trim().toLowerCase(java.util.Locale.ROOT);
-                    else errors.add("--provider requires a provider name.");
-                }
-                case "--config" -> {
-                    if (i + 1 < args.length) configFile = Path.of(args[++i]);
-                    else errors.add("--config requires a file path.");
-                }
-                default -> errors.add("Unknown argument: " + token);
-            }
-        }
-    }
-
-    private void validate() {
-        if (inputFile == null) {
-            errors.add("--input is required. Provide a BPM JSONL file path.");
-        } else if (!Files.isRegularFile(inputFile)) {
-            errors.add("--input file does not exist: " + inputFile);
-        }
-
-        if (provider == null || provider.isBlank()) {
-            errors.add("--provider is required. Example: --provider groq");
-        }
-
-        if (configFile == null) {
-            errors.add("--config is required. Provide the path to ai-reporter.properties.");
-        } else if (!Files.isRegularFile(configFile)) {
-            errors.add("--config file does not exist: " + configFile);
-        }
-    }
-
-    // ── Accessors ─────────────────────────────────────────────────────────────
-
-    public Path inputFile() { return inputFile; }
-
-    public Path outputFile() {
-        return outputFile != null ? outputFile : Path.of("bpm-ai-report.html");
-    }
-
-    public String provider() { return provider; }
-    public Path configFile() { return configFile; }
-    public boolean help() { return help; }
-    public List<String> errors() { return errors; }
-
     /**
      * Prints usage help to stderr.
      */
     public static void printHelp() {
-        System.err.println("""
+        System.out.println("""
                 BPM AI Report Generator — Command-Line Interface
-
+                
                 Generates an AI-powered browser performance analysis report
-                from a BPM JSONL results file.
-
+                from a BPM JSONL results file produced by JMeter with the BPM plugin.
+                
+                Step 1: Run your JMeter test (standard JMeter non-GUI):
+                  jmeter -n -t test.jmx -l results.jtl -Jbpm.output=bpm-results.jsonl
+                
+                Step 2: Generate AI report:
+                  bpm-ai-report -i bpm-results.jsonl
+                
                 REQUIRED:
-                  -i, --input FILE      BPM JSONL results file (e.g., bpm-results.jsonl)
-                  --provider NAME       AI provider name (e.g., groq, openai, claude)
-                  --config FILE         Path to ai-reporter.properties
-
-                OPTIONAL:
-                  -o, --output FILE     HTML report output path (default: bpm-ai-report.html)
-                  -h, --help            Show this help message
-
+                  -i, --input FILE            BPM JSONL results file
+                
+                OUTPUT:
+                  -o, --output FILE           HTML report path (default: bpm-ai-report.html)
+                
+                AI PROVIDER:
+                  --provider NAME             Provider name (e.g., groq, openai, claude)
+                                              Default: first configured in properties file
+                  --config FILE               Path to ai-reporter.properties
+                                              Default: $JMETER_HOME/bin/ai-reporter.properties
+                
+                FILTER OPTIONS:
+                  --chart-interval INT        Seconds per chart bucket, 0=auto (default: 0)
+                  --search STRING             Label filter text (include mode by default)
+                  --regex                     Treat --search as regex
+                  --exclude                   Exclude matching labels (default: include)
+                
+                REPORT METADATA:
+                  --scenario-name STRING      Scenario name for report header
+                  --description STRING        Scenario description
+                  --virtual-users INT         Virtual user count for report header
+                
+                HELP:
+                  -h, --help                  Show this help message
+                
                 EXAMPLES:
-                  bpm-cli-report.sh -i results.jsonl --provider groq --config ai-reporter.properties
-                  bpm-cli-report.sh -i results.jsonl --provider openai --config ai-reporter.properties -o report.html
-
+                  bpm-ai-report -i bpm-results.jsonl
+                  bpm-ai-report -i bpm-results.jsonl --provider groq
+                  bpm-ai-report -i bpm-results.jsonl --config /path/to/ai-reporter.properties
+                  bpm-ai-report -i bpm-results.jsonl -o report.html --provider openai \\
+                    --scenario-name "Sprint 42" --description "Peak load test" --virtual-users 50
+                  bpm-ai-report -i bpm-results.jsonl --search "Login|Checkout" --regex
+                
                 EXIT CODES:
                   0  Success — report generated
                   1  Invalid command-line arguments
@@ -124,5 +112,185 @@ public final class CliArgs {
                   4  Report file write error
                   5  Unexpected error
                 """);
+    }
+
+    private void doParse(String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            String token = args[i];
+            switch (token) {
+                case "-h", "--help" -> help = true;
+
+                // Required
+                case "-i", "--input" -> inputFile = nextPath(args, i++, token);
+
+                // Output
+                case "-o", "--output" -> outputFile = nextPath(args, i++, token);
+
+                // AI Provider
+                case "--provider" -> {
+                    String v = nextValue(args, i++, token);
+                    if (v != null) provider = v.trim().toLowerCase(java.util.Locale.ROOT);
+                }
+                case "--config" -> configFile = nextPath(args, i++, token);
+
+                // Filter Options
+                case "--chart-interval" -> chartInterval = nextInt(args, i++, token);
+                case "--search" -> search = nextValue(args, i++, token);
+                case "--regex" -> regex = true;
+                case "--exclude" -> exclude = true;
+
+                // Report Metadata
+                case "--scenario-name" -> scenarioName = Objects.requireNonNullElse(nextValue(args, i++, token), "");
+                case "--description" -> description = Objects.requireNonNullElse(nextValue(args, i++, token), "");
+                case "--virtual-users" -> virtualUsers = nextInt(args, i++, token);
+
+                default -> errors.add("Unknown argument: " + token);
+            }
+        }
+    }
+
+    // ── Argument helpers ─────────────────────────────────────────────────────
+
+    private void validate() {
+        // -i is required
+        if (inputFile == null) {
+            errors.add("--input is required. Provide a BPM JSONL file path.");
+        } else if (!Files.isRegularFile(inputFile)) {
+            errors.add("--input file does not exist: " + inputFile);
+        }
+
+        // --config: if provided, must exist
+        if (configFile != null && !Files.isRegularFile(configFile)) {
+            errors.add("--config file does not exist: " + configFile);
+        }
+
+        // --chart-interval: 0-3600
+        if (chartInterval < 0 || chartInterval > 3600) {
+            errors.add("--chart-interval must be between 0 and 3600.");
+        }
+
+        // --virtual-users: non-negative
+        if (virtualUsers < 0) {
+            errors.add("--virtual-users must be non-negative.");
+        }
+
+        // --regex: validate syntax early so bad patterns produce exit code 1, not 5
+        if (regex && search != null && !search.isEmpty()) {
+            try {
+                java.util.regex.Pattern.compile(search);
+            } catch (java.util.regex.PatternSyntaxException e) {
+                errors.add("--search regex is invalid: " + e.getDescription());
+            }
+        }
+    }
+
+    private String nextValue(String[] args, int index, String flag) {
+        if (index + 1 < args.length) return args[index + 1];
+        errors.add(flag + " requires a value.");
+        return null;
+    }
+
+    private Path nextPath(String[] args, int index, String flag) {
+        String v = nextValue(args, index, flag);
+        return v != null ? Path.of(v) : null;
+    }
+
+    // ── Accessors ────────────────────────────────────────────────────────────
+
+    private int nextInt(String[] args, int index, String flag) {
+        String v = nextValue(args, index, flag);
+        if (v == null) return 0;
+        try {
+            return Integer.parseInt(v);
+        } catch (NumberFormatException e) {
+            errors.add(flag + " requires an integer value, got: " + v);
+            return 0;
+        }
+    }
+
+    /**
+     * BPM JSONL results file (required).
+     */
+    public Path inputFile() {
+        return inputFile;
+    }
+
+    /**
+     * AI HTML report output path, or {@code null} if not specified by the user.
+     * When null, the pipeline generates a default name using the provider name.
+     */
+    public Path outputFile() {
+        return outputFile;
+    }
+
+    /**
+     * AI provider name (lowercase). Null = auto-select first configured.
+     */
+    public String provider() {
+        return provider;
+    }
+
+    /**
+     * Path to ai-reporter.properties. Null = resolve from JMETER_HOME.
+     */
+    public Path configFile() {
+        return configFile;
+    }
+
+    /**
+     * Seconds per chart bucket. 0 = auto.
+     */
+    public int chartInterval() {
+        return chartInterval;
+    }
+
+    /**
+     * Label filter text. Null = no filtering.
+     */
+    public String search() {
+        return search;
+    }
+
+    /**
+     * Whether {@link #search()} should be treated as regex.
+     */
+    public boolean regex() {
+        return regex;
+    }
+
+    /**
+     * Whether {@link #search()} should exclude matching labels.
+     */
+    public boolean exclude() {
+        return exclude;
+    }
+
+    /**
+     * Scenario name for report header. Empty if not provided.
+     */
+    public String scenarioName() {
+        return scenarioName;
+    }
+
+    /**
+     * Scenario description for report header. Empty if not provided.
+     */
+    public String description() {
+        return description;
+    }
+
+    /**
+     * Virtual user count for report header. 0 if not provided.
+     */
+    public int virtualUsers() {
+        return virtualUsers;
+    }
+
+    public boolean help() {
+        return help;
+    }
+
+    public List<String> errors() {
+        return errors;
     }
 }

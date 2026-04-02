@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -20,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("DerivedMetricsCalculator")
 class DerivedMetricsCalculatorTest {
 
+    @TempDir
+    Path tempDir;
+
     private DerivedMetricsCalculator calculator;
 
     @BeforeEach
@@ -27,7 +31,7 @@ class DerivedMetricsCalculatorTest {
         BpmPropertiesManager props = new BpmPropertiesManager() {
             @Override
             protected Path resolvePropertiesPath() {
-                return Path.of(System.getProperty("java.io.tmpdir"), "bpm-test-calc.properties");
+                return tempDir.resolve("bpm-test-calc.properties");
             }
 
             @Override

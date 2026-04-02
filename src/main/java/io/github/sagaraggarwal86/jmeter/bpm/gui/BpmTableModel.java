@@ -3,6 +3,9 @@ package io.github.sagaraggarwal86.jmeter.bpm.gui;
 import io.github.sagaraggarwal86.jmeter.bpm.model.*;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,6 +15,7 @@ import java.util.regex.PatternSyntaxException;
 
 public class BpmTableModel extends AbstractTableModel {
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LoggerFactory.getLogger(BpmTableModel.class);
     private final LinkedHashMap<String, RowData> rows = new LinkedHashMap<>();
     private String txPattern;
     private Pattern txCompiledPattern;
@@ -82,8 +86,9 @@ public class BpmTableModel extends AbstractTableModel {
         if (txPattern != null && useRegex) {
             try {
                 this.txCompiledPattern = Pattern.compile(txPattern);
-            } catch (PatternSyntaxException ignored) {
-                // Fall back to substring matching
+            } catch (PatternSyntaxException e) {
+                log.warn("BPM: Invalid regex pattern '{}': {}. Falling back to substring matching.",
+                        txPattern, e.getDescription());
             }
         }
         this.filteredRows = null;
@@ -233,18 +238,17 @@ public class BpmTableModel extends AbstractTableModel {
             return switch (index) {
                 case BpmConstants.COL_IDX_LABEL -> label;
                 case BpmConstants.COL_IDX_SAMPLES -> sampleCount;
-                case BpmConstants.COL_IDX_SCORE -> scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : "\u2014";
+                case BpmConstants.COL_IDX_SCORE ->
+                        scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : "\u2014";
                 case BpmConstants.COL_IDX_RENDER_TIME -> totalRenderTime / n;
                 case BpmConstants.COL_IDX_SERVER_RATIO -> String.format("%.2f%%", totalServerRatio / n);
                 case BpmConstants.COL_IDX_FRONTEND_TIME ->
                         frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : "\u2014";
                 case BpmConstants.COL_IDX_FCP_LCP_GAP -> totalFcpLcpGap / n;
-                case BpmConstants.COL_IDX_STABILITY ->
-                        lastStabilityCategory != null ? lastStabilityCategory : "\u2014";
+                case BpmConstants.COL_IDX_STABILITY -> lastStabilityCategory != null ? lastStabilityCategory : "\u2014";
                 case BpmConstants.COL_IDX_HEADROOM ->
                         headroomCount > 0 ? (int) (totalHeadroom / headroomCount) + "%" : "\u2014";
-                case BpmConstants.COL_IDX_IMPROVEMENT_AREA ->
-                        "TOTAL".equals(label) ? "" : lastImprovementArea;
+                case BpmConstants.COL_IDX_IMPROVEMENT_AREA -> "TOTAL".equals(label) ? "" : lastImprovementArea;
                 case BpmConstants.COL_IDX_FCP -> totalFcp / n;
                 case BpmConstants.COL_IDX_LCP -> totalLcp / n;
                 case BpmConstants.COL_IDX_CLS -> String.format("%.3f", totalCls / n);

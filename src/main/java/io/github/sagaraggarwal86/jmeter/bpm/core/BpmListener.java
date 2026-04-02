@@ -73,9 +73,6 @@ public class BpmListener extends AbstractTestElement
      * a later element had an existing user-provided path.</p>
      */ // CHANGED: Defect — per-name primary registry replaces global testStartLock
     private static final ConcurrentHashMap<String, BpmListener> primaryByName = new ConcurrentHashMap<>();
-    // CHANGED: Static reference to the instance that received testStarted() — cloned instances
-    // that receive sampleOccurred() without testStarted() delegate to this active instance.
-    private static volatile BpmListener activeInstance;
     /**
      * All active JSONL writers across all primaries. The primary that collects metrics writes
      * the BpmResult to EVERY registered writer, so all output files contain the same data.
@@ -91,7 +88,6 @@ public class BpmListener extends AbstractTestElement
      */
     private static final java.util.concurrent.CopyOnWriteArrayList<ConcurrentLinkedQueue<BpmResult>> allGuiQueues =
             new java.util.concurrent.CopyOnWriteArrayList<>();
-
     /**
      * Pre-flight coordination: ensures the file-exists scan runs exactly once per test run.
      * The first BpmListener primary to call testStarted() wins the CAS and performs the scan
@@ -99,6 +95,9 @@ public class BpmListener extends AbstractTestElement
      * Reset in testEnded() when the last primary cleans up.
      */
     private static final AtomicBoolean preFlightDone = new AtomicBoolean(false);
+    // CHANGED: Static reference to the instance that received testStarted() — cloned instances
+    // that receive sampleOccurred() without testStarted() delegate to this active instance.
+    private static volatile BpmListener activeInstance;
     /**
      * Global file-exists decision, set by the pre-flight scan.
      * {@code OVERWRITE} = proceed (no conflicts or user chose Overwrite).
@@ -111,7 +110,7 @@ public class BpmListener extends AbstractTestElement
      * actually started). False for DONT_START returns and for clones that never ran testStarted.
      * Guards {@link #testEnded(String)} so only the owner instance notifies the GUI.
      */ // CHANGED: Defect #2
-    private transient boolean testActuallyStarted = false;
+    private transient volatile boolean testActuallyStarted = false;
     /**
      * Engine reference cached at the very start of testStarted() for use in stopTestEngine().
      */ // CHANGED: Defect #2
@@ -164,6 +163,7 @@ public class BpmListener extends AbstractTestElement
     /**
      * Returns the currently active (initialized) BpmListener instance, or null
      * if no test is running.
+     *
      * @deprecated Use {@link #getPrimaryForElement(String)} for per-element lookup.
      */
     public static BpmListener getActiveInstance() {
@@ -201,17 +201,17 @@ public class BpmListener extends AbstractTestElement
     }
 
     /**
-     * Instance convenience method — delegates to {@link #buildElementKey(TestElement)}.
-     */
-    private String buildElementKey() {
-        return buildElementKey(this);
-    }
-
-    /**
      * Truncates a label to 15 characters for log summary formatting.
      */
     private static String truncateLabel(String label) {
         return label.length() > 15 ? label.substring(0, 12) + "..." : label;
+    }
+
+    /**
+     * Instance convenience method — delegates to {@link #buildElementKey(TestElement)}.
+     */
+    private String buildElementKey() {
+        return buildElementKey(this);
     }
 
     // ── TestStateListener ──────────────────────────────────────────────────────────────────
@@ -326,7 +326,9 @@ public class BpmListener extends AbstractTestElement
 
         // Register this primary's writer and GUI queue for broadcast writes.
         // The primary that actually collects metrics writes to ALL registered writers/queues.
-        if (jsonlWriter != null) {
+        // Only register if the writer actually opened successfully — a failed writer would
+        // generate per-record log warnings under load.
+        if (jsonlWriter != null && jsonlWriter.isOpen()) {
             allJsonlWriters.add(jsonlWriter);
         }
         allGuiQueues.add(guiUpdateQueue);
@@ -610,7 +612,7 @@ public class BpmListener extends AbstractTestElement
      */
     private String resolveOutputPath() { // CHANGED: restored missing Javadoc opening
         // 1. -J flag (CLI override — highest priority)
-        String jFlag = propertiesManager.getJMeterProperty("bpm.output");
+        String jFlag = propertiesManager.getJMeterProperty(BpmConstants.PROP_BPM_OUTPUT);
         if (jFlag != null && !jFlag.isBlank()) {
             return jFlag;
         }
@@ -637,7 +639,7 @@ public class BpmListener extends AbstractTestElement
         java.util.List<Path> conflicts = new java.util.ArrayList<>();
 
         // Check -J flag first (applies globally, overrides all per-element paths)
-        String jFlag = propertiesManager.getJMeterProperty("bpm.output");
+        String jFlag = propertiesManager.getJMeterProperty(BpmConstants.PROP_BPM_OUTPUT);
         if (jFlag != null && !jFlag.isBlank()) {
             Path p = Path.of(jFlag);
             if (Files.exists(p)) {

@@ -63,6 +63,10 @@ public final class BpmConstants {
      */
     public static final String TEST_ELEMENT_INCLUDE = "bpm.include";
     /**
+     * TestElement property key: chart interval in seconds (0 = auto).
+     */
+    public static final String TEST_ELEMENT_CHART_INTERVAL = "bpm.chartInterval";
+    /**
      * TestElement property key: stable UUID assigned once at element creation.
      * Clones inherit this value, so it uniquely identifies a distinct element across
      * all clone instances created by JMeter for Thread Group parallelism.

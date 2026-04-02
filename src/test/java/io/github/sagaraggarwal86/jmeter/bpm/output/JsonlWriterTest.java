@@ -118,6 +118,26 @@ class JsonlWriterTest {
     }
 
     @Test
+    @DisplayName("write() with null performanceScore does not throw NPE")
+    void write_nullPerformanceScore_noNpe() throws IOException {
+        Path path = tempDir.resolve("nullscore.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+
+        DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), null); // null score
+        BpmResult result = new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
+                "SPA Page", true, 100, null, null, null, null, derived);
+
+        assertDoesNotThrow(() -> writer.write(result));
+        writer.close();
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(1, lines.size());
+        assertTrue(lines.get(0).contains("\"SPA Page\""), "Record should be written despite null score");
+    }
+
+    @Test
     @DisplayName("open(path, true) appends records after existing content")
         // CHANGED: Feature #3 — append mode
     void open_appendMode_appendsToExistingFile() throws IOException {

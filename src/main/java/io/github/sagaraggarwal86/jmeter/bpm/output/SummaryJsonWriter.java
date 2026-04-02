@@ -80,7 +80,11 @@ public final class SummaryJsonWriter {
             if (parent != null) {                              // CHANGED: skip createDirectories for bare filename paths; passing summaryPath itself creates a directory named after the file
                 Files.createDirectories(parent);
             }
-            objectMapper.writeValue(summaryPath.toFile(), root);
+            // Write to temp file first, then atomic rename for crash safety
+            Path tmpPath = summaryPath.resolveSibling(summaryPath.getFileName() + ".tmp");
+            objectMapper.writeValue(tmpPath.toFile(), root);
+            Files.move(tmpPath, summaryPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
             log.info("BPM: Summary written to {}", summaryPath);
         } catch (IOException e) {
             log.warn("BPM: Failed to write summary to {}", summaryPath, e);
@@ -102,11 +106,13 @@ public final class SummaryJsonWriter {
         ArrayNode detailsArray = objectMapper.createArrayNode();
 
         for (Map<String, Object> stat : labelStats) {
-            String label = (String) stat.get("label");
-            Number scoreNum = (Number) stat.get("score"); // CHANGED: per-action accuracy — nullable
-            long lcp = ((Number) stat.get("lcp")).longValue();
-            String bottleneck = (String) stat.get("bottleneck");
-            int samples = ((Number) stat.get("samples")).intValue();
+            String label = stat.get("label") instanceof String s ? s : "";
+            Number scoreNum = stat.get("score") instanceof Number n ? n : null;
+            Number lcpNum = stat.get("lcp") instanceof Number n ? n : null;
+            long lcp = lcpNum != null ? lcpNum.longValue() : 0;
+            String bottleneck = stat.get("bottleneck") instanceof String s ? s : "";
+            Number samplesNum = stat.get("samples") instanceof Number n ? n : null;
+            int samples = samplesNum != null ? samplesNum.intValue() : 0;
 
             totalSamples += samples;
             if (scoreNum != null) { // CHANGED: per-action accuracy — skip null scores in weighted average

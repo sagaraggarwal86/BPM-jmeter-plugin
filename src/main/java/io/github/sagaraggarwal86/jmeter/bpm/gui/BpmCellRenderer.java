@@ -10,14 +10,12 @@ import java.util.List;
 import java.util.function.Supplier;
 
 class BpmCellRenderer extends DefaultTableCellRenderer {
-    private static final long serialVersionUID = 1L;
-
     static final Color COLOR_GOOD = new Color(0, 128, 0);
     static final Color COLOR_NEEDS_WORK = new Color(204, 102, 0);
     static final Color COLOR_POOR = new Color(204, 0, 0);
     static final Color ROW_TINT_AMBER = new Color(255, 243, 224);
     static final Color ROW_TINT_RED = new Color(255, 230, 230);
-
+    private static final long serialVersionUID = 1L;
     private final BpmTableModel tableModel;
     private final Supplier<BpmPropertiesManager> propertiesSupplier;
 
@@ -39,8 +37,9 @@ class BpmCellRenderer extends DefaultTableCellRenderer {
         int modelCol = table.convertColumnIndexToModel(column);
         BpmPropertiesManager props = propertiesSupplier.get();
         List<BpmTableModel.RowData> filtered = tableModel.getFilteredRows();
-        if (row >= 0 && row < filtered.size()) {
-            int score = filtered.get(row).getScore();
+        int modelRow = table.convertRowIndexToModel(row);
+        if (modelRow >= 0 && modelRow < filtered.size()) {
+            int score = filtered.get(modelRow).getScore();
             int scorePoor = props != null ? props.getSlaScorePoor() : BpmConstants.DEFAULT_SLA_SCORE_POOR;
             int scoreGood = props != null ? props.getSlaScoreGood() : BpmConstants.DEFAULT_SLA_SCORE_GOOD;
             if (score > 0 && score < scorePoor) {

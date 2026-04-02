@@ -90,7 +90,7 @@ public final class NetworkCollector implements MetricsCollector<NetworkResult> {
         long totalBytes = 0;
         int failedRequests = 0;
         List<ResourceEntry> allEntries = new ArrayList<>(responses.size());
-        List<ResourceEntry> failedEntries = new ArrayList<>();
+        Set<ResourceEntry> failedEntries = new LinkedHashSet<>();
 
         for (Map<String, Object> resp : responses) {
             String url = truncateUrl(String.valueOf(resp.getOrDefault("url", "")));

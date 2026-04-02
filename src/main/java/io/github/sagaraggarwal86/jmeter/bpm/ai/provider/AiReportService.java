@@ -25,18 +25,13 @@ import java.util.Objects;
  */
 public class AiReportService {
 
+    static final String SECTION_SKELETON = "## Executive Summary\n\n";
     private static final Logger log = LoggerFactory.getLogger(AiReportService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-
     private static final int MAX_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MS = 2_000L;
-    static final String SECTION_SKELETON = "## Executive Summary\n\n";
-
     private static final String[] EXPECTED_SECTION_HEADINGS = {
             "## Executive Summary",
-            "## SLA Compliance",
-            "## Critical Findings",
-            "## Performance Breakdown",
             "## Recommendations",
             "## Risk Assessment",
     };
@@ -64,6 +59,12 @@ public class AiReportService {
 
     public AiReportService(AiProviderConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
+    }
+
+    private static String sanitizeBody(String body) {
+        if (body == null || body.isBlank()) return "(empty)";
+        String stripped = body.replaceAll("<[^>]+>", "").trim();
+        return stripped.length() > 200 ? stripped.substring(0, 200) + "..." : stripped;
     }
 
     public String generateReport(BpmPromptContent promptContent) throws IOException {
@@ -127,12 +128,6 @@ public class AiReportService {
             throw new AiServiceException(
                     config.displayName + " API request was interrupted. Please try again.", e);
         }
-    }
-
-    private static String sanitizeBody(String body) {
-        if (body == null || body.isBlank()) return "(empty)";
-        String stripped = body.replaceAll("<[^>]+>", "").trim();
-        return stripped.length() > 200 ? stripped.substring(0, 200) + "..." : stripped;
     }
 
     private void sleepBeforeRetry() throws AiServiceException {

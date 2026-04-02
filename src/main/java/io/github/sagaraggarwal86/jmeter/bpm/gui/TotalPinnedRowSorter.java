@@ -34,6 +34,9 @@ class TotalPinnedRowSorter extends TableRowSorter<BpmTableModel> {
         }
     }
 
+    /**
+     * Returns {@code Long.MIN_VALUE} for null/em-dash/unparseable so they sort to the end.
+     */
     private static long parseLong(Object v) {
         if (v == null || "\u2014".equals(v)) return Long.MIN_VALUE;
         if (v instanceof Number n) return n.longValue();

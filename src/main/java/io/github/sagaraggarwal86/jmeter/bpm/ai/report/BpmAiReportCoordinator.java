@@ -7,16 +7,18 @@ import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiProviderConfig;
 import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiReportService;
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
 import io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate;
+import io.github.sagaraggarwal86.jmeter.bpm.model.BpmTimeBucket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Orchestrates the full AI report generation workflow:
@@ -28,7 +30,8 @@ public final class BpmAiReportCoordinator {
 
     private static final Logger log = LoggerFactory.getLogger(BpmAiReportCoordinator.class);
 
-    private BpmAiReportCoordinator() { }
+    private BpmAiReportCoordinator() {
+    }
 
     /**
      * Generates an AI-powered browser performance analysis report.
@@ -40,10 +43,71 @@ public final class BpmAiReportCoordinator {
      * @return path to the saved HTML report
      * @throws IOException if prompt loading, AI call, or file writing fails
      */
-    public static Path generate(ConcurrentHashMap<String, LabelAggregate> aggregates,
+    public static Path generate(Map<String, LabelAggregate> aggregates,
                                 BpmPropertiesManager props,
                                 AiProviderConfig config,
                                 Path outputDir) throws IOException {
+        return generate(aggregates, props, config, outputDir,
+                new BpmHtmlReportRenderer.RenderConfig(config.displayName, "", "", ""),
+                Collections.emptyList(), Collections.emptyMap(), Collections.emptyList());
+    }
+
+    /** Result of HTML generation (before saving to disk). */
+    public record GenerateResult(String html, String suggestedFilename) {}
+
+    /**
+     * Generates the AI report HTML without saving to disk.
+     * Used by the GUI launcher which shows a save dialog.
+     */
+    public static GenerateResult generateHtml(Map<String, LabelAggregate> aggregates,
+                                              BpmPropertiesManager props,
+                                              AiProviderConfig config,
+                                              BpmHtmlReportRenderer.RenderConfig renderConfig,
+                                              List<BpmTimeBucket> timeBuckets,
+                                              Map<String, List<BpmTimeBucket>> perLabelBuckets,
+                                              List<String[]> metricsTable) throws IOException {
+        String html = buildHtml(aggregates, props, config, renderConfig, timeBuckets, perLabelBuckets, metricsTable);
+        String safeName = Character.toUpperCase(config.providerKey.charAt(0)) + config.providerKey.substring(1);
+        String filename = "BPM_" + safeName + "_Report_"
+                + java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + ".html";
+        return new GenerateResult(html, filename);
+    }
+
+    /**
+     * Generates an AI-powered browser performance analysis report with full metadata and charts.
+     * Saves to outputDir and opens in browser. Used by CLI pipeline.
+     */
+    public static Path generate(Map<String, LabelAggregate> aggregates,
+                                BpmPropertiesManager props,
+                                AiProviderConfig config,
+                                Path outputDir,
+                                BpmHtmlReportRenderer.RenderConfig renderConfig,
+                                List<BpmTimeBucket> timeBuckets,
+                                Map<String, List<BpmTimeBucket>> perLabelBuckets,
+                                List<String[]> metricsTable) throws IOException {
+        GenerateResult result = generateHtml(aggregates, props, config, renderConfig,
+                timeBuckets, perLabelBuckets, metricsTable);
+
+        if (!Files.exists(outputDir)) {
+            Files.createDirectories(outputDir);
+        }
+        Path reportPath = outputDir.resolve(result.suggestedFilename());
+        Files.writeString(reportPath, result.html(), StandardCharsets.UTF_8);
+        log.info("BPM AI: Report saved to {}", reportPath);
+
+        openInBrowser(reportPath);
+        return reportPath;
+    }
+
+    private static String buildHtml(Map<String, LabelAggregate> aggregates,
+                                     BpmPropertiesManager props,
+                                     AiProviderConfig config,
+                                     BpmHtmlReportRenderer.RenderConfig renderConfig,
+                                     List<BpmTimeBucket> timeBuckets,
+                                     Map<String, List<BpmTimeBucket>> perLabelBuckets,
+                                     List<String[]> metricsTable) throws IOException {
         // 1. Load system prompt
         String systemPrompt = BpmPromptLoader.load();
         if (systemPrompt == null) {
@@ -62,24 +126,7 @@ public final class BpmAiReportCoordinator {
         log.info("BPM AI: Report generated. {} chars from {}", markdown.length(), config.displayName);
 
         // 4. Render HTML
-        String html = BpmHtmlReportRenderer.render(markdown, config.displayName);
-
-        // 5. Save to file
-        if (!Files.exists(outputDir)) {
-            Files.createDirectories(outputDir);
-        }
-        String filename = "bpm-ai-report-" + config.providerKey + "-"
-                + java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-                + ".html";
-        Path reportPath = outputDir.resolve(filename);
-        Files.writeString(reportPath, html, StandardCharsets.UTF_8);
-        log.info("BPM AI: Report saved to {}", reportPath);
-
-        // 6. Open in browser
-        openInBrowser(reportPath);
-
-        return reportPath;
+        return BpmHtmlReportRenderer.render(markdown, renderConfig, timeBuckets, perLabelBuckets, metricsTable);
     }
 
     private static void openInBrowser(Path reportPath) {

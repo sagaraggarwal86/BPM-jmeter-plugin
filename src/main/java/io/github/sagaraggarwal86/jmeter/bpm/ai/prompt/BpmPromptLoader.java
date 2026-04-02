@@ -19,7 +19,8 @@ public final class BpmPromptLoader {
     static final String RESOURCE_PATH = "/bpm-ai-prompt.txt";
     private static final Logger log = LoggerFactory.getLogger(BpmPromptLoader.class);
 
-    private BpmPromptLoader() { }
+    private BpmPromptLoader() {
+    }
 
     /**
      * Loads the system prompt from the bundled JAR resource.
@@ -41,7 +42,7 @@ public final class BpmPromptLoader {
             log.debug("load: loaded prompt from bundled JAR resource ({} chars).", content.length());
             return content;
         } catch (IOException e) {
-            log.error("load: failed to read {}. reason={}", RESOURCE_PATH, e.getMessage());
+            log.error("load: failed to read {}.", RESOURCE_PATH, e);
             return null;
         }
     }

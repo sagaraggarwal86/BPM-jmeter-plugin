@@ -1,152 +1,108 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Working Rules
+
+- Never change git history or Java 17 implementation
+- Never assume — ask if in doubt
+- Never make changes to code until user confirms
+- Never change existing functionality or make changes beyond confirmed scope
+- Only recommend alternatives when there is a concrete risk or significant benefit
+- Analyze impact across dependent layers (collector → model → derived → GUI → output) before proposing changes
+- Conflicting requirements: flag the conflict, pause, and wait for decision
+- Decision priority: **Correctness → Security → Performance → Readability → Simplicity**
 
 ## Build Commands
 
 ```bash
-# Build + run unit/integration tests (Layer 1+2), enforce JaCoCo coverage
-mvn clean verify
-
-# Build + E2E tests (requires Chrome installed)
-mvn clean verify -Pe2e
-
-# Skip tests during build
-mvn clean package -DskipTests
-
-# Run a single test class
-mvn test -Dtest=JsonlWriterTest
-
-# Run a single test method
-mvn test -Dtest=JsonlWriterTest#testWriteAndFlush
-
-# Release to Maven Central (requires GPG key + credentials)
-mvn clean deploy -Prelease
+mvn clean verify                          # Build + tests + JaCoCo coverage check
+mvn clean verify -Pe2e                    # Build + E2E tests (requires Chrome)
+mvn clean package -DskipTests             # Build only
+mvn test -Dtest=JsonlWriterTest           # Single test class
+mvn test -Dtest=JsonlWriterTest#testWriteAndFlush  # Single test method
+mvn clean deploy -Prelease                # Release to Maven Central
 ```
 
-Requirements: JDK 17+, Maven 3.8+. Maven enforcer will fail the build otherwise.
-
-JaCoCo enforces a minimum line coverage of **84%** (`jacoco.line.coverage.minimum` in pom.xml) on a bundle that excludes
-`gui/**`, `BpmListener`, `ChromeCdpCommandExecutor`, and `CdpSessionManager` — these require a live JMeter/CDP
-environment.
+Requirements: JDK 17 only, Maven 3.8+. JaCoCo enforces **84%** line coverage excluding `gui/**`, `ai/**`, `cli/**`,
+`BpmListener`, `ChromeCdpCommandExecutor`, `CdpSessionManager`, `BpmTimeBucket`.
 
 ## Architecture
 
-BPM is a JMeter listener plugin that hooks into the `SampleListener` / `TestStateListener` lifecycle to capture
-browser-side performance metrics from WebDriver Sampler executions using Chrome DevTools Protocol (CDP).
-
-### Data Flow
-
-```
-WebDriver Sampler executes
-        ↓
-BpmListener.sampleOccurred()
-  → Extracts ChromeDriver via Class.forName() (lazy, avoids hard Selenium dep)
-  → CdpSessionManager.openSession() — enables CDP domains + injects JS observers
-  → CdpSessionManager.transferBufferedEvents() — drains browser-side JS buffers into MetricsBuffer
-  → CdpSessionManager.ensureObserversInjected() — re-injects after page navigation
-  → Collectors run: WebVitalsCollector, NetworkCollector, RuntimeCollector, ConsoleCollector
-  → DerivedMetricsCalculator computes score, bottleneck, ratios
-  → BpmResult assembled → JsonlWriter writes to .jsonl file
-  → BpmListenerGui.addRow() updates live Swing table (GUI mode only)
-        ↓
-BpmListener.testEnded()
-  → SummaryJsonWriter writes bpm-results-summary.json (currently disabled — pending re-enable)
-  → Log summary printed
-```
+JMeter listener plugin capturing browser performance metrics (Core Web Vitals, network, runtime, console) from WebDriver
+Sampler via Chrome DevTools Protocol. Includes optional AI-powered analysis reports.
 
 ### Package Structure
 
-| Package      | Responsibility                                                                                                                                                                                       |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `core`       | `BpmListener` (main entry point), `CdpSessionManager` (CDP lifecycle), `MetricsBuffer` (thread-local event staging), `ChromeCdpCommandExecutor` (Selenium wrapper), `CdpCommandExecutor` (interface) |
-| `collectors` | `MetricsCollector<T>` interface + four implementations (WebVitals, Network, Runtime, Console), `DerivedMetricsCalculator`                                                                            |
-| `model`      | Plain data classes: `BpmResult`, `WebVitalsResult`, `NetworkResult`, `RuntimeResult`, `ConsoleResult`, `DerivedMetrics`, `ResourceEntry`                                                             |
-| `config`     | `BpmPropertiesManager` — reads/writes `bpm.properties`, handles version migration, exposes all SLA thresholds and feature toggles                                                                    |
-| `output`     | `JsonlWriter` (buffered JSONL, flush every 10 records), `SummaryJsonWriter`, `CsvExporter`                                                                                                           |
-| `gui`        | `BpmListenerGui` (Swing table + controls), `ColumnSelectorPopup`                                                                                                                                     |
-| `util`       | `JsSnippets` (CDP JavaScript constants), `ConsoleSanitizer`, `BpmConstants`, `BpmDebugLogger`                                                                                                        |
-| `error`      | `BpmErrorHandler`, `LogOnceTracker`                                                                                                                                                                  |
+| Package       | Responsibility                                                                                                                                                |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `core`        | `BpmListener` (entry point, SampleListener/TestStateListener), `CdpSessionManager` (CDP lifecycle), `MetricsBuffer`, `LabelAggregate`                         |
+| `collectors`  | `MetricsCollector<T>` + 4 implementations (WebVitals, Network, Runtime, Console), `DerivedMetricsCalculator`                                                  |
+| `model`       | Data records: `BpmResult`, `WebVitalsResult`, `NetworkResult`, `RuntimeResult`, `ConsoleResult`, `DerivedMetrics`, `BpmTimeBucket`                            |
+| `config`      | `BpmPropertiesManager` — SLA thresholds, feature toggles, `bpm.properties` management                                                                         |
+| `output`      | `JsonlWriter` (buffered, flush every 10), `SummaryJsonWriter`, `CsvExporter`                                                                                  |
+| `gui`         | `BpmListenerGui` (Swing table + AI report button), `ColumnSelectorPopup`, `TotalPinnedRowSorter`                                                              |
+| `ai.provider` | `AiProviderRegistry` (7 providers, shared `ai-reporter.properties`), `AiProviderConfig`, `AiReportService` (OpenAI-compatible API client), `SharedHttpClient` |
+| `ai.prompt`   | `BpmPromptBuilder` (pre-computed verdicts + trends → JSON), `BpmPromptLoader`, `TrendAnalyzer`, `BpmPromptContent`                                            |
+| `ai.report`   | `BpmHtmlReportRenderer` (CommonMark + Chart.js), `BpmAiReportCoordinator`, `BpmAiReportLauncher`                                                              |
+| `cli`         | `Main` (entry point), `CliArgs`, `BpmCliReportPipeline`, `TimeBucketBuilder`                                                                                  |
+| `util`        | `JsSnippets`, `ConsoleSanitizer`, `BpmConstants`, `BpmDebugLogger`                                                                                            |
+| `error`       | `BpmErrorHandler`, `LogOnceTracker`                                                                                                                           |
 
 ### Key Design Decisions
 
-- **No hard Selenium dependency at class load time**: `BpmListener` uses `Class.forName()` to detect ChromeDriver, so
-  the plugin loads without Selenium on the classpath.
-- **All Selenium code isolated in `ChromeCdpCommandExecutor`**: The rest of the codebase programs against the
-  `CdpCommandExecutor` interface.
-- **JS-buffer event capture**: Instead of Selenium DevTools event APIs (which vary by version), BPM injects JavaScript
-  hooks (`JsSnippets`) that buffer LCP, CLS, console, and network events in `window.__bpm_*` arrays.
-  `CdpSessionManager.transferBufferedEvents()` drains them before each collection cycle.
-- **`INJECT_OBSERVERS` vs `REINJECT_OBSERVERS`**: The re-inject variant resets `window.__bpm_cls = 0` to prevent CLS
-  double-counting after a CDP session re-init. Use the regular variant after a full page navigation (where the browser
-  already reset the accumulator).
-- **Stateless collectors**: All four `MetricsCollector` implementations are stateless singletons. Mutable per-thread
-  state lives in `MetricsBuffer`. Exception: `WebVitalsCollector` tracks previous LCP per-thread for SPA stale
-  detection.
-- **Per-thread CDP sessions**: `BpmListener` holds a `ConcurrentHashMap<String, CdpCommandExecutor>` keyed by thread
-  name, with a matching map for `CdpSessionManager` instances.
-- **All runtime deps are `provided`**: JMeter core, Selenium, and Jackson are already on the JMeter classpath at
-  runtime; the plugin JAR ships zero additional dependencies.
-- **Clone guard — `primaryByName` per-element registry**: `BpmListener` holds a
-  `static final ConcurrentHashMap<String, BpmListener> primaryByName`. JMeter calls `testStarted()` on every registered
-  listener instance (original + one clone per Thread Group). Each distinct element uses `putIfAbsent(getName(), this)` —
-  the first caller for that name wins and proceeds with full setup; subsequent callers with the same name (clones)
-  return immediately. `primaryByName.remove(getName())` is called unconditionally at the very top of `testEnded(String)`
-  so every new run gets a fresh slot. `sampleOccurred()` clone delegation uses `primaryByName.get(getName())` instead of
-  the global `activeInstance`, so clones route to their own element's primary instance.
-- **Pre-flight file-exists scan**: The first BpmListener primary to call `testStarted()` wins a
-  `preFlightDone.compareAndSet(false, true)` and scans ALL enabled BpmListener elements in the test plan via
-  `GuiPackage.getTreeModel().getNodesOfType(BpmListener.class)`. For each enabled element with a user-provided output
-  path, it checks `Files.exists()`. If any conflicts are found, a single dialog is shown listing all conflicting files.
-  The user chooses "Overwrite" (all files) or "Don't Start JMeter Engine" (stops the engine). The decision is stored in
-  `static volatile FileOpenMode globalFileDecision` — all subsequent `testStarted()` calls read this cached decision.
-  CLI mode always overwrites silently (no tree traversal needed). `-Jbpm.output` flag is checked first as a global
-  override. `preFlightDone` and `globalFileDecision` are reset in `testEnded()` when the last primary exits
-  (`primaryByName.isEmpty()`).
-- **`isDontStartPending()` flag**: Returns `globalFileDecision == DONT_START`. Checked in `BpmListenerGui.testStarted()`
-  to suppress the GUI clear when the test was cancelled before starting.
-- **`testActuallyStarted` instance flag**: Set to `true` only when a `BpmListener` instance completes full setup in
-  `testStarted()`. `testEnded()` skips all cleanup (flush, close, GUI notify) if this flag is `false`, preventing
-  spurious side-effects from DONT_START or partially-initialised clone instances.
-- **File-exists dialog**: Two options only — **Overwrite** and **Don't Start JMeter Engine** (Append was removed).
-  Shown once per test run (not per-element) when the pre-flight scan finds conflicts. Lists all conflicting files.
-  `FileOpenMode` enum has two values: `OVERWRITE`, `DONT_START`. CLI mode always overwrites silently.
-  JMeter only calls `modifyTestElement()` on navigate-away, not on Start — so the output path must be persisted
-  immediately. `browseFile()` does this explicitly; a `DocumentListener` on
-  `filenameField` (guarded by `configuringElement`) does the same for manually typed paths. Both call
-  `listenerRef.setProperty(TEST_ELEMENT_OUTPUT_PATH, path)` on every change.
-- **Cached engine reference**: `cachedEngine` is populated at the very top of `testStarted()` via
-  `JMeterContextService.getContext().getEngine()` — before any blocking dialog. After `invokeAndWait()` returns, the
-  ThreadLocal context may no longer carry the engine reference, so it must be captured early and passed to
-  `stopTestEngine(cachedEngine)`.
-- **`stopTestEngine()` dual-path stop**: Calls `engine.stopTest(true)` on the cached engine reference (immediate stop).
-  Also fires an `ActionRouter.doActionNow("stop")` on the EDT as a fallback in case the cached reference is null (GUI
-  mode only).
-- **`pendingFreshClear` GUI flag**: `BpmListenerGui.createTestElement()` sets `pendingFreshClear = true` after stripping
-  all properties from the new element. `configure()` checks this flag first — if set, it clears the display and returns
-  without populating any fields. This ensures a brand-new listener element always opens blank, without any data
-  inherited from the previous test run shown in the shared GUI component.
-- **Manual-only filtering**: All filter fields (transaction names, include/exclude, start/end offset) apply only when
-  the user clicks **Apply Filters**. No auto-trigger on focus-lost, Enter, or selection change. `applyAllFilters()`
-  calls `rebuildTableFromRaw()` which re-evaluates the full `allRawResults` list.
-- **Start/End Offset enabled state**: Both offset fields are disabled during a live test run (`testRunning == true`) and
-  re-enabled when the test ends. They are always editable when no test is running, regardless of table content.
-  Transaction name controls are additionally gated on `tableModel.getRowCount() > 0`.
-- **`rebuildTableFromRaw()` as single source of truth for time fields**: In file-load and post-filter mode (
-  `!testRunning`), `rebuildTableFromRaw()` computes `firstFiltered`/`lastFiltered` instants from the filtered result set
-  and calls `updateTimeFieldsFromRaw()` to set all three time fields and the score box. During live test, only the start
-  field is updated from `firstFiltered` when a start offset is active; end/duration are owned by the continuous timer.
-- **Continuous time update during live test**: `drainGuiQueue()` runs on a 500 ms `javax.swing.Timer`. At the top of
-  every drain cycle, when `testRunning` is `true`, it writes `Instant.now()` to the End field and recomputes Duration —
-  giving sub-second accuracy without waiting for `testEnded()`.
-- **`testEnded()` `wasRunning` guard**: `BpmListenerGui.testEnded()` captures `wasRunning = testRunning` before
-  resetting the flag. Time fields are only updated from `Instant.now()` when `wasRunning` is `true`. In the DONT_START
-  path, `testStarted()` never ran so `testRunning` was never set to `true`, and the time fields are left untouched (
-  preserving any loaded-file data).
+- **No hard Selenium dep**: `BpmListener` uses `Class.forName()` to detect ChromeDriver. All Selenium code isolated in
+  `ChromeCdpCommandExecutor`; rest uses `CdpCommandExecutor` interface.
+- **JS-buffer capture**: Injects JS hooks (`JsSnippets`) that buffer events in `window.__bpm_*` arrays.
+  `CdpSessionManager.transferBufferedEvents()` drains them. `REINJECT_OBSERVERS` resets CLS accumulator;
+  `INJECT_OBSERVERS` does not.
+- **Stateless collectors**: All four collectors are stateless singletons. Per-thread state in `MetricsBuffer`.
+  Exception: `WebVitalsCollector` tracks previous LCP for SPA stale detection.
+- **All runtime deps `provided`**: JMeter core, Selenium, Jackson on JMeter classpath. Only CommonMark is shaded (
+  relocated to `io.github.sagaraggarwal86.shaded.commonmark`).
+- **Clone guard — `primaryByName`**: `ConcurrentHashMap<String, BpmListener>` keyed by composite `elementId|outputPath`.
+  First `putIfAbsent` wins setup; clones skip. Cleared per-element in `testEnded()`.
+- **Pre-flight file scan**: First primary wins `preFlightDone.compareAndSet(false, true)`, scans ALL enabled
+  BpmListeners via `GuiPackage.getTreeModel().getNodesOfType()`. Single dialog lists all conflicts. Decision cached in
+  `globalFileDecision` (OVERWRITE/DONT_START). CLI always overwrites.
+- **Broadcast write**: Static `allJsonlWriters` + `allGuiQueues` (CopyOnWriteArrayList). The primary that owns CDP
+  writes to ALL registered writers/queues.
+- **Output path priority**: `-Jbpm.output` > GUI TestElement property > `bpm.properties` > default `bpm-results.jsonl`.
+- **`pendingFreshClear`**: `createTestElement()` strips properties + sets flag. `configure()` clears display and returns
+  early for new elements.
+- **`testActuallyStarted`**: Instance flag set only after full `testStarted()` setup. `testEnded()` skips cleanup if
+  false.
+- **`cachedEngine`**: Captured at top of `testStarted()` before blocking dialog. `stopTestEngine()` uses cached ref +
+  ActionRouter fallback.
+- **Manual-only filtering**: Filters apply only on "Apply Filters" button click. `rebuildTableFromRaw()` is single
+  source of truth.
 
-## Change Log
+### AI Analysis Architecture
 
-| Date       | Area                                 | What changed                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Status |
-|------------|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
-| 2026-03-30 | core/BpmListener, gui/BpmListenerGui | Replaced global `testStartLock` AtomicBoolean with per-element-name `primaryByName` ConcurrentHashMap so multiple BpmListener elements each independently run their own file-exists dialog check; fixed `sampleOccurred` clone delegation to use per-name registry; added `DocumentListener` on `filenameField` (guarded by `configuringElement`) to immediately persist manually typed output paths to the backing element so `isUserProvidedOutputPath()` sees them at test-start time | done   |
-| 2026-03-31 | core/BpmListener, gui/BpmListenerGui | Consolidated pre-flight file-exists scan: first primary scans ALL enabled BpmListener elements via `GuiPackage.getTreeModel().getNodesOfType()` before any setup; single dialog lists all conflicting files; decision (Overwrite / Don't Start) is global via `preFlightDone` AtomicBoolean + `globalFileDecision` volatile; removed per-element `dontStartByElement` map and `isDontStartForElement()`; GUI uses `isDontStartPending()` for global check; removed `isUserProvidedOutputPath()` (logic moved into `scanForConflictingFiles()`) | done   |
+- **Java does ~90% of work**: Parses JSONL, aggregates stats, computes SLA verdicts (GOOD/NEEDS_WORK/POOR), trend
+  analysis (RISING/FALLING/STABLE), alert sentences — all pre-computed.
+- **AI does ~10%**: Narrates pre-computed facts into readable prose. Fill-in-the-blank templates for weak model
+  compatibility.
+- **7 providers**: groq, gemini, mistral, deepseek, cerebras, openai, claude. Shared `ai-reporter.properties` config.
+- **CLI workflow** (two-step):
+  ```
+  jmeter -n -t test.jmx -Jbpm.output=results.jsonl    # Step 1: run test
+  bpm-ai-report -i results.jsonl --provider groq        # Step 2: generate AI report
+  ```
+- **Prompt design**: 9 absolute rules, 6 sections with audience-specific templates, 8 edge cases, trend analysis with
+  pre-computed direction/alerts. System prompt in `src/main/resources/bpm-ai-prompt.txt`.
+- **HTML report**: CommonMark Markdown→HTML + Chart.js time-series charts (Score, LCP, FCP, TTFB over time) + metadata
+  grid + sidebar nav.
+
+### Key Constraints
+
+- `performanceScore` is `Integer` (nullable) everywhere — unboxing `null` to `int` will NPE and silently abort JSONL
+  writes.
+- `BpmConstants` is the single source of truth — never hardcode column indices, label strings, or property keys outside
+  it.
+- JSONL schema (`DerivedMetrics`, `BpmResult` `@JsonProperty` names) is public and backward-compatible — field renames
+  are breaking changes.
+- `BpmConstants.TEST_ELEMENT_*` key strings are stored in `.jmx` files — renaming breaks existing test plans.
+- Selenium types confined to `ChromeCdpCommandExecutor` — lazy class loading via `Class.forName()`.
+- Chrome-only via CDP — acknowledged constraint, documented not hidden.
+- Pure observer — never crashes the test; all exceptions caught; graceful degradation.
+- UI preserves `AbstractListenerGui` and `Clearable` contracts.
+- `TotalPinnedRowSorter` must pin TOTAL to last view row for all sort directions.
