@@ -29,13 +29,11 @@ import java.util.regex.Pattern;
  */
 public final class AiProviderRegistry {
 
-    private static final Logger log = LoggerFactory.getLogger(AiProviderRegistry.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
-
     static final List<String> KNOWN_PROVIDERS = List.of(
             "groq", "gemini", "mistral", "deepseek", "cerebras", "openai", "claude"
     );
-
+    private static final Logger log = LoggerFactory.getLogger(AiProviderRegistry.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
     private static final String PREFIX = "ai.reporter.";
     private static final Pattern API_KEY_PATTERN =
             Pattern.compile("^ai\\.reporter\\.([^.]+)\\.api\\.key$");
@@ -82,9 +80,11 @@ public final class AiProviderRegistry {
             "cerebras", "csk-"
     );
 
+    private static final int MAX_PING_CACHE_SIZE = 50;
     private static final ConcurrentHashMap<String, Boolean> PING_CACHE = new ConcurrentHashMap<>();
 
-    private AiProviderRegistry() { }
+    private AiProviderRegistry() {
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -255,6 +255,8 @@ public final class AiProviderRegistry {
         try {
             return Integer.parseInt(v);
         } catch (NumberFormatException e) {
+            log.warn("resolveInt: invalid value '{}' for {}{}.{}. Using default: {}",
+                    v, PREFIX, providerKey, field, defaultValue);
             return defaultValue;
         }
     }
@@ -266,6 +268,8 @@ public final class AiProviderRegistry {
         try {
             return Double.parseDouble(v);
         } catch (NumberFormatException e) {
+            log.warn("resolveDouble: invalid value '{}' for {}{}.{}. Using default: {}",
+                    v, PREFIX, providerKey, field, defaultValue);
             return defaultValue;
         }
     }
@@ -286,7 +290,7 @@ public final class AiProviderRegistry {
     }
 
     private static String cacheKey(AiProviderConfig config) {
-        return config.providerKey + ":" + config.apiKey;
+        return config.providerKey + ":" + config.apiKey.hashCode();
     }
 
     // ── Live ping ─────────────────────────────────────────────────────────────
@@ -295,6 +299,11 @@ public final class AiProviderRegistry {
         String url = config.chatCompletionsUrl();
         String body = buildPingBody(config);
         log.debug("executePing: pinging provider={} url={}", config.providerKey, url);
+
+        if (!url.toLowerCase(Locale.ROOT).startsWith("https://")) {
+            log.warn("executePing: base URL for provider={} does not use HTTPS. "
+                    + "API key will be transmitted in cleartext.", config.providerKey);
+        }
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -310,6 +319,9 @@ public final class AiProviderRegistry {
             int status = response.statusCode();
 
             if (status >= 200 && status < 300) {
+                if (PING_CACHE.size() >= MAX_PING_CACHE_SIZE) {
+                    PING_CACHE.clear();
+                }
                 PING_CACHE.put(cacheKey(config), Boolean.TRUE);
                 log.info("executePing: provider={} status={} — OK", config.providerKey, status);
                 return null;

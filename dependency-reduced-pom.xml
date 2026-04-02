@@ -8,7 +8,8 @@
   <description>JMeter listener plugin that captures browser rendering metrics (Core Web Vitals, network,
         runtime, console errors) from WebDriver Sampler executions via Chrome DevTools Protocol.
         Provides a live results table with SLA-based highlighting, a composite performance score,
-        bottleneck detection, and a CI-friendly bpm-summary.json output.</description>
+        improvement area detection, JSONL output, and optional AI-powered analysis reports with
+        time-series trend charts via a CLI tool (bpm-ai-report) supporting 7 AI providers.</description>
   <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
   <inceptionYear>2026</inceptionYear>
   <developers>
@@ -120,6 +121,7 @@
               <artifactSet>
                 <includes>
                   <include>org.commonmark:commonmark</include>
+                  <include>org.commonmark:commonmark-ext-gfm-tables</include>
                 </includes>
               </artifactSet>
               <relocations>
@@ -130,9 +132,21 @@
               </relocations>
               <filters>
                 <filter>
-                  <artifact>*:*</artifact>
+                  <artifact>org.commonmark:commonmark</artifact>
                   <excludes>
                     <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.commonmark:commonmark-ext-gfm-tables</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -186,6 +200,7 @@
                 <exclude>**/FileOpenMode.class</exclude>
                 <exclude>**/ChromeCdpCommandExecutor.class</exclude>
                 <exclude>**/CdpSessionManager.class</exclude>
+                <exclude>**/BpmTimeBucket.class</exclude>
               </excludes>
             </configuration>
           </execution>

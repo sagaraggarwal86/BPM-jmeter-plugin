@@ -24,8 +24,11 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
+      - name: Verify before release
+        run: mvn --batch-mode clean verify "-Dgpg.skip=true"
+
       - name: Publish to Maven Central
-        run: mvn --batch-mode clean deploy -P release
+        run: mvn --batch-mode deploy -P release
         env:
           MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}

@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
 import io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate;
+import io.github.sagaraggarwal86.jmeter.bpm.model.BpmTimeBucket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Builds the AI prompt user message from BPM aggregated per-label metrics.
@@ -25,28 +26,62 @@ public final class BpmPromptBuilder {
     private static final Logger log = LoggerFactory.getLogger(BpmPromptBuilder.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private BpmPromptBuilder() { }
+    private BpmPromptBuilder() {
+    }
 
     /**
      * Builds the complete AI prompt from aggregated metrics and SLA thresholds.
+     * Used by GUI mode (no metadata, no time-series trends).
+     */
+    public static BpmPromptContent build(String systemPrompt,
+                                         Map<String, LabelAggregate> aggregates,
+                                         BpmPropertiesManager props) {
+        return build(systemPrompt, aggregates, props, "", "", "", Collections.emptyList());
+    }
+
+    /**
+     * Builds the complete AI prompt from aggregated metrics, SLA thresholds,
+     * optional report metadata, and optional time-series data for trend analysis.
      *
      * @param systemPrompt loaded system prompt text
-     * @param aggregates   per-label aggregates (from BpmListener)
+     * @param aggregates   per-label aggregates
      * @param props        properties manager with SLA thresholds
+     * @param scenarioName scenario name (empty if not provided)
+     * @param description  scenario description (empty if not provided)
+     * @param virtualUsers virtual user count as string (empty if not provided)
+     * @param timeBuckets  time-series data for trend analysis (may be empty)
      * @return assembled prompt content ready for the AI API
      */
     public static BpmPromptContent build(String systemPrompt,
-                                         ConcurrentHashMap<String, LabelAggregate> aggregates,
-                                         BpmPropertiesManager props) {
-        String userMessage = buildUserMessage(aggregates, props);
-        log.debug("build: userMessage length={} chars, {} labels",
-                userMessage.length(), aggregates.size());
+                                         Map<String, LabelAggregate> aggregates,
+                                         BpmPropertiesManager props,
+                                         String scenarioName,
+                                         String description,
+                                         String virtualUsers,
+                                         List<BpmTimeBucket> timeBuckets) {
+        java.util.Objects.requireNonNull(aggregates, "aggregates must not be null");
+        java.util.Objects.requireNonNull(props, "props must not be null");
+        String userMessage = buildUserMessage(aggregates, props, scenarioName,
+                description, virtualUsers, timeBuckets);
+        log.debug("build: userMessage length={} chars, {} labels, {} buckets",
+                userMessage.length(), aggregates.size(),
+                timeBuckets != null ? timeBuckets.size() : 0);
         return new BpmPromptContent(systemPrompt, userMessage);
     }
 
     private static String buildUserMessage(Map<String, LabelAggregate> aggregates,
-                                           BpmPropertiesManager props) {
+                                           BpmPropertiesManager props,
+                                           String scenarioName,
+                                           String description,
+                                           String virtualUsers,
+                                           List<BpmTimeBucket> timeBuckets) {
         ObjectNode root = mapper.createObjectNode();
+
+        // Report metadata (if provided)
+        ObjectNode metadata = root.putObject("reportMetadata");
+        metadata.put("scenarioName", orNotProvided(scenarioName));
+        metadata.put("description", orNotProvided(description));
+        metadata.put("virtualUsers", orNotProvided(virtualUsers));
 
         // Test summary
         ObjectNode summary = root.putObject("testSummary");
@@ -183,6 +218,12 @@ public final class BpmPromptBuilder {
         ArrayNode breachArr = verdicts.putArray("breachDetails");
         breachDetails.forEach(breachArr::add);
 
+        // Time-series trend analysis (optional — pre-computed, AI does zero math)
+        ObjectNode trendData = TrendAnalyzer.analyze(timeBuckets);
+        if (trendData != null) {
+            root.set("trendAnalysis", trendData);
+        }
+
         return root.toString();
     }
 
@@ -205,5 +246,9 @@ public final class BpmPromptBuilder {
         if (value <= good) return "GOOD";
         if (value <= poor) return "NEEDS_WORK";
         return "POOR";
+    }
+
+    private static String orNotProvided(String value) {
+        return (value == null || value.isBlank()) ? "Not provided" : value.trim();
     }
 }

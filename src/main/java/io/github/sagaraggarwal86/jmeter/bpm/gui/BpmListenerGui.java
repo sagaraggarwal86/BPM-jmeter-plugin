@@ -4,8 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiProviderConfig;
 import io.github.sagaraggarwal86.jmeter.bpm.ai.provider.AiProviderRegistry;
 import io.github.sagaraggarwal86.jmeter.bpm.ai.report.BpmAiReportLauncher;
+import io.github.sagaraggarwal86.jmeter.bpm.ai.report.BpmHtmlReportRenderer;
+import io.github.sagaraggarwal86.jmeter.bpm.cli.TimeBucketBuilder;
 import io.github.sagaraggarwal86.jmeter.bpm.core.BpmListener;
 import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
+import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
+import io.github.sagaraggarwal86.jmeter.bpm.model.WebVitalsResult;
 import io.github.sagaraggarwal86.jmeter.bpm.output.CsvExporter;
 import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
 import org.apache.jmeter.samplers.Clearable;
@@ -44,7 +48,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BpmListenerGui.class);
-
+    private static final DateTimeFormatter TIME_FMT =
+            DateTimeFormatter.ofPattern("MM/dd/yy HH:mm:ss").withZone(ZoneId.systemDefault());
+    private static final ObjectMapper FILE_MAPPER = new ObjectMapper();
     /**
      * Static reference to the shared BpmListenerGui instance. JMeter shares a single GUI
      * component across all BpmListener elements of the same type. Set in {@link #configure}.
@@ -52,9 +58,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
      * instance is a clone (for which GuiPackage.getGui() returns null).
      */
     private static volatile BpmListenerGui activeGui;
-
-    private static final DateTimeFormatter TIME_FMT =
-            DateTimeFormatter.ofPattern("MM/dd/yy HH:mm:ss").withZone(ZoneId.systemDefault());
     /**
      * Raw BpmResult records from the current test or loaded file — source of truth for retroactive filter rebuilds.
      */
@@ -79,7 +82,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private JButton saveTableDataButton;
     private JButton applyFiltersButton;     // CHANGED: Change #2 — Apply Filters button
     private JComboBox<AiProviderConfig> aiProviderCombo;
+    private JButton reloadListButton;
     private JButton generateAiReportButton;
+    private JTextField chartIntervalField;
     private Timer updateTimer;
     private transient BpmListener listenerRef;
     private transient io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager propertiesRef;
@@ -97,20 +102,19 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
      */ // CHANGED: Defect #1 (this session) — new listener must show blank GUI
     private boolean pendingFreshClear = false;
     private boolean rawResultsDirty = false;
-
     // All 18 TableColumn objects stored at init — used for add/remove column visibility
     private TableColumn[] allColumns;
+
+    public BpmListenerGui() {
+        super();
+        init();
+    }
 
     /**
      * Returns the shared BpmListenerGui instance, or null if no GUI is active (CLI mode).
      */
     public static BpmListenerGui getActiveGui() {
         return activeGui;
-    }
-
-    public BpmListenerGui() {
-        super();
-        init();
     }
 
     /**
@@ -189,15 +193,25 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setPreferredSize(new Dimension(800, 300));
 
-        // Bottom panel — AI report + Save button
+        // Bottom panel — matches JAAR footer layout
         JPanel savePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
+
+        // Save Table Data button
+        saveTableDataButton = new JButton("Save Table Data");
+        saveTableDataButton.setEnabled(false);
+        saveTableDataButton.addActionListener(e -> saveTableData());
+        savePanel.add(saveTableDataButton);
 
         // AI provider dropdown
         aiProviderCombo = new JComboBox<>();
         aiProviderCombo.setPreferredSize(new Dimension(160, 26));
         refreshAiProviders();
-        savePanel.add(new JLabel("AI:"));
         savePanel.add(aiProviderCombo);
+
+        // Reload List button
+        reloadListButton = new JButton("Reload List");
+        reloadListButton.addActionListener(e -> refreshAiProviders());
+        savePanel.add(reloadListButton);
 
         // Generate AI Report button
         generateAiReportButton = new JButton("Generate AI Report");
@@ -205,12 +219,17 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         generateAiReportButton.addActionListener(e -> launchAiReport());
         savePanel.add(generateAiReportButton);
 
-        savePanel.add(Box.createHorizontalStrut(12));
-
-        saveTableDataButton = new JButton("Save Table Data");
-        saveTableDataButton.setEnabled(false);
-        saveTableDataButton.addActionListener(e -> saveTableData());
-        savePanel.add(saveTableDataButton);
+        // Separator + Chart Interval
+        savePanel.add(new JSeparator(SwingConstants.VERTICAL) {
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(2, 24);
+            }
+        });
+        savePanel.add(new JLabel("Chart Interval (s, 0=auto):"));
+        chartIntervalField = new JTextField("0", 4);
+        applyPositiveIntegerFilter(chartIntervalField);
+        savePanel.add(chartIntervalField);
 
         add(titlePanel, BorderLayout.NORTH);
 
@@ -409,6 +428,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         listener.removeProperty(BpmConstants.TEST_ELEMENT_TRANSACTION_NAMES);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_REGEX);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_INCLUDE);
+        listener.removeProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL);
         pendingFreshClear = true; // CHANGED: Defect #1 — signal configure() to blank display for this new element
         return listener;
     }
@@ -433,6 +453,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         element.setProperty(BpmConstants.TEST_ELEMENT_TRANSACTION_NAMES, transactionNamesField.getText().trim());
         element.setProperty(BpmConstants.TEST_ELEMENT_REGEX, regexCheckBox.isSelected());
         element.setProperty(BpmConstants.TEST_ELEMENT_INCLUDE, "Include".equals(includeExcludeCombo.getSelectedItem()));
+        element.setProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, chartIntervalField.getText().trim());
     }
 
     @Override
@@ -448,6 +469,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             regexCheckBox.setSelected(element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_REGEX, false));
             includeExcludeCombo.setSelectedItem(
                     element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
+            chartIntervalField.setText(element.getPropertyAsString(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, "0"));
             if (element instanceof BpmListener listener) {
                 // Assign a stable UUID if missing (old .jmx files saved before UUID support).
                 // Must happen before any early return so testStarted() can distinguish elements.
@@ -503,6 +525,20 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     }
 
     @Override
+    public void clearGui() {
+        super.clearGui();
+        clearDisplayOnly();
+    }
+
+    @Override
+    public void removeNotify() {
+        if (updateTimer != null && updateTimer.isRunning()) {
+            updateTimer.stop();
+        }
+        super.removeNotify();
+    }
+
+    @Override
     public void clearData() {
         // Called by JMeter "Clear" / "Clear All" — reset everything. // CHANGED: Feature #4
         if (listenerRef != null) {
@@ -553,6 +589,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             transactionNamesField.setText("");
             regexCheckBox.setSelected(false);
             includeExcludeCombo.setSelectedIndex(0); // "Include"
+            chartIntervalField.setText("0");
         } finally {
             configuringElement = false;
         }
@@ -625,7 +662,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
     public void testStarted() {
         // Global check: suppress GUI clear when the user chose "Don't Start JMeter Engine".
-        if (BpmListener.isDontStartPending()) { return; }
+        if (BpmListener.isDontStartPending()) {
+            return;
+        }
         allRawResults.clear();
         tableModel.clear();
         tableModel.fireTableDataChanged();
@@ -878,8 +917,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         Path p = Path.of(path);
         if (Files.exists(p)) {
             loadJsonlFile(p);
+        } else {
+            log.debug("BPM: File not found, skipping load: {}", path);
         }
     }
+
+    // getPreferredColumnWidth removed — auto-resize handles widths
 
     /**
      * Synchronizes the enabled state of filter fields to the current test-running state and row count.
@@ -902,8 +945,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             applyFiltersButton.setEnabled(true);
         } // CHANGED: Change #2 — always enabled
     }
-
-    // getPreferredColumnWidth removed — auto-resize handles widths
 
     private void applyColumnVisibility() {
         if (resultsTable == null || allColumns == null) {
@@ -955,7 +996,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     }
 
     private void loadJsonlFile(Path path) {
-        ObjectMapper mapper = new ObjectMapper();
         // CHANGED: Feature #3 — reset raw store and table before loading a new file
         allRawResults.clear();
         tableModel.clear();
@@ -966,17 +1006,25 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         testDurationField.setText("");
         resetScoreBox();
 
+        int lineCount = 0;
+        int errorCount = 0;
+        boolean capReached = false;
         try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) {
                     continue;
                 }
+                lineCount++;
                 try {
-                    BpmResult result = mapper.readValue(line, BpmResult.class);
+                    BpmResult result = FILE_MAPPER.readValue(line, BpmResult.class);
                     if (allRawResults.size() < BpmConstants.MAX_RAW_RESULTS) {
                         allRawResults.add(result);
                         rawResultsDirty = true;
+                    } else if (!capReached) {
+                        capReached = true;
+                        log.warn("BPM: MAX_RAW_RESULTS ({}) reached. Excess records discarded.",
+                                BpmConstants.MAX_RAW_RESULTS);
                     }
                     // testStartTime is the offset reference point — always the absolute first record's timestamp
                     if (testStartTime == null && result.timestamp() != null) {
@@ -986,11 +1034,22 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                         }
                     }
                 } catch (Exception e) {
+                    errorCount++;
                     log.warn("BPM: Skipping malformed JSONL line: {}", e.getMessage());
                 }
             }
         } catch (IOException e) {
             log.warn("BPM: Failed to load JSONL file: {}", path, e);
+            return;
+        }
+
+        if (lineCount > 0 && allRawResults.isEmpty()) {
+            log.warn("BPM: All {} lines in {} failed to parse. No data loaded.", lineCount, path);
+            JOptionPane.showMessageDialog(this,
+                    "Failed to parse any records from:\n" + path.getFileName()
+                            + "\n\n" + errorCount + " line(s) had parse errors.\n"
+                            + "Ensure the file is a valid BPM JSONL file.",
+                    "BPM — Load Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -1040,6 +1099,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             log.info("BPM: Table data saved to {}", outputPath);
         } catch (IOException e) {
             log.warn("BPM: Failed to save CSV: {}", outputPath, e);
+            JOptionPane.showMessageDialog(this,
+                    "Failed to save CSV file:\n" + e.getMessage(),
+                    "BPM — Save Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1066,10 +1128,23 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     }
 
     private void updateAiButtonState() {
+        if (generateAiReportButton == null) return;
         boolean hasData = tableModel != null && tableModel.getRowCount() > 0;
-        boolean hasProvider = aiProviderCombo.getItemCount() > 0
+        boolean hasProvider = aiProviderCombo != null && aiProviderCombo.getItemCount() > 0
                 && aiProviderCombo.getSelectedItem() != null;
         generateAiReportButton.setEnabled(!testRunning && hasData && hasProvider);
+    }
+
+    private java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> buildAggregatesFromRaw() {
+        java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> map = new java.util.concurrent.ConcurrentHashMap<>();
+        for (io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult r : allRawResults) {
+            if (r.derived() == null) continue;
+            String label = r.samplerLabel();
+            if (label == null || label.isEmpty()) continue;
+            map.computeIfAbsent(label, k -> new io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate())
+                    .update(r.derived(), r.webVitals(), r.network(), r.console());
+        }
+        return map;
     }
 
     private void launchAiReport() {
@@ -1086,11 +1161,13 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             outputDir = Path.of(System.getProperty("user.home", "."));
         }
 
-        // Get aggregates — from live listener or rebuild from table data
+        // Get aggregates — from live listener or rebuild from raw results (file-load mode)
         java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> aggregates = null;
         if (listenerRef != null && listenerRef.getLabelAggregates() != null
                 && !listenerRef.getLabelAggregates().isEmpty()) {
             aggregates = listenerRef.getLabelAggregates();
+        } else if (!allRawResults.isEmpty()) {
+            aggregates = buildAggregatesFromRaw();
         }
 
         // Get properties ref
@@ -1100,6 +1177,144 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             props.load();
         }
 
-        BpmAiReportLauncher.launch(this, aggregates, props, config, outputDir, generateAiReportButton);
+        // Build raw samples from filtered data (respecting offset + transaction filters)
+        int startOffset = parseIntSafe(startOffsetField.getText().trim());
+        int endOffset = parseIntSafe(endOffsetField.getText().trim());
+        String txFilter = transactionNamesField.getText().trim();
+        boolean txRegex = regexCheckBox.isSelected();
+        boolean txInclude = "Include".equals(includeExcludeCombo.getSelectedItem());
+        java.util.regex.Pattern txPattern = null;
+        if (!txFilter.isEmpty() && txRegex) {
+            try { txPattern = java.util.regex.Pattern.compile(txFilter, java.util.regex.Pattern.CASE_INSENSITIVE); }
+            catch (java.util.regex.PatternSyntaxException ignored) { }
+        }
+
+        List<TimeBucketBuilder.RawSample> rawSamples = new ArrayList<>();
+        long minTs = Long.MAX_VALUE;
+        long maxTs = Long.MIN_VALUE;
+        for (BpmResult r : allRawResults) {
+            // Apply offset filter
+            if (r.timestamp() != null && testStartTime != null && (startOffset > 0 || endOffset > 0)) {
+                try {
+                    long elapsedSec = Duration.between(testStartTime, Instant.parse(r.timestamp())).getSeconds();
+                    if (startOffset > 0 && elapsedSec < startOffset) continue;
+                    if (endOffset > 0 && elapsedSec > endOffset) continue;
+                } catch (Exception ignored) { }
+            }
+            // Apply transaction name filter
+            String label = r.samplerLabel();
+            if (!txFilter.isEmpty() && label != null) {
+                boolean matches;
+                if (txPattern != null) {
+                    matches = txPattern.matcher(label).find();
+                } else {
+                    matches = label.toLowerCase(java.util.Locale.ROOT)
+                            .contains(txFilter.toLowerCase(java.util.Locale.ROOT));
+                }
+                if (txInclude && !matches) continue;
+                if (!txInclude && matches) continue;
+            }
+
+            if (r.timestamp() != null && r.derived() != null) {
+                DerivedMetrics d = r.derived();
+                WebVitalsResult wv = r.webVitals();
+                long lcpVal = wv != null && wv.lcp() != null ? wv.lcp() : 0;
+                long ttfbVal = wv != null && wv.ttfb() != null ? wv.ttfb() : 0;
+                rawSamples.add(new TimeBucketBuilder.RawSample(
+                        r.timestamp(),
+                        label,
+                        d.performanceScore(),
+                        lcpVal,
+                        wv != null && wv.fcp() != null ? wv.fcp() : 0,
+                        ttfbVal,
+                        wv != null && wv.cls() != null ? wv.cls() : -1,
+                        d.renderTime()
+                ));
+                long epochMs = rawSamples.get(rawSamples.size() - 1).epochMs;
+                if (epochMs < minTs) minTs = epochMs;
+                if (epochMs > maxTs) maxTs = epochMs;
+            }
+        }
+
+        // Compute grouped time buckets (global + per-label)
+        int chartInterval = 0;
+        try {
+            chartInterval = Integer.parseInt(chartIntervalField.getText().trim());
+        } catch (NumberFormatException ignored) { }
+        TimeBucketBuilder.GroupedResult grouped = TimeBucketBuilder.buildGrouped(rawSamples, chartInterval);
+
+        // Compute run date/time and duration
+        String runDateTime = "";
+        String duration = "";
+        if (minTs != Long.MAX_VALUE) {
+            runDateTime = TIME_FMT.format(Instant.ofEpochMilli(minTs))
+                    + " - " + TIME_FMT.format(Instant.ofEpochMilli(maxTs));
+            long durationSecs = (maxTs - minTs) / 1000;
+            long h = durationSecs / 3600;
+            long m = (durationSecs % 3600) / 60;
+            long s = durationSecs % 60;
+            duration = h + "h " + m + "m " + s + "s";
+        }
+
+        // Extract scenario name (Test Plan name) and virtual users (sum of thread groups)
+        String scenarioName = "";
+        String virtualUsersStr = "";
+        try {
+            org.apache.jmeter.gui.GuiPackage gui = org.apache.jmeter.gui.GuiPackage.getInstance();
+            if (gui != null) {
+                var treeModel = gui.getTreeModel();
+                java.util.List<org.apache.jmeter.gui.tree.JMeterTreeNode> planNodes =
+                        treeModel.getNodesOfType(org.apache.jmeter.testelement.TestPlan.class);
+                if (!planNodes.isEmpty()) {
+                    scenarioName = planNodes.get(0).getTestElement().getName();
+                }
+                java.util.List<org.apache.jmeter.gui.tree.JMeterTreeNode> tgNodes =
+                        treeModel.getNodesOfType(org.apache.jmeter.threads.AbstractThreadGroup.class);
+                int totalThreads = 0;
+                for (org.apache.jmeter.gui.tree.JMeterTreeNode tgNode : tgNodes) {
+                    if (tgNode.isEnabled()) {
+                        try {
+                            String numStr = tgNode.getTestElement()
+                                    .getPropertyAsString("ThreadGroup.num_threads", "0");
+                            totalThreads += Integer.parseInt(numStr.trim());
+                        } catch (NumberFormatException ignored) { }
+                    }
+                }
+                if (totalThreads > 0) {
+                    virtualUsersStr = String.valueOf(totalThreads);
+                }
+            } else {
+                log.warn("BPM: GuiPackage is null — cannot read Test Plan name or thread count.");
+            }
+        } catch (Exception e) {
+            log.warn("BPM: Could not read test plan metadata: {}", e.getMessage(), e);
+        }
+        log.info("BPM: Report metadata — scenario='{}', virtualUsers='{}'", scenarioName, virtualUsersStr);
+
+        BpmHtmlReportRenderer.RenderConfig renderConfig = new BpmHtmlReportRenderer.RenderConfig(
+                config.displayName, scenarioName, "", virtualUsersStr,
+                runDateTime, duration, "",
+                grouped.intervalSeconds,
+                props.getSlaScoreGood(), props.getSlaLcpGood(),
+                props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
+                props.getSlaScorePoor(), props.getSlaLcpPoor(),
+                props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
+
+        // Build metrics table from current table model (already filtered)
+        List<String[]> metricsTable = new ArrayList<>();
+        metricsTable.add(BpmConstants.ALL_COLUMN_HEADERS);
+        List<BpmTableModel.RowData> filteredRows = tableModel.getFilteredRows();
+        for (BpmTableModel.RowData row : filteredRows) {
+            String[] cells = new String[BpmConstants.TOTAL_COLUMN_COUNT];
+            for (int c = 0; c < BpmConstants.TOTAL_COLUMN_COUNT; c++) {
+                Object val = row.getColumn(c);
+                cells[c] = val != null ? String.valueOf(val) : "";
+            }
+            metricsTable.add(cells);
+        }
+
+        BpmAiReportLauncher.launch(this, aggregates, props, config, outputDir,
+                generateAiReportButton, renderConfig,
+                grouped.globalBuckets, grouped.perLabelBuckets, metricsTable);
     }
 }

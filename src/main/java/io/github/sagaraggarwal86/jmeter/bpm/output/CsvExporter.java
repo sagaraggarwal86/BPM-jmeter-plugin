@@ -26,7 +26,7 @@ public final class CsvExporter {
 
     private static final char COMMA = ',';
     private static final char QUOTE = '"';
-    private static final String NEWLINE = System.lineSeparator();
+    private static final String NEWLINE = "\r\n"; // RFC 4180 mandates CRLF
 
     /**
      * Prevent instantiation.

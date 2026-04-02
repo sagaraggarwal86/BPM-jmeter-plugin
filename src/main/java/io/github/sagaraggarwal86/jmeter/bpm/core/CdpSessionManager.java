@@ -60,23 +60,23 @@ public final class CdpSessionManager {
      * @throws RuntimeException if domain enabling or script injection fails
      */
     public void openSession(CdpCommandExecutor executor) {
+        setupDomains(executor);
+        executor.executeScript(JsSnippets.INJECT_OBSERVERS);
+        executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK);
+        executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
+        log.debug("BPM: CDP session opened — domains enabled, observers injected.");
+    }
+
+    /**
+     * Enables all CDP domains and sets the resource timing buffer size.
+     * Shared setup between {@link #openSession} and {@link #reInjectObservers}.
+     */
+    private void setupDomains(CdpCommandExecutor executor) {
         for (String domain : CDP_DOMAINS) {
             executor.enableDomain(domain);
         }
-
-        // Raise resource timing buffer to 500 (default 150 causes silent drops on busy pages) // CHANGED: per-action accuracy
+        // Raise resource timing buffer to 500 (default 150 causes silent drops on busy pages)
         executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE);
-
-        // Inject PerformanceObserver for LCP + CLS (combined, buffered: true)
-        executor.executeScript(JsSnippets.INJECT_OBSERVERS);
-
-        // Inject console.error/warn interceptor
-        executor.executeScript(JsSnippets.CONSOLE_CAPTURE_HOOK);
-
-        // Set marker for ensureObserversInjected() navigation detection // CHANGED: post-navigation re-injection support
-        executor.executeScript(JsSnippets.SET_OBSERVER_MARKER);
-
-        log.debug("BPM: CDP session opened — domains enabled, observers injected.");
     }
 
     // CHANGED (G-05): reInjectObservers now re-enables CDP domains independently and executes
@@ -101,13 +101,7 @@ public final class CdpSessionManager {
      * @param executor the CDP command executor
      */
     public void reInjectObservers(CdpCommandExecutor executor) { // CHANGED (G-05)
-        // Re-enable all CDP domains (same as openSession — required after session re-init)
-        for (String domain : CDP_DOMAINS) { // CHANGED (G-05)
-            executor.enableDomain(domain); // CHANGED (G-05)
-        } // CHANGED (G-05)
-
-        // Raise resource timing buffer to 500 (default 150 causes silent drops on busy pages) // CHANGED: per-action accuracy
-        executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE);
+        setupDomains(executor);
 
         // Use REINJECT_OBSERVERS (not INJECT_OBSERVERS) — resets window.__bpm_cls = 0
         executor.executeScript(JsSnippets.REINJECT_OBSERVERS); // CHANGED (G-05)

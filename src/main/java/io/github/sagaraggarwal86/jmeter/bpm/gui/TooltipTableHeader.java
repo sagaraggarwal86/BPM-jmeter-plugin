@@ -19,6 +19,9 @@ class TooltipTableHeader extends JTableHeader {
         if (viewCol < 0) {
             return null;
         }
+        if (getTable() == null) {
+            return null;
+        }
         return BpmConstants.getTooltip(getTable().convertColumnIndexToModel(viewCol));
     }
 }

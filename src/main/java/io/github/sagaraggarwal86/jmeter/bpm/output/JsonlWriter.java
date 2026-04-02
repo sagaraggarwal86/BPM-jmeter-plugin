@@ -142,12 +142,17 @@ public final class JsonlWriter {
         }
         try {
             writer.flush();
-            writer.close();
         } catch (IOException e) {
-            log.warn("BPM: Failed to close JSONL writer for {}", outputPath, e);
+            log.warn("BPM: Failed to flush JSONL writer for {}", outputPath, e);
         } finally {
-            writer = null;
-            recordsSinceFlush = 0;
+            try {
+                writer.close();
+            } catch (IOException e) {
+                log.warn("BPM: Failed to close JSONL writer for {}", outputPath, e);
+            } finally {
+                writer = null;
+                recordsSinceFlush = 0;
+            }
         }
     }
 
@@ -165,7 +170,7 @@ public final class JsonlWriter {
      *
      * @return true if open and ready for writing
      */
-    public boolean isOpen() {
+    public synchronized boolean isOpen() {
         return writer != null;
     }
 }

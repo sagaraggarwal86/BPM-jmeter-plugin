@@ -35,6 +35,8 @@ public final class AiProviderConfig {
             throw new IllegalArgumentException("timeoutSeconds must be > 0");
         if (maxTokens <= 0)
             throw new IllegalArgumentException("maxTokens must be > 0");
+        if (temperature < 0.0 || temperature > 2.0)
+            throw new IllegalArgumentException("temperature must be between 0.0 and 2.0");
 
         this.providerKey = providerKey;
         this.displayName = displayName;

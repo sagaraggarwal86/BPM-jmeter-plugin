@@ -4,6 +4,7 @@ import io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 
@@ -16,20 +17,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("SLA Classification")
 class SlaClassificationTest {
 
+    @TempDir
+    Path tempDir;
+
     private DerivedMetricsCalculator calculator;
 
     @BeforeEach
     void setUp() {
         BpmPropertiesManager props = new BpmPropertiesManager() {
             @Override
-            protected Path resolvePropertiesPath() { // CHANGED: protected — cross-package override
-                return Path.of(System.getProperty("java.io.tmpdir"), "bpm-sla-test.properties");
+            protected Path resolvePropertiesPath() {
+                return tempDir.resolve("bpm-sla-test.properties");
             }
 
             @Override
             public String getJMeterProperty(String key) {
                 return null;
-            } // CHANGED: public — must not narrow parent's public access
+            }
         };
         props.load();
         calculator = new DerivedMetricsCalculator(props);

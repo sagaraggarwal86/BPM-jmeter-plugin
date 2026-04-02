@@ -36,7 +36,6 @@ public final class ColumnSelectorPopup extends JPopupMenu {
             JCheckBoxMenuItem item = new JCheckBoxMenuItem(
                     BpmConstants.RAW_METRIC_HEADERS[i],
                     BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY[i]);
-            item.putClientProperty("rawColumnIndex", i);
             item.addActionListener(changeListener);
             checkBoxes[i] = item;
             add(item);
@@ -77,7 +76,8 @@ public final class ColumnSelectorPopup extends JPopupMenu {
             checkBoxes[i].setSelected(BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY[i]);
         }
         // Fire a single change notification so the table updates
-        changeListener.actionPerformed(null);
+        changeListener.actionPerformed(
+                new java.awt.event.ActionEvent(this, java.awt.event.ActionEvent.ACTION_PERFORMED, "reset"));
     }
 
     /**
