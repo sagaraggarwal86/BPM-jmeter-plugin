@@ -113,9 +113,25 @@ public final class BpmAiReportCoordinator {
         }
 
         // 2. Build prompt
-        BpmPromptContent prompt = BpmPromptBuilder.build(systemPrompt, aggregates, props);
-        log.info("BPM AI: Prompt built. System={} chars, User={} chars",
-                prompt.systemPrompt().length(), prompt.userMessage().length());
+        BpmPromptContent prompt = BpmPromptBuilder.build(systemPrompt, aggregates, props,
+                renderConfig.scenarioName, "", renderConfig.virtualUsers, timeBuckets); // CHANGED: pass metadata + time-series to AI prompt
+        log.info("BPM AI: Prompt built. System={} chars, User={} chars, truncated={}",
+                prompt.systemPrompt().length(), prompt.userMessage().length(), prompt.wasTruncated());
+
+        // Propagate label truncation info to render config
+        BpmHtmlReportRenderer.RenderConfig effectiveConfig = renderConfig;
+        if (prompt.wasTruncated()) {
+            effectiveConfig = new BpmHtmlReportRenderer.RenderConfig(
+                    renderConfig.providerName, renderConfig.scenarioName,
+                    renderConfig.description, renderConfig.virtualUsers,
+                    renderConfig.runDateTime, renderConfig.duration, renderConfig.version,
+                    renderConfig.intervalSeconds,
+                    renderConfig.slaScoreGood, renderConfig.slaLcpGood,
+                    renderConfig.slaFcpGood, renderConfig.slaTtfbGood, renderConfig.slaClsGood,
+                    renderConfig.slaScorePoor, renderConfig.slaLcpPoor,
+                    renderConfig.slaFcpPoor, renderConfig.slaTtfbPoor, renderConfig.slaClsPoor,
+                    prompt.totalLabels(), prompt.includedLabels());
+        }
 
         // 3. Call AI
         AiReportService service = new AiReportService(config);
@@ -123,7 +139,7 @@ public final class BpmAiReportCoordinator {
         log.info("BPM AI: Report generated. {} chars from {}", markdown.length(), config.displayName);
 
         // 4. Render HTML
-        return BpmHtmlReportRenderer.render(markdown, renderConfig, timeBuckets, perLabelBuckets, metricsTable);
+        return BpmHtmlReportRenderer.render(markdown, effectiveConfig, timeBuckets, perLabelBuckets, metricsTable);
     }
 
     private static void openInBrowser(Path reportPath) {

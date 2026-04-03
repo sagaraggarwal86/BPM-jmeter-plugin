@@ -12,6 +12,7 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.AbstractTestElement;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.threads.JMeterVariables;
+import org.apache.jmeter.util.JMeterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,12 +65,25 @@ public class BpmListener extends AbstractTestElement
      */
     private static final ConcurrentHashMap<String, BpmListener> primaryByName = new ConcurrentHashMap<>();
     /**
+     * Output-path dedup: maps each resolved JSONL output path to the first BpmListener that
+     * claimed it. Prevents multiple listeners with different element keys but the same output
+     * path from writing to the same file (data corruption). Second+ listeners skip JSONL setup
+     * and the null-check in sampleOccurred() handles them safely.
+     */
+    private static final ConcurrentHashMap<String, BpmListener> primaryByOutputPath = new ConcurrentHashMap<>();
+    /**
      * Pre-flight coordination: ensures the file-exists scan runs exactly once per test run.
      * The first BpmListener primary to call testStarted() wins the CAS and performs the scan
      * across ALL enabled BpmListener elements. Subsequent primaries read {@link #globalFileDecision}.
      * Reset in testEnded() when the last primary cleans up.
      */
     private static final AtomicBoolean preFlightDone = new AtomicBoolean(false);
+    /**
+     * CLI auto-enable flag: ensures only one disabled BpmListener is auto-enabled when
+     * {@code -Jbpm.output} is passed in non-GUI mode. First listener wins; others stay disabled.
+     * Reset in testEnded() when the last primary cleans up.
+     */
+    private static volatile boolean cliAutoEnabled = false;
     private static volatile BpmListener activeInstance;
     /**
      * Global file-exists decision, set by the pre-flight scan.
@@ -166,6 +180,39 @@ public class BpmListener extends AbstractTestElement
         return buildElementKey(this);
     }
 
+    // ── CLI auto-enable ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Auto-enables one disabled BpmListener in non-GUI mode when {@code -Jbpm.output} is set.
+     * JMeter calls this during execution tree building — before {@link #testStarted()}.
+     * Only the first disabled listener is auto-enabled; subsequent ones stay disabled.
+     * In GUI mode, always defers to the user's enabled/disabled setting.
+     */
+    @Override
+    public boolean isEnabled() {
+        if (!super.isEnabled() && !cliAutoEnabled) {
+            try {
+                if (org.apache.jmeter.gui.GuiPackage.getInstance() == null) {
+                    String jFlag = JMeterUtils.getProperty(BpmConstants.PROP_BPM_OUTPUT);
+                    if (jFlag != null && !jFlag.isBlank()) {
+                        cliAutoEnabled = true;
+                        log.info("BPM: Auto-enabled listener '{}' — -Jbpm.output detected in CLI mode.", getName());
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {
+                // Non-GUI mode — GuiPackage.getInstance() may throw
+                String jFlag = JMeterUtils.getProperty(BpmConstants.PROP_BPM_OUTPUT);
+                if (jFlag != null && !jFlag.isBlank()) {
+                    cliAutoEnabled = true;
+                    log.info("BPM: Auto-enabled listener '{}' — -Jbpm.output detected in CLI mode.", getName());
+                    return true;
+                }
+            }
+        }
+        return super.isEnabled();
+    }
+
     // ── TestStateListener ──────────────────────────────────────────────────────────────────
 
     /**
@@ -231,15 +278,21 @@ public class BpmListener extends AbstractTestElement
             propertiesManager.load();
         }
 
-        // Initialize own JSONL writer
-        jsonlWriter = new JsonlWriter();
+        // Initialize own JSONL writer — first-writer-wins by resolved output path.
+        // If another listener already claimed this path, skip JSONL setup to prevent
+        // dual-write corruption. The null-check in sampleOccurred() handles this safely.
         String outputPath = resolveOutputPath();
-        try {
-            Path outputFile = Path.of(outputPath);
-            jsonlWriter.open(outputFile);
-            log.info("BPM: JSONL output file opened (overwrite): {}", outputPath);
-        } catch (IOException e) {
-            log.warn("BPM: Failed to open JSONL output file: {}. JSONL writing disabled.", outputPath, e);
+        if (primaryByOutputPath.putIfAbsent(outputPath, this) == null) {
+            jsonlWriter = new JsonlWriter();
+            try {
+                Path outputFile = Path.of(outputPath);
+                jsonlWriter.open(outputFile);
+                log.info("BPM: JSONL output file opened (overwrite): {}", outputPath);
+            } catch (IOException e) {
+                log.warn("BPM: Failed to open JSONL output file: {}. JSONL writing disabled.", outputPath, e);
+            }
+        } else {
+            log.info("BPM: Output path '{}' already claimed by another listener — JSONL writing skipped.", outputPath);
         }
 
         guiUpdateQueue = new ConcurrentLinkedQueue<>();
@@ -364,6 +417,8 @@ public class BpmListener extends AbstractTestElement
         if (primaryByName.isEmpty()) {
             preFlightDone.set(false);
             globalFileDecision = null;
+            primaryByOutputPath.clear();
+            cliAutoEnabled = false;
         }
 
         if (!testActuallyStarted) {

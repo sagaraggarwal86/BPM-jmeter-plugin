@@ -32,7 +32,6 @@ public class AiReportService {
     private static final long RETRY_DELAY_MS = 2_000L;
     private static final String[] EXPECTED_SECTION_HEADINGS = {
             "## Executive Summary",
-            "## Recommendations",
             "## Risk Assessment",
     };
 

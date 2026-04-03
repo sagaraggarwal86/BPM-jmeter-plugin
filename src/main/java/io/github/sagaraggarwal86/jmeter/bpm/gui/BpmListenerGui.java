@@ -1016,20 +1016,19 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
      *
      * <ul>
      *   <li>Offset fields — disabled during test execution (Feature #1); enabled otherwise.</li>
-     *   <li>Apply Filters — disabled during test execution; enabled otherwise.</li>
+     *   <li>Apply Filters — always enabled.</li>
      *   <li>Reload List — disabled during test execution; enabled otherwise.</li>
-     *   <li>Transaction-names, regex, include/exclude — enabled when the table has data.</li>
+     *   <li>Transaction-names, regex, include/exclude — always enabled.</li>
      * </ul>
      */ // CHANGED: Feature #1; Change #1; Change #2; Defects #1 #2 #3
     private void updateFilterFieldsEnabled() {
-        boolean hasRows = tableModel.getRowCount() > 0;
         startOffsetField.setEnabled(!testRunning); // CHANGED: Feature #1 — disabled during test execution
         endOffsetField.setEnabled(!testRunning);   // CHANGED: Feature #1 — disabled during test execution
-        transactionNamesField.setEnabled(hasRows);
-        regexCheckBox.setEnabled(hasRows);
-        includeExcludeCombo.setEnabled(hasRows);
+        transactionNamesField.setEnabled(true);  // CHANGED: always enabled
+        regexCheckBox.setEnabled(true);           // CHANGED: always enabled
+        includeExcludeCombo.setEnabled(true);     // CHANGED: always enabled
         if (applyFiltersButton != null) {
-            applyFiltersButton.setEnabled(hasRows);
+            applyFiltersButton.setEnabled(true); // CHANGED: always enabled
         }
         if (reloadListButton != null) {
             reloadListButton.setEnabled(!testRunning);
@@ -1229,18 +1228,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         generateAiReportButton.setEnabled(!testRunning && hasData && hasProvider);
     }
 
-    private java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> buildAggregatesFromRaw() {
-        java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> map = new java.util.concurrent.ConcurrentHashMap<>();
-        for (io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult r : allRawResults) {
-            if (r.derived() == null) continue;
-            String label = r.samplerLabel();
-            if (label == null || label.isEmpty()) continue;
-            map.computeIfAbsent(label, k -> new io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate())
-                    .update(r.derived(), r.webVitals(), r.network(), r.console());
-        }
-        return map;
-    }
-
     private void launchAiReport() {
         AiProviderConfig config = (AiProviderConfig) aiProviderCombo.getSelectedItem();
         if (config == null) return;
@@ -1255,15 +1242,6 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             outputDir = Path.of(System.getProperty("user.home", "."));
         }
 
-        // Get aggregates — from live listener or rebuild from raw results (file-load mode)
-        java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> aggregates = null;
-        if (listenerRef != null && listenerRef.getLabelAggregates() != null
-                && !listenerRef.getLabelAggregates().isEmpty()) {
-            aggregates = listenerRef.getLabelAggregates();
-        } else if (!allRawResults.isEmpty()) {
-            aggregates = buildAggregatesFromRaw();
-        }
-
         // Get properties ref
         io.github.sagaraggarwal86.jmeter.bpm.config.BpmPropertiesManager props = propertiesRef;
         if (props == null) {
@@ -1271,7 +1249,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             props.load();
         }
 
-        // Build raw samples from filtered data (respecting offset + transaction filters)
+        // Build filtered data (respecting offset + transaction filters).
+        // AI prompt aggregates, charts, and metrics table all use the same filtered set
+        // so the report is always consistent regardless of data source.
         int startOffset = parseIntSafe(startOffsetField.getText().trim());
         int endOffset = parseIntSafe(endOffsetField.getText().trim());
         String txFilter = transactionNamesField.getText().trim();
@@ -1285,6 +1265,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             }
         }
 
+        java.util.concurrent.ConcurrentHashMap<String, io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate> aggregates = new java.util.concurrent.ConcurrentHashMap<>();
         List<TimeBucketBuilder.RawSample> rawSamples = new ArrayList<>();
         long minTs = Long.MAX_VALUE;
         long maxTs = Long.MIN_VALUE;
@@ -1312,6 +1293,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 if (!txInclude && matches) continue;
             }
 
+            // Build filtered aggregates for AI prompt (same filter as charts/table)
+            if (r.derived() != null && label != null && !label.isEmpty()) {
+                aggregates.computeIfAbsent(label, k -> new io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate())
+                        .update(r.derived(), r.webVitals(), r.network(), r.console());
+            }
+
             if (r.timestamp() != null && r.derived() != null) {
                 DerivedMetrics d = r.derived();
                 WebVitalsResult wv = r.webVitals();
@@ -1331,6 +1318,21 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 if (epochMs < minTs) minTs = epochMs;
                 if (epochMs > maxTs) maxTs = epochMs;
             }
+        }
+
+        // Warn if too many labels for AI analysis
+        if (aggregates.size() > io.github.sagaraggarwal86.jmeter.bpm.ai.prompt.BpmPromptBuilder.MAX_AI_LABELS) {
+            int result = javax.swing.JOptionPane.showConfirmDialog(this,
+                    String.format("Your test has %d transactions. AI analysis works best with %d or fewer.\n"
+                                    + "The report will analyze the %d most critical transactions.\n\n"
+                                    + "Continue, or apply filters first?",
+                            aggregates.size(),
+                            io.github.sagaraggarwal86.jmeter.bpm.ai.prompt.BpmPromptBuilder.MAX_AI_LABELS,
+                            io.github.sagaraggarwal86.jmeter.bpm.ai.prompt.BpmPromptBuilder.MAX_AI_LABELS),
+                    "AI Report — Many Transactions",
+                    javax.swing.JOptionPane.OK_CANCEL_OPTION,
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            if (result != javax.swing.JOptionPane.OK_OPTION) return;
         }
 
         // Compute grouped time buckets (global + per-label)

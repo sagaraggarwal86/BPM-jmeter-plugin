@@ -65,6 +65,9 @@ detection, and an AI-generated HTML performance report.
 | Maven             | 3.8+ *(build only)*                       |
 | AI API key        | *(AI report feature only)*                |
 
+> [!IMPORTANT]
+> **BPM requires WebDriver Sampler (jpgc-webdriver) with Chrome/Chromium.** All metrics are captured via Chrome DevTools Protocol — Firefox, Safari, and Edge are not supported. HTTP Samplers and other non-WebDriver sampler types produce no BPM data.
+
 ---
 
 ## Installation
@@ -93,17 +96,26 @@ Search for "Browser Performance Metrics" in the Plugins Manager and install.
    ```
    The scripts are in the `src/main/scripts/` directory of the source repository.
 
-5. *(Optional — AI report)* Place your `ai-reporter.properties` in `<JMETER_HOME>/bin/`.
+5. *(Optional — AI report)* Copy the sample configuration file to `<JMETER_HOME>/bin/`:
+   ```
+   <JMETER_HOME>/bin/ai-reporter.properties
+   ```
+   A sample file with all supported options is provided at
+   [docs/ai-reporter.properties](docs/ai-reporter.properties).
    Set at least one provider's `api.key` to enable the AI report feature:
    ```properties
    ai.reporter.groq.api.key=gsk_your-key-here
-   ai.reporter.mistral.api.key=your-key-here
    ai.reporter.gemini.api.key=AIza-your-key-here
+   ai.reporter.mistral.api.key=your-key-here
    ai.reporter.cerebras.api.key=csk-your-key-here
    ai.reporter.deepseek.api.key=your-key-here
    ai.reporter.openai.api.key=sk-your-key-here
    ai.reporter.claude.api.key=sk-ant-your-key-here
    ```
+
+6. *(Optional — SLA tuning)* A sample `bpm.properties` with all configurable thresholds is
+   provided at [docs/bpm.properties](docs/bpm.properties). Copy to `<JMETER_HOME>/bin/` to
+   customize SLA thresholds — BPM auto-generates a default on first run if none exists.
 
 ### Build from Source
 
@@ -246,8 +258,8 @@ This ensures deterministic, accurate outputs regardless of which AI model is use
 | Improvement areas  | Per-transaction categorical detection                      |
 | Critical Findings  | Root cause diagnosis + recommended actions                 |
 
-The AI provider's role (~5% of the work) is to generate 3 sections of narrative prose
-(Executive Summary, Recommendations, Risk Assessment). Java generates the remaining 4 panels
+The AI provider's role (~5% of the work) is to generate 2 sections of narrative prose
+(Executive Summary, Risk Assessment). Java generates the remaining 4 panels
 (Performance Metrics, Performance Trends, SLA Compliance, Critical Findings).
 
 ### Report Panels
@@ -259,8 +271,7 @@ The AI provider's role (~5% of the work) is to generate 3 sections of narrative 
 | 3 | Performance Trends  | Java   | 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render) with SLA lines   |
 | 4 | SLA Compliance      | Java   | Pass/Warning/Fail verdict matrix per metric per transaction             |
 | 5 | Critical Findings   | Java   | Only transactions needing attention, with root cause and actions        |
-| 6 | Recommendations     | AI     | Improvement areas with affected transactions and priority               |
-| 7 | Risk Assessment     | AI     | Headroom, boundary, cross-page patterns, and trend risks                |
+| 6 | Risk Assessment     | AI     | Headroom, boundary, SPA blind spots, and trend risks                    |
 
 ### Report Features
 
@@ -280,6 +291,25 @@ The AI provider's role (~5% of the work) is to generate 3 sections of narrative 
 
 Place `ai-reporter.properties` in `<JMETER_HOME>/bin/` and set at least one provider's `api.key`.
 Select the provider from the dropdown and click **Generate AI Report**.
+
+### Provider Order
+
+By default, providers appear in the dropdown in built-in order (Groq first, then Gemini, Mistral, etc.).
+Override this with the `ai.reporter.order` property:
+
+```properties
+ai.reporter.order=cerebras,mistral,groq
+```
+
+Only configured providers (those with a non-blank `api.key`) are shown. Providers not listed in
+`ai.reporter.order` appear after the listed ones, in alphabetical order.
+
+### Label Truncation
+
+When a test has more than 20 unique transaction labels, the AI prompt is limited to the 20
+worst-performing labels (sorted by score ascending). A summary of the omitted labels is included
+in the prompt so the AI can acknowledge the scope. The HTML report shows a yellow notice bar
+when truncation occurred.
 
 ### Custom Providers
 
@@ -490,7 +520,7 @@ BPM is designed as a pure observer with minimal overhead:
 | Transaction Controller inflation | ~1-2%                                              |
 | Throughput reduction             | ~1% (negligible for WebDriver tests)               |
 | Memory                           | Running averages per label — not stored per-sample |
-| JSONL writes                     | Buffered, flush every 10 records                   |
+| JSONL writes                     | Buffered, flush every 1 record                     |
 
 ---
 

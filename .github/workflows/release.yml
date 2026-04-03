@@ -24,6 +24,9 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
+      - name: Set release version in POM
+        run: mvn --batch-mode versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
+
       - name: Verify before release
         run: mvn --batch-mode clean verify "-Dgpg.skip=true"
 
@@ -34,10 +37,23 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
+      - name: Assemble distribution zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DIR="bpm-jmeter-plugin-${VERSION}"
+          mkdir -p "${DIR}"
+          cp target/bpm-jmeter-plugin-${VERSION}.jar "${DIR}/"
+          cp src/main/scripts/bpm-ai-report.sh "${DIR}/"
+          chmod +x "${DIR}/bpm-ai-report.sh"
+          cp src/main/scripts/bpm-ai-report.bat "${DIR}/"
+          cp docs/bpm.properties "${DIR}/"
+          cp docs/ai-reporter.properties "${DIR}/"
+          zip -r "bpm-jmeter-plugin-${VERSION}.zip" "${DIR}"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: target/bpm-jmeter-plugin-*.jar
+          files: bpm-jmeter-plugin-*.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -277,7 +277,7 @@ class BpmHtmlReportRendererTest {
                 new String[]{"Page A", "10", "85"});
         BpmHtmlReportRenderer.RenderConfig config =
                 new BpmHtmlReportRenderer.RenderConfig("AI", "", "", "");
-        String html = BpmHtmlReportRenderer.render("## Executive Summary\n\nContent\n\n## Recommendations\n\nFix things",
+        String html = BpmHtmlReportRenderer.render("## Executive Summary\n\nContent\n\n## Risk Assessment\n\nRisks here",
                 config, buckets, Collections.emptyMap(), metricsTable);
 
         // Check panel order via data-title attributes in panel divs
@@ -285,17 +285,17 @@ class BpmHtmlReportRendererTest {
         int metricsIdx = html.indexOf("data-title=\"Performance Metrics\"");
         int trendsIdx = html.indexOf("data-title=\"Performance Trends\"");
         int cfIdx = html.indexOf("data-title=\"Critical Findings\"");
-        int recsIdx = html.indexOf("data-title=\"Recommendations\"");
+        int riskIdx = html.indexOf("data-title=\"Risk Assessment\"");
 
         assertTrue(execIdx > 0, "Executive Summary panel should exist");
         assertTrue(metricsIdx > 0, "Performance Metrics panel should exist");
         assertTrue(trendsIdx > 0, "Performance Trends panel should exist");
         assertTrue(cfIdx > 0, "Critical Findings panel should exist");
-        assertTrue(recsIdx > 0, "Recommendations panel should exist");
+        assertTrue(riskIdx > 0, "Risk Assessment panel should exist");
         assertTrue(execIdx < metricsIdx, "Executive Summary should come before Metrics");
         assertTrue(metricsIdx < trendsIdx, "Metrics should come before Trends");
         assertTrue(trendsIdx < cfIdx, "Trends should come before Critical Findings");
-        assertTrue(cfIdx < recsIdx, "Critical Findings should come before Recommendations");
+        assertTrue(cfIdx < riskIdx, "Critical Findings should come before Risk Assessment");
     }
 
     @Test

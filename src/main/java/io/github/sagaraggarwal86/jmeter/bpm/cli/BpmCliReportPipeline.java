@@ -124,8 +124,12 @@ public final class BpmCliReportPipeline {
                 args.scenarioName(), args.description(),
                 virtualUsersStr,
                 timeBuckets);
-        progress("Prompt built: system=%d chars, user=%d chars",
-                prompt.systemPrompt().length(), prompt.userMessage().length());
+        progress("Prompt built: system=%d chars, user=%d chars%s",
+                prompt.systemPrompt().length(), prompt.userMessage().length(),
+                prompt.wasTruncated()
+                        ? String.format(" (truncated: %d of %d labels included)",
+                        prompt.includedLabels(), prompt.totalLabels())
+                        : "");
 
         // 7. Call AI
         progress("Calling %s (%s)... This may take 30-60 seconds.", config.displayName, config.model);
@@ -168,7 +172,8 @@ public final class BpmCliReportPipeline {
                 props.getSlaScoreGood(), props.getSlaLcpGood(),
                 props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
                 props.getSlaScorePoor(), props.getSlaLcpPoor(),
-                props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
+                props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor(),
+                prompt.totalLabels(), prompt.includedLabels());
         List<String[]> metricsTable = buildMetricsTable(parsed.metricsRows, aggregates);
         String html = BpmHtmlReportRenderer.render(markdown, renderConfig,
                 timeBuckets, grouped.perLabelBuckets, metricsTable);

@@ -30,12 +30,7 @@ public final class BpmHtmlReportRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(BpmHtmlReportRenderer.class);
     private static final Pattern H2_PATTERN = Pattern.compile("<h2>(.*?)</h2>");
-    private static final Pattern NONE_ROW_PATTERN = Pattern.compile(
-            "<tr>\\s*\\n?\\s*<td>\\s*None\\s*</td>[^<]*(?:<td>[^<]*</td>\\s*)*</tr>",
-            Pattern.DOTALL);
-    private static final Pattern EMPTY_TBODY_PATTERN = Pattern.compile(
-            "(<h2>Recommendations</h2>.*?)<table>.*?<tbody>\\s*</tbody>\\s*</table>",
-            Pattern.DOTALL);
+    private static final Pattern HR_PATTERN = Pattern.compile("<hr\\s*/?>\\s*");
     private static final DateTimeFormatter CHART_TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter FOOTER_TIME_FMT =
@@ -81,6 +76,16 @@ public final class BpmHtmlReportRenderer {
     );
 
     // ── Heading extraction ──────────────────────────────────────────────────
+    // Sidebar icons for navigation panels
+    private static final Map<String, String> SIDEBAR_ICONS = Map.of(
+            "Executive Summary", "\uD83D\uDCCA",      // chart emoji
+            "Performance Metrics", "\uD83D\uDCCB",     // clipboard emoji
+            "Performance Trends", "\uD83D\uDCC8",      // chart-increasing emoji
+            "SLA Compliance", "\u2705",                 // check mark emoji
+            "Critical Findings", "\u26A0\uFE0F",       // warning emoji
+            "Risk Assessment", "\uD83D\uDEE1\uFE0F"   // shield emoji
+    );
+
     // User impact templates keyed by which metric is worst
     private static final Map<String, String> IMPACT_TEMPLATES = Map.of(
             "LCP", "Users wait %sms before main content appears",
@@ -245,14 +250,10 @@ public final class BpmHtmlReportRenderer {
                 .pg-active { background: #1a365d; color: white; border-color: #1a365d; }
                 .pg-active:hover { background: #2a4365; }
                 .pg-info { font-size: 11px; color: var(--color-text-tertiary); margin-left: 8px; }
-                [data-table-id="cf"] td,
-                [data-table-id="recs"] td { white-space: normal; }
+                [data-table-id="cf"] td { white-space: normal; }
                 [data-table-id="cf"] td:nth-child(1),
-                [data-table-id="cf"] td:nth-child(2),
-                [data-table-id="recs"] td:nth-child(1),
-                [data-table-id="recs"] td:nth-child(3) { white-space: nowrap; }
-                [data-table-id="cf"] .tbl-scroll,
-                [data-table-id="recs"] .tbl-scroll { max-height: 520px; }
+                [data-table-id="cf"] td:nth-child(2) { white-space: nowrap; }
+                [data-table-id="cf"] .tbl-scroll { max-height: 520px; }
                 .sla-summary { font-size: 13px; margin-bottom: 12px; font-weight: 500; }
                 .sla-pass-summary { color: #276749; }
                 .sla-fail-summary { color: #c53030; }
@@ -273,7 +274,7 @@ public final class BpmHtmlReportRenderer {
                 /* ── Lists ──────────────────────────────────────────────────── */
                 ul, ol { margin: 8px 0 14px 22px; font-size: 13px; }
                 li { margin-bottom: 5px; }
-                li strong { color: #2d3748; }
+                li strong { color: #000000; }
             
                 /* ── Executive Summary: actionable finding cards ─────────────── */
                 .panel ul { list-style: none; margin-left: 0; padding: 0; }
@@ -297,7 +298,7 @@ public final class BpmHtmlReportRenderer {
                 }
             
                 /* ── KPI Cards (first panel) ────────────────────────────────── */
-                .metadata-grid.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 24px; }
+                .metadata-grid.kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 24px; }
                 .kpi {
                   background: var(--color-background-secondary); border-radius: 8px;
                   padding: 14px 16px; border: 1px solid var(--color-border-tertiary);
@@ -567,7 +568,20 @@ public final class BpmHtmlReportRenderer {
             } else if (aiPanelContent.containsKey(heading)) {
                 sb.append("<h2>").append(escapeHtml(heading)).append("</h2>\n");
                 if (firstAiPanel) {
-                    appendMetadataKpi(sb, config);
+                    appendMetadataKpi(sb, config, metricsTable);
+                    if (config.wasLabelTruncated()) {
+                        sb.append("<div style=\"background:var(--color-warning-bg, #fff3cd);")
+                                .append("border:1px solid var(--color-warning-border, #ffc107);")
+                                .append("border-radius:6px;padding:10px 14px;margin:10px 0;")
+                                .append("font-size:13px;color:var(--color-warning-text, #664d03)\">\n")
+                                .append("<strong>\u26A0 Note:</strong> This test included ")
+                                .append(config.totalLabels)
+                                .append(" transactions. AI analysis covers the ")
+                                .append(config.includedLabels)
+                                .append(" most critical. For best results, keep transactions under 20 ")
+                                .append("or use filters to narrow the scope.")
+                                .append("</div>\n");
+                    }
                     firstAiPanel = false;
                 }
                 sb.append(aiPanelContent.get(heading)).append("\n");
@@ -625,6 +639,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("    </div>\n");
         sb.append("    <div class=\"header-actions\">\n");
         sb.append("      <button class=\"exp-btn\" onclick=\"exportExcel()\">&#x1F4E5;&nbsp; Export Excel</button>\n");
+        sb.append("      <button class=\"exp-btn\" onclick=\"window.print()\">&#x1F5A8;&nbsp; Print / PDF</button>\n");
         sb.append("    </div>\n");
         sb.append("  </div>\n");
     }
@@ -633,19 +648,161 @@ public final class BpmHtmlReportRenderer {
         sb.append("    <nav class=\"sidebar\">\n");
         for (int i = 0; i < panelHeadings.size(); i++) {
             String activeClass = i == 0 ? " active" : "";
+            String heading = panelHeadings.get(i);
+            String icon = SIDEBAR_ICONS.getOrDefault(heading, "");
+            String prefix = icon.isEmpty() ? "" : icon + " ";
             sb.append("  <button class=\"nav-item").append(activeClass)
                     .append("\" data-panel=\"panel-").append(i).append("\">")
-                    .append(escapeHtml(panelHeadings.get(i))).append("</button>\n");
+                    .append(prefix).append(escapeHtml(heading)).append("</button>\n");
         }
         sb.append("    </nav>\n");
     }
 
-    private static void appendMetadataKpi(StringBuilder sb, RenderConfig config) {
-        // KPI cards are now analytics-only; metadata moved to header meta-grid.
-        // Actual values are populated by the AI markdown content.
-        // Keep legacy class name for test compatibility.
+    private static void appendMetadataKpi(StringBuilder sb, RenderConfig config,
+                                          List<String[]> metricsTable) {
+        // Compute KPI stats from metrics table
+        int totalLabels = 0;
+        int passCount = 0;
+        int worstScore = Integer.MAX_VALUE;
+        int bestScore = Integer.MIN_VALUE;
+        long weightedScoreSum = 0;
+        long weightedScoreSamples = 0;
+        long weightedLcpSum = 0;
+        long weightedLcpSamples = 0;
+        int totalErrors = 0;
+
+        if (metricsTable != null) {
+            for (int r = 1; r < metricsTable.size(); r++) {
+                String[] row = metricsTable.get(r);
+                if (row.length == 0 || "TOTAL".equals(row[0])) continue;
+                totalLabels++;
+
+                // Score + SLA check (must match SLA Compliance panel logic)
+                String scoreVal = col(row, BpmConstants.COL_IDX_SCORE);
+                boolean allGood = true;
+                // Parse sample count for weighting
+                String samplesVal = col(row, BpmConstants.COL_IDX_SAMPLES);
+                int samples = 1;
+                try {
+                    if (!samplesVal.isEmpty() && !"\u2014".equals(samplesVal)) {
+                        samples = Math.max(1, Integer.parseInt(samplesVal.trim()));
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+
+                if (!"\u2014".equals(scoreVal) && !scoreVal.isEmpty()) {
+                    try {
+                        int score = Integer.parseInt(scoreVal.trim());
+                        if (score < config.slaScoreGood) allGood = false;
+                        if (score < worstScore) worstScore = score;
+                        if (score > bestScore) bestScore = score;
+                        weightedScoreSum += (long) score * samples;
+                        weightedScoreSamples += samples;
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+
+                // Weighted LCP (skip SPA/null/zero LCP)
+                String lcpVal = col(row, BpmConstants.COL_IDX_LCP);
+                if (!lcpVal.isEmpty() && !"\u2014".equals(lcpVal)) {
+                    try {
+                        long lcp = Long.parseLong(lcpVal.trim());
+                        if (lcp > 0) {
+                            weightedLcpSum += lcp * samples;
+                            weightedLcpSamples += samples;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                // Check LCP, FCP, TTFB, CLS for all labels (including SPA with null score)
+                if (allGood) {
+                    String lcpV = computeVerdict(2, col(row, BpmConstants.COL_IDX_LCP), config);
+                    String fcpV = computeVerdict(3, col(row, BpmConstants.COL_IDX_FCP), config);
+                    String ttfbV = computeVerdict(4, col(row, BpmConstants.COL_IDX_TTFB), config);
+                    String clsV = computeVerdict(5, col(row, BpmConstants.COL_IDX_CLS), config);
+                    if (!"GOOD".equals(lcpV) && !"N/A".equals(lcpV)) allGood = false;
+                    if (!"GOOD".equals(fcpV) && !"N/A".equals(fcpV)) allGood = false;
+                    if (!"GOOD".equals(ttfbV) && !"N/A".equals(ttfbV)) allGood = false;
+                    if (!"GOOD".equals(clsV) && !"N/A".equals(clsV)) allGood = false;
+                }
+                if (allGood) passCount++;
+
+                // Errors
+                String errVal = col(row, BpmConstants.COL_IDX_ERRS);
+                if (!errVal.isEmpty()) {
+                    try {
+                        totalErrors += Integer.parseInt(errVal.trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        int failCount = totalLabels - passCount;
+        String overallCss = failCount == 0 ? "pass" : "fail";
+        String overallText = failCount == 0 ? "All Pass"
+                : failCount + " of " + totalLabels + " Need Attention";
+
         sb.append("    <div class=\"metadata-grid kpi-grid\">\n");
+
+        // Card 1: Overall verdict
+        String verdictTooltip = failCount == 0
+                ? "All pages meet SLA targets"
+                : "See SLA Compliance panel for details";
+        sb.append("      <div class=\"kpi\" title=\"").append(escapeHtml(verdictTooltip))
+                .append("\"><div class=\"kpi-label\">Overall Verdict</div>")
+                .append("<div class=\"kpi-value ").append(overallCss).append("\">")
+                .append(escapeHtml(overallText)).append("</div></div>\n");
+
+        // Card 2: Performance Score (Low / High / Weighted)
+        sb.append("      <div class=\"kpi\" title=\"Low / High / Weighted score across all pages (weighted by sample count)\">");
+        sb.append("<div class=\"kpi-label\">Performance Score</div>");
+        if (worstScore < Integer.MAX_VALUE) {
+            int weightedScore = (int) Math.round((double) weightedScoreSum / weightedScoreSamples);
+            sb.append("<div class=\"kpi-value\" style=\"display:flex;gap:6px;justify-content:center;align-items:baseline\">");
+            appendColoredScore(sb, worstScore, config);
+            sb.append("<span style=\"color:var(--color-text-tertiary);font-size:16px\">/</span>");
+            appendColoredScore(sb, bestScore, config);
+            sb.append("<span style=\"color:var(--color-text-tertiary);font-size:16px\">/</span>");
+            appendColoredScore(sb, weightedScore, config);
+            sb.append("</div>");
+            sb.append("<div style=\"display:flex;gap:6px;justify-content:center;font-size:10px;color:var(--color-text-tertiary);margin-top:2px\">");
+            sb.append("<span style=\"min-width:28px;text-align:center\">Low</span>");
+            sb.append("<span style=\"min-width:16px\"></span>");
+            sb.append("<span style=\"min-width:28px;text-align:center\">High</span>");
+            sb.append("<span style=\"min-width:16px\"></span>");
+            sb.append("<span style=\"min-width:28px;text-align:center\">Wtd</span>");
+            sb.append("</div>");
+        } else {
+            sb.append("<div class=\"kpi-value\">N/A</div>");
+        }
+        sb.append("</div>\n");
+
+        // Card 3: Avg Load Time (weighted LCP)
+        sb.append("      <div class=\"kpi\" title=\"Weighted average LCP across all pages (weighted by sample count). SPA navigations excluded.\">");
+        sb.append("<div class=\"kpi-label\">Avg Load Time</div>");
+        if (weightedLcpSamples > 0) {
+            long weightedLcp = Math.round((double) weightedLcpSum / weightedLcpSamples);
+            String lcpCss = weightedLcp <= config.slaLcpGood ? "pass"
+                    : weightedLcp <= config.slaLcpPoor ? "" : "fail";
+            String display = weightedLcp >= 1000
+                    ? String.format("%.1fs", weightedLcp / 1000.0)
+                    : weightedLcp + "ms";
+            sb.append("<div class=\"kpi-value ").append(lcpCss).append("\">")
+                    .append(display).append("</div>");
+        } else {
+            sb.append("<div class=\"kpi-value\">N/A</div>");
+        }
+        sb.append("</div>\n");
+
         sb.append("    </div>\n");
+    }
+
+    private static void appendColoredScore(StringBuilder sb, int score, RenderConfig config) {
+        String css = score >= config.slaScoreGood ? "color:#276749;font-weight:700"
+                : score >= config.slaScorePoor ? "color:var(--color-text-primary);font-weight:700"
+                  : "color:#c53030;font-weight:700";
+        sb.append("<span style=\"").append(css).append("\">").append(score).append("</span>");
     }
 
     private static void appendMetricsPanel(StringBuilder sb, RenderConfig config,
@@ -654,6 +811,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("<div class=\"tbl-search\"><input type=\"text\" id=\"metricsSearch\" ")
                 .append("placeholder=\"Search transactions\u2026\" autocomplete=\"off\"></div>\n");
         appendPaginatedTable(sb, config, metricsTable, "metrics");
+        appendMetricDescriptions(sb);
     }
 
     private static void appendSlaPanel(StringBuilder sb, RenderConfig config,
@@ -877,7 +1035,7 @@ public final class BpmHtmlReportRenderer {
         // Sort by label
         findings.sort(Comparator.comparing(r -> r[0].toLowerCase(Locale.ROOT)));
 
-        // Summary
+        // Count summary
         long critCount = findings.stream().filter(f -> f[2].equals("sla-fail")).count();
         long warnCount = findings.size() - critCount;
         sb.append("<p class=\"sla-summary sla-fail-summary\">");
@@ -886,6 +1044,41 @@ public final class BpmHtmlReportRenderer {
         if (warnCount > 0) sb.append(warnCount).append(" warning");
         sb.append(" finding").append(findings.size() > 1 ? "s" : "")
                 .append(" across ").append(findings.size()).append(" transactions.</p>\n");
+
+        // Bottleneck summary — group findings by improvementArea
+        Map<String, List<String>> bottleneckGroups = new LinkedHashMap<>();
+        Map<String, Boolean> bottleneckHasCritical = new LinkedHashMap<>();
+        for (String[] f : findings) {
+            // f[4] = rootCause, but we need the original area for grouping
+            // Reverse-lookup from rootCause to area key
+            String area = ROOT_CAUSE_MAP.entrySet().stream()
+                    .filter(e -> e.getValue().equals(f[4]))
+                    .map(Map.Entry::getKey)
+                    .findFirst().orElse(f[4]);
+            bottleneckGroups.computeIfAbsent(area, k -> new ArrayList<>()).add(f[0]);
+            if ("sla-fail".equals(f[2])) {
+                bottleneckHasCritical.put(area, true);
+            } else {
+                bottleneckHasCritical.putIfAbsent(area, false);
+            }
+        }
+        if (!bottleneckGroups.isEmpty()) {
+            sb.append("<div style=\"margin-bottom:16px;padding:12px 16px;background:var(--color-background-secondary);")
+                    .append("border:1px solid var(--color-border-tertiary);border-radius:6px;font-size:12px\">\n");
+            sb.append("<strong>").append(bottleneckGroups.size())
+                    .append(" bottleneck area").append(bottleneckGroups.size() > 1 ? "s" : "")
+                    .append(" detected:</strong> ");
+            List<String> summaryParts = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry : bottleneckGroups.entrySet()) {
+                String priority = Boolean.TRUE.equals(bottleneckHasCritical.get(entry.getKey()))
+                        ? "High" : "Medium";
+                summaryParts.add("<strong>" + escapeHtml(entry.getKey()) + "</strong> ("
+                        + entry.getValue().size() + " transaction"
+                        + (entry.getValue().size() > 1 ? "s" : "") + ", " + priority + ")");
+            }
+            sb.append(String.join(" &nbsp;|&nbsp; ", summaryParts));
+            sb.append("\n</div>\n");
+        }
 
         // Paginated table
         sb.append("<div class=\"paginated-tbl\" data-table-id=\"cf\">\n");
@@ -1032,27 +1225,31 @@ public final class BpmHtmlReportRenderer {
                 long v = Long.parseLong(value.trim());
                 return v == 0 ? "sla-na" : v <= config.slaTtfbGood ? "sla-pass" : v <= config.slaTtfbPoor ? "sla-warn" : "sla-fail";
             }
+            if (col == BpmConstants.COL_IDX_STABILITY
+                    || col == BpmConstants.COL_IDX_IMPROVEMENT_AREA) {
+                return "";
+            }
             return "num";
         } catch (NumberFormatException e) {
-            return col == BpmConstants.COL_IDX_LABEL ? "label-cell" : "num";
+            return col == BpmConstants.COL_IDX_LABEL ? "label-cell" : "";
         }
     }
 
     // ── Charts panel ────────────────────────────────────────────────────────
 
     private static void appendMetricDescriptions(StringBuilder sb) {
-        sb.append("<div class=\"metric-desc\">\n");
-        sb.append("<h3>Column Descriptions</h3>\n");
-        sb.append("<dl>\n");
-        sb.append("<dt>Score</dt><dd>Overall performance score (0-100). Higher is better.</dd>\n");
-        sb.append("<dt>Rndr(ms)</dt><dd>Render Time — client-side rendering duration (LCP \u2212 TTFB).</dd>\n");
-        sb.append("<dt>Srvr(%)</dt><dd>Server Ratio — percentage of total load time spent waiting for server response.</dd>\n");
-        sb.append("<dt>Front(ms)</dt><dd>Frontend Time — browser processing time (FCP \u2212 TTFB).</dd>\n");
-        sb.append("<dt>Gap(ms)</dt><dd>FCP-LCP Gap — delay between first paint and largest content. Large gaps suggest late-loading resources.</dd>\n");
-        sb.append("<dt>Stability</dt><dd>Layout stability category based on CLS.</dd>\n");
-        sb.append("<dt>Headroom</dt><dd>Percentage of SLA budget remaining before breach.</dd>\n");
-        sb.append("<dt>Improvement Area</dt><dd>Pre-computed bottleneck classification for this page.</dd>\n");
-        sb.append("</dl>\n</div>\n");
+        sb.append("<details class=\"metric-desc\">\n");
+        sb.append("<summary style=\"cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-secondary)\">Column Descriptions</summary>\n");
+        sb.append("<div style=\"display:grid;grid-template-columns:repeat(2,1fr);gap:2px 24px;margin-top:8px\">\n");
+        sb.append("<div><strong>Score</strong> \u2014 Performance score (0\u2013100), higher is better</div>\n");
+        sb.append("<div><strong>Rndr</strong> \u2014 Render Time: client rendering (LCP\u2212TTFB)</div>\n");
+        sb.append("<div><strong>Srvr</strong> \u2014 Server Ratio: % of load time on server</div>\n");
+        sb.append("<div><strong>Front</strong> \u2014 Frontend Time: browser processing (FCP\u2212TTFB)</div>\n");
+        sb.append("<div><strong>Gap</strong> \u2014 FCP\u2013LCP Gap: delay to largest content</div>\n");
+        sb.append("<div><strong>Stability</strong> \u2014 Layout stability category from CLS</div>\n");
+        sb.append("<div><strong>Headroom</strong> \u2014 % of SLA budget remaining</div>\n");
+        sb.append("<div><strong>Improvement Area</strong> \u2014 Bottleneck classification</div>\n");
+        sb.append("</div>\n</details>\n");
     }
 
     private static void appendChartsPanel(StringBuilder sb, RenderConfig config,
@@ -1119,7 +1316,7 @@ public final class BpmHtmlReportRenderer {
         if (hasPageFilter) {
             sb.append("  var bpmPages = {};\n");
             for (Map.Entry<String, List<BpmTimeBucket>> entry : perLabelBuckets.entrySet()) {
-                String varSuffix = "p" + Math.abs(entry.getKey().hashCode());
+                String varSuffix = "p" + (entry.getKey().hashCode() & 0x7fffffff);
                 appendBucketDataset(sb, varSuffix, entry.getValue());
                 sb.append("  bpmPages['").append(escapeJs(entry.getKey()))
                         .append("'] = { labels: ").append(varSuffix).append("Labels, ")
@@ -1146,7 +1343,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("      label: title, data: data, borderColor: color,\n");
         sb.append("      backgroundColor: color.replace('1)', '0.10)'),\n");
         sb.append("      borderWidth: 2, pointRadius: 3, pointHoverRadius: 6,\n");
-        sb.append("      fill: true, tension: 0.25, spanGaps: false\n");
+        sb.append("      fill: true, tension: 0.25, spanGaps: true\n");
         sb.append("    }];\n");
         sb.append("    if (slaVal > 0) {\n");
         sb.append("      var slaData = new Array(lbls.length).fill(slaVal);\n");
@@ -1475,10 +1672,9 @@ public final class BpmHtmlReportRenderer {
     // ── Utilities ────────────────────────────────────────────────────────────
 
     /**
-     * Post-processes AI-rendered HTML to inject verdict coloring and filter Recommendations.
-     * For uncolored verdict text in table cells, wraps them in styled spans.
-     * Removes Recommendations table rows where Improvement Area is "None".
-     * If all rows are removed, replaces table with a no-action-needed message.
+     * Post-processes AI-rendered HTML to inject verdict coloring and strip artifacts.
+     * Wraps bare verdict text in table cells with colored spans, and removes
+     * horizontal rules the AI may emit between sections.
      */
     private static String postProcessVerdicts(String html) {
         // Wrap bare verdict words in table cells: | Pass | → | <span class="sla-pass">Pass</span> |
@@ -1486,33 +1682,8 @@ public final class BpmHtmlReportRenderer {
         html = html.replaceAll("<td>\\s*Fail\\s*</td>", "<td><span class=\"sla-fail\">Fail</span></td>");
         html = html.replaceAll("<td>\\s*Warning\\s*</td>", "<td><span class=\"sla-warn\">Warning</span></td>");
 
-        // Remove Recommendations table rows where first cell is "None"
-        html = NONE_ROW_PATTERN.matcher(html).replaceAll("");
-
-        // If the Recommendations section has a table with empty tbody, replace with message
-        html = EMPTY_TBODY_PATTERN.matcher(html).replaceFirst(
-                "$1<p class=\"sla-summary sla-pass-summary\">"
-                        + "No specific optimizations required. Monitor for regression.</p>");
-
-        // Wrap Recommendations table in paginated-tbl for sorting (no pagination — small table)
-        // Find the Recommendations panel and wrap its table
-        int recsH2 = html.indexOf("<h2>Recommendations</h2>");
-        if (recsH2 >= 0) {
-            // Find the first <table> after the Recommendations heading
-            int tableStart = html.indexOf("<table>", recsH2);
-            int tableEnd = html.indexOf("</table>", tableStart);
-            if (tableStart >= 0 && tableEnd >= 0) {
-                tableEnd += "</table>".length();
-                String tableHtml = html.substring(tableStart, tableEnd);
-                // Add data-body-id to tbody for initTable
-                tableHtml = tableHtml.replace("<tbody>",
-                        "<tbody class=\"paginated-body\" data-body-id=\"recs\">");
-                String wrapped = "<div class=\"paginated-tbl\" data-table-id=\"recs\">\n"
-                        + "<div class=\"tbl-wrap tbl-scroll\" data-scroll-id=\"recs\">\n"
-                        + tableHtml + "\n</div>\n</div>\n";
-                html = html.substring(0, tableStart) + wrapped + html.substring(tableEnd);
-            }
-        }
+        // Strip horizontal rules the AI may emit between sections
+        html = HR_PATTERN.matcher(html).replaceAll("");
 
         return html;
     }
@@ -1552,13 +1723,17 @@ public final class BpmHtmlReportRenderer {
         public final long slaFcpPoor;
         public final long slaTtfbPoor;
         public final double slaClsPoor;
+        // Label truncation info (0 = not truncated)
+        public final int totalLabels;
+        public final int includedLabels;
 
         public RenderConfig(String providerName, String scenarioName,
                             String description, String virtualUsers) {
             this(providerName, scenarioName, description, virtualUsers,
                     "", "", "", 0,
                     0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0);
+                    0, 0, 0, 0, 0,
+                    0, 0);
         }
 
         public RenderConfig(String providerName, String scenarioName,
@@ -1567,7 +1742,8 @@ public final class BpmHtmlReportRenderer {
             this(providerName, scenarioName, description, virtualUsers,
                     runDateTime, duration, version, 0,
                     0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0);
+                    0, 0, 0, 0, 0,
+                    0, 0);
         }
 
         public RenderConfig(String providerName, String scenarioName,
@@ -1578,6 +1754,22 @@ public final class BpmHtmlReportRenderer {
                             long slaFcpGood, long slaTtfbGood, double slaClsGood,
                             int slaScorePoor, long slaLcpPoor,
                             long slaFcpPoor, long slaTtfbPoor, double slaClsPoor) {
+            this(providerName, scenarioName, description, virtualUsers,
+                    runDateTime, duration, version, intervalSeconds,
+                    slaScoreGood, slaLcpGood, slaFcpGood, slaTtfbGood, slaClsGood,
+                    slaScorePoor, slaLcpPoor, slaFcpPoor, slaTtfbPoor, slaClsPoor,
+                    0, 0);
+        }
+
+        public RenderConfig(String providerName, String scenarioName,
+                            String description, String virtualUsers,
+                            String runDateTime, String duration, String version,
+                            int intervalSeconds,
+                            int slaScoreGood, long slaLcpGood,
+                            long slaFcpGood, long slaTtfbGood, double slaClsGood,
+                            int slaScorePoor, long slaLcpPoor,
+                            long slaFcpPoor, long slaTtfbPoor, double slaClsPoor,
+                            int totalLabels, int includedLabels) {
             this.providerName = Objects.requireNonNullElse(providerName, "");
             this.scenarioName = Objects.requireNonNullElse(scenarioName, "");
             this.description = Objects.requireNonNullElse(description, "");
@@ -1596,6 +1788,12 @@ public final class BpmHtmlReportRenderer {
             this.slaFcpPoor = slaFcpPoor;
             this.slaTtfbPoor = slaTtfbPoor;
             this.slaClsPoor = slaClsPoor;
+            this.totalLabels = totalLabels;
+            this.includedLabels = includedLabels;
+        }
+
+        public boolean wasLabelTruncated() {
+            return totalLabels > 0 && totalLabels > includedLabels;
         }
     }
 }
