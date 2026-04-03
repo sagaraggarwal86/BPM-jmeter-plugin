@@ -193,8 +193,8 @@ Sampler via Chrome DevTools Protocol. Includes optional AI-powered analysis repo
 - UI preserves `AbstractListenerGui` and `Clearable` contracts.
 - `TotalPinnedRowSorter` must pin TOTAL to last view row for all sort directions.
 - **Column model**: 18 total columns (10 always-visible + 8 toggleable). Always-visible: Label, Samples, Score,
-  Verdict, Improvement Area, Frontend Time, Stability, Headroom, Avg Duration, Trend. Toggleable raw metrics:
-  FCP, LCP, CLS, TTFB, DOM Nodes, Layout Count, Style Recalc, Render Time. Column indices defined in
+  Render Time, Server Ratio, Frontend Time, FCP-LCP Gap, Stability, Headroom, Improvement Area. Toggleable raw
+  metrics: FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns. Column indices defined in
   `BpmConstants.COL_IDX_*` — never hardcode ordinals.
 
 ### Reference Architecture — JMeter Aggregate Report (`StatVisualizer`)
