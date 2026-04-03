@@ -4,12 +4,12 @@
   <groupId>io.github.sagaraggarwal86</groupId>
   <artifactId>bpm-jmeter-plugin</artifactId>
   <name>Browser Performance Metrics (BPM)</name>
-  <version>0.1.0</version>
+  <version>0.1.2</version>
   <description>JMeter listener plugin that captures browser rendering metrics (Core Web Vitals, network,
         runtime, console errors) from WebDriver Sampler executions via Chrome DevTools Protocol.
         Provides a live results table with SLA-based highlighting, a composite performance score,
-        improvement area detection, JSONL output, and optional AI-powered analysis reports with
-        time-series trend charts via a CLI tool (bpm-ai-report) supporting 7 AI providers.</description>
+        improvement area detection, and optional AI-powered analysis reports with
+        time-series trend charts via a CLI tool (bpm-ai-report) supporting 7 AI providers .</description>
   <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
   <inceptionYear>2026</inceptionYear>
   <developers>
