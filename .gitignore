@@ -1,17 +1,44 @@
+# ── Maven ──────────────────────────────────────────
 target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-# https://maven.apache.org/wrapper/#usage-without-binary-jar
-.mvn/wrapper/maven-wrapper.jar
 
-# Eclipse m2e generated files
-# Eclipse Core
-.project
-# JDT-specific (Eclipse Java Development Tools)
+# ── IntelliJ IDEA ─────────────────────────────────
+.idea/
+*.iml
+out/
+
+# ── Eclipse ────────────────────────────────────────
 .classpath
+.project
+.settings/
+
+# ── VS Code ────────────────────────────────────────
+.vscode/
+
+# ── OS files ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Test output ────────────────────────────────────
+*.jsonl
+*.csv
+bpm-results*
+bpm-*-summary.json
+
+# ── BPM runtime config ────────────────────────────
+bpm.properties
+bpm.properties.*.bak
+
+# ── Development prompts ───────────────────────────
+Prompt.md
+implement-major-fixes-prompt.md
+
+# ── Claude Code ───────────────────────────────────
+.claude/
+
+# ── GPG ────────────────────────────────────────────
+*.gpg
+secring.*
+
+# ── Logs ───────────────────────────────────────────
+*.log
