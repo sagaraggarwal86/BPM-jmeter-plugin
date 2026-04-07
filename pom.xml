@@ -10,7 +10,7 @@
     ============================================================= -->
     <groupId>io.github.sagaraggarwal86</groupId>
     <artifactId>bpm-jmeter-plugin</artifactId>
-    <version>0.0.7</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>Browser Performance Metrics (BPM)</name>
