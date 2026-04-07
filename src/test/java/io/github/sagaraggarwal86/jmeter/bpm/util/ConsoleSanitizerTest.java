@@ -86,4 +86,61 @@ class ConsoleSanitizerTest {
         assertFalse(result.contains("4111111111111111"), "Credit card number should be redacted");
         assertTrue(result.contains("[REDACTED]"));
     }
+
+    @Test
+    @DisplayName("Null input returns null regardless of enabled state")
+    void sanitize_null_returnsNull() {
+        assertNull(new ConsoleSanitizer(true).sanitize(null));
+        assertNull(new ConsoleSanitizer(false).sanitize(null));
+    }
+
+    @Test
+    @DisplayName("Empty string returns empty string")
+    void sanitize_empty_returnsEmpty() {
+        assertEquals("", new ConsoleSanitizer(true).sanitize(""));
+    }
+
+    @Test
+    @DisplayName("Disabled sanitizer returns original message unchanged")
+    void sanitize_disabled_returnsOriginal_withSensitiveData() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(false);
+        String input = "password=secret123";
+        assertEquals(input, sanitizer.sanitize(input));
+    }
+
+    @Test
+    @DisplayName("isEnabled reflects constructor argument")
+    void isEnabled_reflectsConstructor() {
+        assertTrue(new ConsoleSanitizer(true).isEnabled());
+        assertFalse(new ConsoleSanitizer(false).isEnabled());
+    }
+
+    @Test
+    @DisplayName("Multiple sensitive patterns in same message are all redacted")
+    void sanitize_multiplePatterns_allRedacted() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(true);
+        String input = "Auth: Authorization: Bearer token123abc admin@test.com password=secret";
+        String result = sanitizer.sanitize(input);
+        assertFalse(result.contains("admin@test.com"));
+        assertFalse(result.contains("secret"));
+        assertTrue(result.contains("[REDACTED]"));
+    }
+
+    @Test
+    @DisplayName("API key header pattern is redacted")
+    void sanitize_apiKeyHeader_redacted() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(true);
+        String input = "Header: x-api-key: sk-live-4eC39HqLyjWDarjtT1zdp7dc";
+        String result = sanitizer.sanitize(input);
+        assertFalse(result.contains("sk-live"), "API key should be redacted");
+        assertTrue(result.contains("[REDACTED]"));
+    }
+
+    @Test
+    @DisplayName("Plain message with no sensitive data is unchanged")
+    void sanitize_plainMessage_unchanged() {
+        ConsoleSanitizer sanitizer = new ConsoleSanitizer(true);
+        String input = "Page loaded successfully in 1200ms";
+        assertEquals(input, sanitizer.sanitize(input));
+    }
 }

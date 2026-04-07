@@ -14,18 +14,14 @@ detection, and an HTML performance report with trend analysis.
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [What BPM Captures](#what-bpm-captures)
-- [Filter Settings](#filter-settings)
 - [GUI Overview](#gui-overview)
 - [HTML Performance Report](#html-performance-report)
 - [CLI Mode](#cli-mode)
 - [Output Files](#output-files)
 - [Configuration](#configuration)
-- [Non-GUI Mode](#non-gui-mode)
-- [CI Integration Guide](#ci-integration-guide)
 - [Performance Impact](#performance-impact)
 - [Multiple BPM Listener Instances](#multiple-bpm-listener-instances)
 - [Known Limitations](#known-limitations)
-- [Running Tests](#running-tests)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -40,15 +36,12 @@ detection, and an HTML performance report with trend analysis.
 | **Performance Score**       | Composite 0-100 score weighted against Google Core Web Vitals thresholds                                                    |
 | **Improvement Area**        | Automatic detection of the primary bottleneck: server, network, rendering, DOM, or reliability                              |
 | **Live Results Table**      | 10 always-visible derived columns + 8 toggleable raw metric columns with SLA-based coloring                                 |
-| **Start / End Offset**      | Exclude ramp-up and ramp-down periods by entering a time window in seconds                                                  |
-| **Transaction Filter**      | Filter by transaction name with Include/Exclude mode, plain text or regex                                                   |
+| **Filtering**               | Start/End offset, transaction name (text/regex), stability (multi-select), improvement area (multi-select)                  |
 | **Column Visibility**       | Show or hide raw metric columns via a dropdown multi-select control                                                         |
-| **Test Time Info**          | Start, End, and Duration shown automatically during and after test                                                          |
 | **SLA Thresholds**          | Configurable per-metric thresholds — breaching cells highlighted in color                                                   |
-| **CSV Export**              | Save all visible columns to a CSV file                                                                                      |
-| **HTML Performance Report** | Generate a styled HTML report with executive summary, risk assessment, trend analysis, and SLA compliance                   |
+| **HTML Performance Report** | 6-panel report: executive summary, metrics, trends, SLA compliance, findings, risk assessment                               |
 | **CLI Mode**                | Generate reports from the command line — no JMeter GUI required                                                             |
-| **JSONL Output**            | One JSON record per sampler action — CI-friendly                                                                            |
+| **CSV / JSONL Output**      | CSV table export + one JSON record per sampler action (CI-friendly)                                                         |
 | **Pure Observer**           | Zero impact on test results — never modifies SampleResults, JTL output, or other listeners                                  |
 
 ---
@@ -101,8 +94,6 @@ Search for "Browser Performance Metrics" in the Plugins Manager and install.
    customize SLA thresholds — BPM auto-generates a default on first run if none exists.
 
 ### Build from Source
-
-**Prerequisites:** Java 17+, Maven 3.8+
 
 ```bash
 git clone https://github.com/sagaraggarwal86/bpm-jmeter-plugin.git
@@ -169,11 +160,29 @@ First-match-wins priority:
 
 ---
 
-## Filter Settings
+## GUI Overview
 
-### Start / End Offset
+The listener provides a single-panel GUI:
 
-Exclude ramp-up and ramp-down samples by entering a time window in seconds.
+- **Output File** — JSONL output path with Browse button. Press Enter to load an existing file.
+- **Filter Settings** — Start/End Offset, Transaction Names, Stability, Improvement Area, Column Selector, Apply Filters
+- **Test Time Info** — Start, End, Duration (live-updating during test)
+- **Overall Performance Score** — colored progress bar with Good / Needs Work / Poor counts
+- **Results Table** — 10 always-visible derived columns + 8 toggleable raw columns with SLA coloring
+- **Bottom Bar** — Save Table Data (CSV), Generate HTML Report, Chart Interval
+
+### Column Selector
+
+Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns).
+All are OFF by default — the 10 derived columns tell the full story. Enable raw columns when you
+need to dig deeper.
+
+### Filter Settings
+
+All filters apply on **Apply Filters** button click (manual, not auto). All filters use AND logic — a
+row must match every active filter to appear.
+
+**Start / End Offset** — Exclude ramp-up and ramp-down samples by time window (seconds):
 
 | Start Offset | End Offset | Behaviour                                       |
 |--------------|------------|-------------------------------------------------|
@@ -182,41 +191,33 @@ Exclude ramp-up and ramp-down samples by entering a time window in seconds.
 | *(empty)*    | `25`       | Include up to 25 seconds; skip everything after |
 | `5`          | `25`       | Include only the 5s - 25s window                |
 
-### Transaction Names
-
-Filter the results table by typing in the **Transaction Names** field.
+**Transaction Names** — Filter by sampler label:
 
 | Mode                     | Behaviour                        | Example                          |
 |--------------------------|----------------------------------|----------------------------------|
 | **Plain text** (default) | Case-insensitive substring match | `login` matches `Login Flow`     |
 | **RegEx** (checkbox on)  | Java regex pattern match         | `Login\|Checkout` matches either |
+| **Include** (default)    | Show only matching transactions  |                                  |
+| **Exclude**              | Hide matching transactions       |                                  |
 
-| Filter Mode           | Behaviour                                   |
-|-----------------------|---------------------------------------------|
-| **Include** (default) | Show only transactions matching the pattern |
-| **Exclude**           | Hide transactions matching the pattern      |
+**Stability** — Multi-select checkbox dropdown by CLS category:
 
-Click **Apply Filters** to apply. Filters are manual — changing fields does not auto-filter.
+| Option       | Matches          |
+|--------------|------------------|
+| Stable       | CLS ≤ 0.1        |
+| Minor Shifts | 0.1 < CLS ≤ 0.25 |
+| Unstable     | CLS > 0.25       |
 
----
+**Improvement Area** — Multi-select checkbox dropdown by bottleneck type:
 
-## GUI Overview
-
-The listener provides a single-panel GUI:
-
-- **Output File** — JSONL output path with Browse button. Press Enter to load an existing file.
-- **Filter Settings** — Start/End Offset, Transaction Names filter, Column Selector, Apply Filters button
-- **Test Time Info** — Start, End, Duration (live-updating during test)
-- **Overall Performance Score** — colored progress bar with Good / Needs Work / Poor counts
-- **Results Table** — 10 always-visible derived columns + 8 toggleable raw columns with SLA coloring
-- **HTML Report** — Generate HTML Report button (opens save dialog)
-- **Save Table Data** — export visible data to CSV
-
-### Column Selector
-
-Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns).
-All are OFF by default — the 10 derived columns tell the full story. Enable raw columns when you
-need to dig deeper.
+| Option                 | Matches                               |
+|------------------------|---------------------------------------|
+| None                   | No bottleneck detected (shown as `-`) |
+| Reduce Server Response | Server TTFB is the primary bottleneck |
+| Optimise Heavy Assets  | Large resources delaying render       |
+| Reduce Render Work     | Client-side rendering overhead        |
+| Reduce DOM Complexity  | Excessive DOM causing layout thrash   |
+| Fix Network Failures   | Failed network requests detected      |
 
 ---
 
@@ -225,32 +226,23 @@ need to dig deeper.
 Click **Generate HTML Report** to create a comprehensive performance analysis report.
 A save dialog lets you choose where to save the HTML file. The report opens automatically in your browser.
 
-No external API keys or internet connection required (except for Chart.js and xlsx-js-style CDN in the browser).
-
 ### Report Panels
 
-| # | Panel               | Description                                                                                         |
-|---|---------------------|-----------------------------------------------------------------------------------------------------|
-| 1 | Executive Summary   | KPI cards + 5-paragraph narrative. Breaches grouped by bottleneck. Errors with relative frequency   |
-| 2 | Performance Metrics | Full data table with pagination, column sorting, and transaction search                             |
-| 3 | Performance Trends  | 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render) with SLA threshold lines                     |
-| 4 | SLA Compliance      | Color + icon verdict matrix per metric per transaction                                              |
-| 5 | Critical Findings   | Grouped by bottleneck type with 4-part recommendations (what to do, quick win, long-term, outcome)  |
-| 6 | Risk Assessment     | Professional cards with status indicators: capacity risks, borderline pages, unmeasured navs, trend |
+| # | Panel               | Description                                                                                        |
+|---|---------------------|----------------------------------------------------------------------------------------------------|
+| 1 | Executive Summary   | KPI cards + 5-paragraph narrative. Breaches grouped by bottleneck. Errors with relative frequency  |
+| 2 | Performance Metrics | Full data table with pagination, column sorting, and transaction search                            |
+| 3 | Performance Trends  | 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render) with SLA threshold lines                    |
+| 4 | SLA Compliance      | Color + icon verdict matrix per metric per transaction                                             |
+| 5 | Critical Findings   | Grouped by bottleneck type with 4-part recommendations (what to do, quick win, long-term, outcome) |
+| 6 | Risk Assessment     | Capacity risks, borderline pages, unmeasured navigations, performance trend                        |
 
 ### Report Features
 
-- Sidebar panel navigation with ARIA keyboard support
-- Metadata grid (scenario name, virtual users, run date/time, duration)
-- Dark mode toggle (auto / dark / light) — auto-detects OS preference
-- Page-based pagination with configurable rows per page (10/25/50/100)
-- Click-to-sort on all table columns (ascending/descending)
-- Transaction search filter (Performance Metrics + SLA Compliance)
-- Per-transaction chart filter in Performance Trends
-- SLA threshold lines on charts (green for Score, red for LCP/FCP/TTFB/CLS)
-- Styled Excel export with header styling, SLA cell coloring, and auto column widths
-- Progressive disclosure — expandable sections throughout (breach details, transaction lists, risk items)
-- Self-contained HTML — one file, no external dependencies except Chart.js and xlsx-js-style CDN
+- ARIA keyboard navigation, dark mode toggle (auto/dark/light), metadata grid
+- Pagination (10/25/50/100), click-to-sort columns, transaction search, per-transaction chart filter
+- SLA threshold lines on charts, styled Excel export with SLA cell coloring
+- Self-contained HTML — Chart.js and xlsx-js-style bundled in JAR for offline use, CDN as fallback
 
 ---
 
@@ -306,7 +298,20 @@ Help:
 | `3`  | Report file write error        |
 | `4`  | Unexpected error               |
 
-### CI/CD Pipeline Example
+### -J Flag Overrides (Non-GUI Mode)
+
+```bash
+# Standard non-GUI run
+jmeter -n -t test.jmx -l results.jtl
+
+# Custom output and debug
+jmeter -n -t test.jmx -l results.jtl -Jbpm.output=build-1234-bpm.jsonl -Jbpm.debug=true
+```
+
+Resolution order: `-J flag` > `bpm.properties` > hardcoded default.
+Only `bpm.output` and `bpm.debug` support `-J` overrides.
+
+### CI Example
 
 ```bash
 # Run test
@@ -316,7 +321,7 @@ jmeter -n -t test.jmx -Jbpm.output=bpm-results.jsonl
 ./bpm-report.sh -i bpm-results.jsonl -o report.html \
   --scenario-name "Nightly Load Test" --virtual-users 50
 
-# Report path printed to stdout; progress messages to stderr
+# Archive bpm-results.jsonl and report.html as build artifacts
 ```
 
 ---
@@ -367,44 +372,7 @@ When BPM detects a version mismatch in `bpm.properties`, it backs up the old fil
 
 ---
 
-## Non-GUI Mode
-
-BPM works fully in non-GUI mode. The live table is absent but JSONL and log summary are
-written normally.
-
-### -J Flag Overrides
-
-```bash
-# Standard run
-jmeter -n -t test.jmx -l results.jtl
-
-# CI run with custom output and debug
-jmeter -n -t test.jmx -l results.jtl -Jbpm.output=build-1234-bpm.jsonl -Jbpm.debug=true
-```
-
-Resolution order: `-J flag` > `bpm.properties` > hardcoded default.
-
-Only `bpm.output` and `bpm.debug` support `-J` overrides. All other properties are read from
-`bpm.properties` only.
-
----
-
-## CI Integration Guide
-
-1. Add BPM JAR to your JMeter installation in CI.
-2. Run with custom output: `-Jbpm.output=build-${BUILD_ID}-bpm.jsonl`
-3. After the test, generate a report:
-   ```bash
-   ./bpm-report.sh -i build-${BUILD_ID}-bpm.jsonl \
-     --scenario-name "Build ${BUILD_ID}" --virtual-users 50
-   ```
-4. Archive the JSONL file and HTML report as build artifacts.
-
----
-
 ## Performance Impact
-
-BPM is designed as a pure observer with minimal overhead:
 
 | Metric                           | Impact                                             |
 |----------------------------------|----------------------------------------------------|
@@ -418,71 +386,32 @@ BPM is designed as a pure observer with minimal overhead:
 
 ## Multiple BPM Listener Instances
 
-A test plan may contain more than one BPM Listener element. Each instance operates independently:
-
-- **Per-element file check:** On test start, each listener checks whether its output file exists.
-  A dialog appears with **Overwrite** or **Don't Start JMeter Engine** options.
-- **Independent lifecycle:** Each listener maintains its own JSONL writer, CDP sessions, health
-  counters, and GUI state.
-- **No cross-contamination:** Results from one listener never appear in another's output.
-- **Default output path:** When no path is configured, all listeners fall back to `bpm-results.jsonl`.
-  Always assign distinct output paths when using multiple listeners.
+- Each listener maintains its own JSONL writer, health counters, and GUI state independently.
+- On test start, a single dialog lists all file conflicts across all listeners. Choose **Overwrite** or **Don't Start**.
+- Always assign distinct output paths when using multiple listeners (default is shared `bpm-results.jsonl`).
 
 ---
 
 ## Known Limitations
 
-- **Chrome-only:** CDP metrics require Chrome or Chromium. Firefox, Safari, and Edge are not
-  supported. Non-Chrome browsers are detected and skipped with a warning.
-- **SPA caveats:** For client-side route changes, the old LCP value may linger because no new
-  `largest-contentful-paint` event fires. BPM detects stale LCP and reports null for that sample.
-- **WebDriver Sampler required:** BPM instruments only WebDriver Samplers. HTTP Samplers and
-  other sampler types are silently skipped.
-- **Pure observer:** BPM never modifies SampleResults, JTL output, or other listeners' behavior.
-- **Charts require internet:** The HTML report loads Chart.js and xlsx-js-style from CDNs if not
-  bundled. Open in a browser with internet access for charts and Excel export to work.
-
----
-
-## Running Tests
-
-```bash
-# Build + all tests + JaCoCo coverage check
-mvn clean verify
-
-# Build only (no tests)
-mvn clean package -DskipTests
-
-# Single test class
-mvn test -Dtest=JsonlWriterTest
-
-# Release to Maven Central
-mvn clean deploy -Prelease
-```
+- **SPA caveats:** For client-side route changes, the old LCP may linger (no new `largest-contentful-paint` event).
+  BPM detects stale LCP and reports null for that sample.
+- **WebDriver Sampler only:** HTTP Samplers and other non-WebDriver types are silently skipped.
+- **Charts offline:** Chart.js and xlsx-js-style are bundled in the JAR for offline use. If the bundled versions fail
+  to load, the report falls back to CDN — internet access required in that case.
 
 ---
 
 ## Troubleshooting
 
-**The plugin does not appear in JMeter's Add > Listener menu.**
-Verify the JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter after copying.
-
-**The Generate HTML Report button is greyed out.**
-No data in the table. Run a test or load a JSONL file first.
-
-**"No performance data available" dialog appears.**
-No test data captured or loaded. Run a test or load a JSONL file first.
-
-**Charts are blank in the HTML report.**
-The report loads Chart.js from a CDN. Open the file in a browser with internet access.
-
-**SPA actions show null scores.**
-Expected — BPM detects stale LCP on client-side route changes and reports null rather than a
-misleading score. Only actions with sufficient metric data (weight >= 0.45) receive a score.
-
-**bpm.properties was overwritten after upgrade.**
-BPM auto-detects version mismatches and creates a backup (`bpm.properties.v<old>.bak`) before
-writing the new template. Check the backup for your customizations.
+| Problem                                  | Solution                                                                                |
+|------------------------------------------|-----------------------------------------------------------------------------------------|
+| Plugin not in Add > Listener menu        | Verify JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter.                              |
+| Generate HTML Report button greyed out   | No data in the table. Run a test or load a JSONL file first.                            |
+| "No performance data available" dialog   | No data captured or loaded. Run a test or load a JSONL file.                            |
+| Charts blank in HTML report              | Chart.js CDN unreachable. Open in a browser with internet access.                       |
+| SPA actions show null scores             | Expected — stale LCP detected. Only actions with metric weight >= 0.45 receive a score. |
+| bpm.properties overwritten after upgrade | BPM creates a backup (`bpm.properties.v<old>.bak`). Check it for your customizations.   |
 
 ---
 
@@ -493,7 +422,11 @@ Bug reports and pull requests are welcome via
 
 Before submitting a pull request:
 
-- Run `mvn clean verify` and confirm all tests pass
+```bash
+mvn clean verify          # All tests + coverage check must pass
+mvn clean deploy -Prelease  # Release to Maven Central
+```
+
 - Test manually with JMeter 5.6.3 on your platform
 - Keep each pull request focused on a single change
 

@@ -228,6 +228,34 @@ class CollectorsTest {
 
             assertEquals(0L, result.heapUsed());
         }
+
+        @Test
+        @DisplayName("Non-List metrics value returns zeros gracefully")
+        void collect_nonListMetrics_returnsZeros() {
+            when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
+                    .thenReturn(Map.of("metrics", "not-a-list"));
+
+            RuntimeCollector collector = new RuntimeCollector();
+            RuntimeResult result = collector.collect(executor, buffer);
+
+            assertEquals(0L, result.heapUsed());
+            assertEquals(0, result.domNodes());
+        }
+
+        @Test
+        @DisplayName("Non-Map items in metrics list are skipped")
+        void collect_nonMapItems_skipped() {
+            when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
+                    .thenReturn(Map.of("metrics", List.of(
+                            "not-a-map",
+                            42,
+                            Map.of("name", "JSHeapUsedSize", "value", 5000000.0))));
+
+            RuntimeCollector collector = new RuntimeCollector();
+            RuntimeResult result = collector.collect(executor, buffer);
+
+            assertEquals(5000000L, result.heapUsed());
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
@@ -274,6 +302,20 @@ class CollectorsTest {
             assertEquals(0, result.errors());
             assertEquals(0, result.warnings());
             assertTrue(result.messages().isEmpty());
+        }
+
+        @Test
+        @DisplayName("Unknown console level is ignored (default case)")
+        void collect_unknownLevel_ignored() {
+            buffer.addConsoleMessage("info", "Informational message");
+            buffer.addConsoleMessage("error", "Real error");
+
+            ConsoleCollector collector = new ConsoleCollector(new ConsoleSanitizer(false));
+            ConsoleResult result = collector.collect(executor, buffer);
+
+            assertEquals(1, result.errors());
+            assertEquals(0, result.warnings());
+            assertEquals(1, result.messages().size());
         }
     }
 }

@@ -57,4 +57,30 @@ class CsvExporterTest {
         String result = CsvExporter.escapeCsvValue("He said \"hello\"");
         assertEquals("\"He said \"\"hello\"\"\"", result);
     }
+
+    @Test
+    @DisplayName("escapeCsvValue returns empty string for null")
+    void escapeCsvValue_null() {
+        assertEquals("", CsvExporter.escapeCsvValue(null));
+    }
+
+    @Test
+    @DisplayName("escapeCsvValue quotes value containing newline")
+    void escapeCsvValue_newline() {
+        String result = CsvExporter.escapeCsvValue("line1\nline2");
+        assertEquals("\"line1\nline2\"", result);
+    }
+
+    @Test
+    @DisplayName("escapeCsvValue quotes value containing carriage return")
+    void escapeCsvValue_carriageReturn() {
+        String result = CsvExporter.escapeCsvValue("line1\rline2");
+        assertEquals("\"line1\rline2\"", result);
+    }
+
+    @Test
+    @DisplayName("escapeCsvValue returns plain text unchanged")
+    void escapeCsvValue_plainText() {
+        assertEquals("hello", CsvExporter.escapeCsvValue("hello"));
+    }
 }

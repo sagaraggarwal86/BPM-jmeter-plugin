@@ -128,6 +128,31 @@ class ModelSerializationTest {
     }
 
     @Test
+    @DisplayName("DerivedMetrics null improvementAreas normalised to empty list")
+    void derivedMetrics_nullImprovementAreas_normalisedToEmpty() {
+        DerivedMetrics dm = new DerivedMetrics(800L, 32.0, null, 760L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, null, 90);
+        assertNotNull(dm.improvementAreas());
+        assertTrue(dm.improvementAreas().isEmpty());
+    }
+
+    @Test
+    @DisplayName("ConsoleResult null messages normalised to empty list")
+    void consoleResult_nullMessages_normalisedToEmpty() {
+        ConsoleResult cr = new ConsoleResult(0, 0, null);
+        assertNotNull(cr.messages());
+        assertTrue(cr.messages().isEmpty());
+    }
+
+    @Test
+    @DisplayName("NetworkResult null slowest normalised to empty list")
+    void networkResult_nullSlowest_normalisedToEmpty() {
+        NetworkResult nr = new NetworkResult(0, 0L, 0, null);
+        assertNotNull(nr.slowest());
+        assertTrue(nr.slowest().isEmpty());
+    }
+
+    @Test
     @DisplayName("BpmResult with null sub-results serializes without error")
     void bpmResult_nullSubResults_serializesCleanly() throws Exception {
         BpmResult original = new BpmResult("1.0", "2026-03-26T14:30:22Z",

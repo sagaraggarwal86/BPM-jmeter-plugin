@@ -10,6 +10,7 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -21,8 +22,8 @@ public class BpmTableModel extends AbstractTableModel {
     private Pattern txCompiledPattern;
     private boolean txRegex;
     private boolean txInclude = true;
-    private String stabilityFilter;       // null or "All" = no filter
-    private String improvementFilter;     // null or "All" = no filter
+    private Set<String> stabilityFilter;       // null = no filter (all)
+    private Set<String> improvementFilter;     // null = no filter (all)
     private List<RowData> filteredRows;
 
     private static boolean matchesTransaction(String label, String pattern, Pattern compiled, boolean useRegex) {
@@ -102,11 +103,11 @@ public class BpmTableModel extends AbstractTableModel {
     }
 
     /**
-     * Sets the stability and improvement area filters. "All" or null means no filter.
+     * Sets the stability and improvement area filters. {@code null} means no filter (all).
      */
-    public void setDropdownFilters(String stability, String improvement) {
-        this.stabilityFilter = (stability == null || "All".equals(stability)) ? null : stability;
-        this.improvementFilter = (improvement == null || "All".equals(improvement)) ? null : improvement;
+    public void setDropdownFilters(Set<String> stability, Set<String> improvement) {
+        this.stabilityFilter = stability;
+        this.improvementFilter = improvement;
         this.filteredRows = null;
     }
 
@@ -137,15 +138,13 @@ public class BpmTableModel extends AbstractTableModel {
                     continue;
                 }
             }
-            // Stability filter: match against lastStabilityCategory
             if (stabilityFilter != null) {
-                if (!stabilityFilter.equals(row.lastStabilityCategory)) {
+                if (!stabilityFilter.contains(row.lastStabilityCategory)) {
                     continue;
                 }
             }
-            // Improvement area filter: match against lastImprovementArea
             if (improvementFilter != null) {
-                if (!improvementFilter.equals(row.lastImprovementArea)) {
+                if (!improvementFilter.contains(row.lastImprovementArea)) {
                     continue;
                 }
             }

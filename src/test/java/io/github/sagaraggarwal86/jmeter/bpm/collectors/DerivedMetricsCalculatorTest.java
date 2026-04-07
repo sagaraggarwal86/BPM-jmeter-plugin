@@ -260,6 +260,31 @@ class DerivedMetricsCalculatorTest {
         }
 
         @Test
+        @DisplayName("LCP=0 skips all bottleneck ratio checks — returns None")
+        void improvementArea_lcpZero_skipsAllRatioChecks() {
+            DerivedMetrics result = calculator.compute(
+                    new WebVitalsResult(0L, 0L, 0.01, 0L),
+                    new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/big.js", 500, 300000, 100))),
+                    new RuntimeResult(5000000L, 1000, 10, 5),
+                    new ConsoleResult(0, 0, List.of()), 2000);
+            // LCP=0 means server ratio, resource ratio, client ratio all skipped
+            assertEquals(BpmConstants.BOTTLENECK_NONE, result.improvementArea());
+        }
+
+        @Test
+        @DisplayName("domNodes=0 skips layout thrashing check")
+        void improvementArea_domNodesZero_skipsLayoutThrashing() {
+            // layoutCount=600, domNodes=0 → should skip (not divide by zero or false-positive)
+            DerivedMetrics result = calculator.compute(
+                    new WebVitalsResult(200L, 1000L, 0.01, 400L),
+                    new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/small.js", 100, 5000, 50))),
+                    new RuntimeResult(5000000L, 0, 600, 50),
+                    new ConsoleResult(0, 0, List.of()), 2000);
+            assertFalse(result.improvementAreas().contains(BpmConstants.BOTTLENECK_LAYOUT),
+                    "Layout thrashing should not be detected when domNodes=0");
+        }
+
+        @Test
         @DisplayName("No condition matched — 'None' label")
         void improvementArea_noneMatched_noneLabel() {
             DerivedMetrics result = calculator.compute(
