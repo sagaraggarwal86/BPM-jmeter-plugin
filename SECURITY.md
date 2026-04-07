@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 |---------|--------------------|
-| 0.1.x   | :white_check_mark: |
+| 0.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -18,6 +18,6 @@ please report it responsibly:
 
 ## Scope
 
-This plugin captures browser performance metrics locally via Chrome DevTools Protocol
-and makes outbound HTTPS calls only to the AI provider endpoint configured by the user.
-It does not run a server, accept inbound connections, or store credentials on disk.
+This plugin captures browser performance metrics locally via Chrome DevTools Protocol.
+It does not make outbound network calls, run a server, accept inbound connections,
+or store credentials on disk.
