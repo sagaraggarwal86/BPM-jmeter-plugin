@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- =============================================================
+         Project coordinates
+    ============================================================= -->
+    <groupId>io.github.sagaraggarwal86</groupId>
+    <artifactId>bpm-jmeter-plugin</artifactId>
+    <version>0.0.1</version>
+    <packaging>jar</packaging>
+
+    <name>Browser Performance Metrics (BPM)</name>
+    <description>
+        JMeter listener plugin that captures browser rendering metrics (Core Web Vitals, network,
+        runtime, console errors) from WebDriver Sampler executions via Chrome DevTools Protocol.
+        Provides a live results table with SLA-based highlighting, a composite performance score,
+        improvement area detection, and HTML performance reports with
+        time-series trend charts via a CLI tool (bpm-report).
+    </description>
+    <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <!-- =============================================================
+         License
+    ============================================================= -->
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <!-- =============================================================
+         Developers
+    ============================================================= -->
+    <developers>
+        <developer>
+            <id>sagaraggarwal86</id>
+            <name>Sagar Aggarwal</name>
+            <url>https://github.com/sagaraggarwal86</url>
+            <roles>
+                <role>author</role>
+                <role>maintainer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <!-- =============================================================
+         SCM
+    ============================================================= -->
+    <scm>
+        <connection>scm:git:git://github.com/sagaraggarwal86/BPM-jmeter-plugin.git</connection>
+        <developerConnection>scm:git:ssh://github.com/sagaraggarwal86/BPM-jmeter-plugin.git</developerConnection>
+        <url>https://github.com/sagaraggarwal86/BPM-jmeter-plugin</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <!-- =============================================================
+         Distribution management
+    ============================================================= -->
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <url>https://central.sonatype.com/api/v1/publisher/upload</url>
+        </repository>
+    </distributionManagement>
+
+    <!-- =============================================================
+         Global properties
+    ============================================================= -->
+    <properties>
+        <!-- Java 17 — release flag is the canonical way for JDK 9+ -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <!-- Encoding -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- ── Dependency versions ── -->
+        <jmeter.version>5.6.3</jmeter.version>
+        <selenium.version>4.13.0</selenium.version>
+        <jackson.version>2.15.3</jackson.version>
+        <junit.version>5.11.3</junit.version>
+        <mockito.version>5.14.2</mockito.version>
+
+        <!-- ── Plugin versions ── -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
+        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <central-publishing-plugin.version>0.10.0</central-publishing-plugin.version>
+        <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
+        <maven-enforcer-plugin.version>3.5.0
+        </maven-enforcer-plugin.version>
+
+        <!-- JaCoCo threshold — 84% line coverage on the main bundle -->
+        <jacoco.line.coverage.minimum>0.84</jacoco.line.coverage.minimum>
+    </properties>
+
+    <!-- =============================================================
+         Dependency management
+    ============================================================= -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- JUnit 5 BOM — aligns all Jupiter module versions -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- =============================================================
+         Dependencies
+    ============================================================= -->
+    <dependencies>
+
+        <!-- ── Provided: present in JMeter + WebDriver Sampler at runtime ── -->
+
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_core</artifactId>
+            <version>${jmeter.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <!-- All Selenium imports are isolated in ChromeCdpCommandExecutor.
+                 BpmListener uses lazy Class.forName() to avoid hard dependency. -->
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-chrome-driver</artifactId>
+            <version>${selenium.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <!-- Jackson is already on the classpath via WebDriver Sampler plugin.
+                 Zero additional runtime footprint. -->
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Test ── -->
+
+        <dependency>
+            <!-- Aggregator: pulls in junit-jupiter-api, -engine, -params -->
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <!-- version governed by junit-bom import -->
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- =============================================================
+         Build
+    ============================================================= -->
+    <build>
+
+        <pluginManagement>
+            <plugins>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>${maven-gpg-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven-enforcer-plugin.version}</version>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+
+            <!-- ── Java 17 compiler ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>17</release>
+                    <encoding>UTF-8</encoding>
+                    <!-- Preserve parameter names in bytecode (useful for Jackson + reflection) -->
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- ── Surefire: Layer 1 + 2 (unit + JMeter integration) ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Disable JPMS module path; JMeter plugins use flat classpath -->
+                    <useModulePath>false</useModulePath>
+                    <!-- Fail build if no tests found — prevents silent green on broken suite -->
+                    <failIfNoTests>true</failIfNoTests>
+                    <!-- argLine property populated by jacoco:prepare-agent below -->
+                    <argLine>@{argLine}</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- ── JAR manifest ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Built-By>${user.name}</Built-By>
+                            <X-Compile-Source-JDK>17</X-Compile-Source-JDK>
+                            <X-Compile-Target-JDK>17</X-Compile-Target-JDK>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- ── JaCoCo: instrument → report → enforce 84% line coverage ── -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+
+                    <!-- 1. Prepare JVM agent before tests (sets ${argLine}) -->
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- 2. Generate HTML + XML report after tests, before check -->
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- 3. Fail build if line coverage < 84% -->
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.line.coverage.minimum}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                            <!-- Classes outside Layer 1+2 coverage scope:
+                                 gui/*           — Swing GUI requires JMeter GUI runtime
+                                 BpmListener     — passive consumer, requires JMeter context
+                                 BpmCollector    — CDP collection, requires JMeter context + CDP
+                                 CdpSessionManager — requires live CDP sessions
+                                 ChromeCdpCommandExecutor — requires Selenium/ChromeDriver -->
+                            <excludes>
+                                <exclude>**/gui/**</exclude>
+                                <exclude>**/cli/**</exclude>
+                                <exclude>**/report/**</exclude>
+                                <exclude>**/BpmListener.class</exclude>
+                                <exclude>**/BpmListener$*.class</exclude>
+                                <exclude>**/BpmCollector.class</exclude>
+                                <exclude>**/LabelAggregate.class</exclude>
+                                <exclude>**/FileOpenMode.class</exclude>
+                                <exclude>**/ChromeCdpCommandExecutor.class</exclude>
+                                <exclude>**/CdpSessionManager.class</exclude>
+                                <exclude>**/BpmTimeBucket.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+
+            <!-- ── Build environment guard ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-build-environment</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <fail>true</fail>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[17,)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.8,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!-- =============================================================
+         Profiles
+    ============================================================= -->
+    <profiles>
+
+        <!-- ─────────────────────────────────────────────────────────
+             release — GPG sign, attach sources + javadoc, deploy to
+             Sonatype OSSRH / Maven Central.
+             Activate with: mvn clean deploy -Prelease
+        ───────────────────────────────────────────────────────────── -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+
+                    <!-- Attach sources JAR (-sources.jar) -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Attach Javadoc JAR (-javadoc.jar) -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <source>17</source>
+                            <encoding>UTF-8</encoding>
+                            <!-- Fail on real errors; suppress "missing" warnings
+                                 to tolerate occasional Swing/JMeter API gaps -->
+                            <doclint>all,-missing</doclint>
+                            <failOnError>true</failOnError>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- GPG-sign all artifacts (required by Maven Central) -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <passphrase>${env.MAVEN_GPG_PASSPHRASE}</passphrase>
+                                    <!-- loopback mode: reads passphrase from
+                                         MAVEN_GPG_PASSPHRASE env var in CI -->
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>

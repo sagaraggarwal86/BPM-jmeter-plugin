@@ -1,0 +1,49 @@
+<!-- BPM Executive Summary Template -->
+<!-- Placeholders: {{key}} for values, {{#section}}...{{/section}} for conditional blocks -->
+
+{{kpiCards}}
+
+<div class="es-section">
+    <h3>Overall Assessment</h3>
+    {{healthParagraph}}
+    {{#trendParagraph}}
+    {{trendParagraph}}
+    {{/trendParagraph}}
+    {{#riskParagraph}}
+    {{riskParagraph}}
+    {{/riskParagraph}}
+    {{#actionsParagraph}}
+    {{actionsParagraph}}
+    {{/actionsParagraph}}
+    {{#errorsParagraph}}
+    {{errorsParagraph}}
+    {{/errorsParagraph}}
+</div>
+
+{{#breachSection}}
+<div class="es-section">
+    <h3>Pages Failing Quality Targets</h3>
+    <p>{{breachIntro}}</p>
+    <details class="es-breach-details">
+        <summary>{{breachSummaryLabel}}</summary>
+        <ul class="es-breach-list">
+            {{breachItems}}
+        </ul>
+        {{breachMoreNote}}
+    </details>
+</div>
+{{/breachSection}}
+
+{{#errorSection}}
+<div class="es-section">
+    <h3>JavaScript Errors</h3>
+    <p>{{errorIntro}}</p>
+    <details class="es-error-details">
+        <summary>{{errorSummaryLabel}}</summary>
+        <ul class="es-error-list">
+            {{errorItems}}
+        </ul>
+        {{errorMoreNote}}
+    </details>
+</div>
+{{/errorSection}}

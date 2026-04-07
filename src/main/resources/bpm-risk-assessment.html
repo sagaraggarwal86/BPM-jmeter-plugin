@@ -1,0 +1,119 @@
+<!-- BPM Risk Assessment Template -->
+<!-- Each risk category is a professional card with left-border accent -->
+<!-- Placeholders: {{key}} for values, {{#section}}...{{/section}} for conditional blocks -->
+
+<div class="ra-cards">
+
+    <!-- Capacity Risks (headroom) -->
+    <div class="ra-card ra-{{capacitySeverity}}">
+        <div class="ra-card-header">
+            <span class="ra-dot ra-dot-{{capacitySeverity}}"></span>
+            <h3>Capacity Risks</h3>
+            <span class="ra-badge">{{capacityCount}}</span>
+        </div>
+        <div class="ra-card-body">
+            {{#capacityHasRisks}}
+            <p>These pages are running close to their quality limits. A small increase in traffic
+                or a minor code change could push them into failure.</p>
+            <details class="ra-risk-details">
+                <summary>{{capacityCount}} at risk — show details</summary>
+                <ul class="ra-risk-list">
+                    {{capacityItems}}
+                </ul>
+                {{capacityMoreNote}}
+            </details>
+            {{/capacityHasRisks}}
+            {{#capacityAllClear}}
+            <details>
+                <summary>All clear — show details</summary>
+                <p>All pages have comfortable margin above quality targets. No immediate risk of
+                    failure from minor traffic or code changes.</p>
+            </details>
+            {{/capacityAllClear}}
+        </div>
+    </div>
+
+    <!-- Borderline Pages (boundary risks) -->
+    <div class="ra-card ra-{{borderlineSeverity}}">
+        <div class="ra-card-header">
+            <span class="ra-dot ra-dot-{{borderlineSeverity}}"></span>
+            <h3>Borderline Pages</h3>
+            <span class="ra-badge">{{borderlineCount}}</span>
+        </div>
+        <div class="ra-card-body">
+            {{#borderlineHasRisks}}
+            <p>These pages are close to a quality threshold boundary. A small improvement could
+                upgrade their status; a small regression could downgrade them.</p>
+            <details class="ra-risk-details">
+                <summary>{{borderlineCount}} borderline — show details</summary>
+                <ul class="ra-risk-list">
+                    {{borderlineItems}}
+                </ul>
+                {{borderlineMoreNote}}
+            </details>
+            {{/borderlineHasRisks}}
+            {{#borderlineAllClear}}
+            <details>
+                <summary>All clear — show details</summary>
+                <p>No pages are near quality threshold boundaries. Scores are comfortably within
+                    their current verdict bands.</p>
+            </details>
+            {{/borderlineAllClear}}
+        </div>
+    </div>
+
+    <!-- Unmeasured Navigations (SPA) -->
+    <div class="ra-card ra-{{spaSeverity}}">
+        <div class="ra-card-header">
+            <span class="ra-dot ra-dot-{{spaSeverity}}"></span>
+            <h3>Unmeasured Navigations</h3>
+            <span class="ra-badge">{{spaCount}}</span>
+        </div>
+        <div class="ra-card-body">
+            {{#spaHasLabels}}
+            <p>These pages are in-app navigations where the browser does not perform a full page
+                load. Standard performance metrics cannot be captured for these transitions.</p>
+            <details class="ra-risk-details">
+                <summary>{{spaCount}} unmeasured — show details</summary>
+                <ul class="ra-risk-list">
+                    {{spaItems}}
+                </ul>
+            </details>
+            {{/spaHasLabels}}
+            {{#spaAllClear}}
+            <details>
+                <summary>All clear — show details</summary>
+                <p>All measured pages performed full page loads. No single-page navigations were
+                    detected that would create measurement blind spots.</p>
+            </details>
+            {{/spaAllClear}}
+        </div>
+    </div>
+
+    <!-- Performance Trend -->
+    <div class="ra-card ra-{{trendSeverity}}">
+        <div class="ra-card-header">
+            <span class="ra-dot ra-dot-{{trendSeverity}}"></span>
+            <h3>Performance Trend</h3>
+            <span class="ra-badge">{{trendBadge}}</span>
+        </div>
+        <div class="ra-card-body">
+            {{#trendAvailable}}
+            <p>{{trendStabilityText}}</p>
+            {{#trendHasAlerts}}
+            <ul class="ra-risk-list">
+                {{trendAlertItems}}
+            </ul>
+            {{/trendHasAlerts}}
+            {{/trendAvailable}}
+            {{#trendNoData}}
+            <details>
+                <summary>Not available — show details</summary>
+                <p>Not enough data points to analyze performance trends. At least 4 time buckets
+                    are required. Run a longer test or reduce the chart interval to enable trend analysis.</p>
+            </details>
+            {{/trendNoData}}
+        </div>
+    </div>
+
+</div>

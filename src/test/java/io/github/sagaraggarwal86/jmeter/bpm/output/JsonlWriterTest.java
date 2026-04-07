@@ -1,0 +1,194 @@
+package io.github.sagaraggarwal86.jmeter.bpm.output;
+
+import io.github.sagaraggarwal86.jmeter.bpm.model.BpmResult;
+import io.github.sagaraggarwal86.jmeter.bpm.model.DerivedMetrics;
+import io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Layer 1 unit tests for JsonlWriter.
+ */
+@DisplayName("JsonlWriter")
+class JsonlWriterTest {
+
+    @TempDir
+    Path tempDir;
+
+    private BpmResult createMinimalResult(String label) {
+        DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+        return new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
+                label, true, 100, null, null, null, null, derived);
+    }
+
+    @Test
+    @DisplayName("open() creates file and parent directories")
+    void open_createsFileAndParentDirs() throws IOException {
+        Path nested = tempDir.resolve("sub").resolve("dir").resolve("output.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(nested);
+        writer.close();
+
+        assertTrue(Files.exists(nested));
+    }
+
+    @Test
+    @DisplayName("write() appends one JSON object per line")
+    void write_appendsOneJsonPerLine() throws IOException {
+        Path path = tempDir.resolve("test.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+        writer.write(createMinimalResult("Page A"));
+        writer.write(createMinimalResult("Page B"));
+        writer.close();
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(2, lines.size());
+        assertTrue(lines.get(0).contains("\"Page A\""));
+        assertTrue(lines.get(1).contains("\"Page B\""));
+    }
+
+    @Test
+    @DisplayName("write() flushes after every record")
+    void write_flushesEveryRecord() throws IOException {
+        Path path = tempDir.resolve("flush.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+
+        for (int i = 0; i < 10; i++) {
+            writer.write(createMinimalResult("Page " + i));
+        }
+        // After 10 writes, buffer should have been flushed
+        // Verify by reading the file (should have 10 lines even without close)
+        long size = Files.size(path);
+        assertTrue(size > 0, "File should have data after 10 writes (auto-flush)");
+
+        writer.close();
+    }
+
+    @Test
+    @DisplayName("close() flushes remaining records and allows safe double-close")
+    void close_flushesAndSafeDoubleClose() throws IOException {
+        Path path = tempDir.resolve("close.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+        writer.write(createMinimalResult("Page 1"));
+
+        writer.close();
+        assertFalse(writer.isOpen());
+
+        // Double close should not throw
+        assertDoesNotThrow(writer::close);
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(1, lines.size());
+    }
+
+    @Test
+    @DisplayName("write() without open is a no-op (no exception)")
+    void write_withoutOpen_noException() {
+        JsonlWriter writer = new JsonlWriter();
+        assertDoesNotThrow(() -> writer.write(createMinimalResult("Page")));
+    }
+
+    @Test
+    @DisplayName("open(path) overwrites existing file content")
+    void open_overwritesExistingFile() throws IOException {
+        Path path = tempDir.resolve("overwrite.jsonl");
+        Files.writeString(path, "old content\n");
+
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+        writer.write(createMinimalResult("New"));
+        writer.close();
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(1, lines.size());
+        assertFalse(lines.get(0).contains("old content"));
+        assertTrue(lines.get(0).contains("\"New\""));
+    }
+
+    @Test
+    @DisplayName("write() with null performanceScore does not throw NPE")
+    void write_nullPerformanceScore_noNpe() throws IOException {
+        Path path = tempDir.resolve("nullscore.jsonl");
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path);
+
+        DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), null); // null score
+        BpmResult result = new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
+                "SPA Page", true, 100, null, null, null, null, derived);
+
+        assertDoesNotThrow(() -> writer.write(result));
+        writer.close();
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(1, lines.size());
+        assertTrue(lines.get(0).contains("\"SPA Page\""), "Record should be written despite null score");
+    }
+
+    @Test
+    @DisplayName("flush() without open is a safe no-op")
+    void flush_withoutOpen_noException() {
+        JsonlWriter writer = new JsonlWriter();
+        assertDoesNotThrow(writer::flush);
+    }
+
+    @Test
+    @DisplayName("getOutputPath returns null before open and path after open")
+    void getOutputPath_nullBeforeOpen_pathAfterOpen() throws IOException {
+        JsonlWriter writer = new JsonlWriter();
+        assertNull(writer.getOutputPath());
+
+        Path path = tempDir.resolve("path.jsonl");
+        writer.open(path);
+        assertEquals(path, writer.getOutputPath());
+        writer.close();
+    }
+
+    @Test
+    @DisplayName("isOpen returns false before open, true after open, false after close")
+    void isOpen_lifecycle() throws IOException {
+        JsonlWriter writer = new JsonlWriter();
+        assertFalse(writer.isOpen());
+
+        Path path = tempDir.resolve("lifecycle.jsonl");
+        writer.open(path);
+        assertTrue(writer.isOpen());
+
+        writer.close();
+        assertFalse(writer.isOpen());
+    }
+
+    @Test
+    @DisplayName("open(path, true) appends records after existing content")
+    void open_appendMode_appendsToExistingFile() throws IOException {
+        Path path = tempDir.resolve("append.jsonl");
+
+        // First run: write one record
+        JsonlWriter writer = new JsonlWriter();
+        writer.open(path, false);
+        writer.write(createMinimalResult("First"));
+        writer.close();
+
+        // Second run: append a second record to the same file
+        writer.open(path, true);
+        writer.write(createMinimalResult("Second"));
+        writer.close();
+
+        List<String> lines = Files.readAllLines(path);
+        assertEquals(2, lines.size(), "Append mode must preserve existing records");
+        assertTrue(lines.get(0).contains("\"First\""));
+        assertTrue(lines.get(1).contains("\"Second\""));
+    }
+}
