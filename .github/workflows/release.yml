@@ -39,14 +39,14 @@ jobs:
 
       - name: Assemble distribution zip
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME}"
           DIR="bpm-jmeter-plugin-${VERSION}"
           mkdir -p "${DIR}"
           cp target/bpm-jmeter-plugin-${VERSION}.jar "${DIR}/"
           cp src/main/scripts/bpm-report.sh "${DIR}/"
           chmod +x "${DIR}/bpm-report.sh"
           cp src/main/scripts/bpm-report.bat "${DIR}/"
-          cp docs/bpm.properties "${DIR}/"
+          cp src/main/resources/bpm-default.properties "${DIR}/bpm.properties"
           zip -r "bpm-jmeter-plugin-${VERSION}.zip" "${DIR}"
 
       - name: Create GitHub Release
