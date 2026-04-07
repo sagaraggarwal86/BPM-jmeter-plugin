@@ -24,12 +24,12 @@ jobs:
           cache: maven
       - name: Build and Test
         run: mvn clean verify "-Dgpg.skip=true"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.os == 'windows-latest' && matrix.java-version == '17'
         with:
           name: bpm-jmeter-plugin
           path: target/bpm-jmeter-plugin-*.jar
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest' && matrix.java-version == '17'
         with:
           name: coverage-report
