@@ -78,6 +78,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private JTextField transactionNamesField;
     private JCheckBox regexCheckBox;
     private JComboBox<String> includeExcludeCombo;
+    private JComboBox<String> stabilityFilterCombo;
+    private JComboBox<String> improvementFilterCombo;
     private JTextField testStartField;
     private JTextField testEndField;
     private JTextField testDurationField;
@@ -154,6 +156,36 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             return Integer.parseInt(text);
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    /**
+     * Detects UUID collision caused by copy-paste (clone copies all properties).
+     * If another BpmListener in the GUI tree already owns this UUID, assigns a fresh one.
+     */
+    private static void deduplicateUuid(TestElement element) {
+        String uuid = element.getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, "");
+        if (uuid.isEmpty()) {
+            return;
+        }
+        try {
+            var guiPackage = org.apache.jmeter.gui.GuiPackage.getInstance();
+            if (guiPackage == null) {
+                return;
+            }
+            for (var node : guiPackage.getTreeModel().getNodesOfType(BpmListener.class)) {
+                TestElement other = node.getTestElement();
+                if (other != element && uuid.equals(
+                        other.getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, ""))) {
+                    element.setProperty(BpmConstants.TEST_ELEMENT_ID,
+                            java.util.UUID.randomUUID().toString());
+                    log.debug("BPM: UUID collision detected — reassigned UUID for '{}'",
+                            element.getName());
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+            // Non-GUI mode or tree not available
         }
     }
 
@@ -307,7 +339,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private JPanel createFilterSettingsFieldset() {
         JPanel fieldset = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
         fieldset.setBorder(BorderFactory.createTitledBorder("Filter Settings"));
-        fieldset.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+        fieldset.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
 
         fieldset.add(new JLabel("Start Offset (s):"));
         startOffsetField = new JTextField(4);
@@ -334,6 +366,19 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
         includeExcludeCombo = new JComboBox<>(new String[]{"Include", "Exclude"});
         fieldset.add(includeExcludeCombo);
+
+        fieldset.add(new JLabel("Stability:"));
+        stabilityFilterCombo = new JComboBox<>(new String[]{
+                "All", BpmConstants.STABILITY_STABLE, BpmConstants.STABILITY_MINOR_SHIFTS,
+                BpmConstants.STABILITY_UNSTABLE});
+        fieldset.add(stabilityFilterCombo);
+
+        fieldset.add(new JLabel("Improvement Area:"));
+        improvementFilterCombo = new JComboBox<>(new String[]{
+                "All", BpmConstants.BOTTLENECK_SERVER, BpmConstants.BOTTLENECK_RESOURCE,
+                BpmConstants.BOTTLENECK_CLIENT, BpmConstants.BOTTLENECK_LAYOUT,
+                BpmConstants.BOTTLENECK_RELIABILITY});
+        fieldset.add(improvementFilterCombo);
 
         applyFiltersButton = new JButton("Apply Filters");
         applyFiltersButton.addActionListener(e -> applyAllFilters());
@@ -420,6 +465,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         listener.removeProperty(BpmConstants.TEST_ELEMENT_REGEX);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_INCLUDE);
         listener.removeProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL);
+        listener.removeProperty(BpmConstants.TEST_ELEMENT_STABILITY_FILTER);
+        listener.removeProperty(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER);
         pendingFreshClear = true;
         return listener;
     }
@@ -445,6 +492,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         element.setProperty(BpmConstants.TEST_ELEMENT_REGEX, regexCheckBox.isSelected());
         element.setProperty(BpmConstants.TEST_ELEMENT_INCLUDE, "Include".equals(includeExcludeCombo.getSelectedItem()));
         element.setProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, chartIntervalField.getText().trim());
+        element.setProperty(BpmConstants.TEST_ELEMENT_STABILITY_FILTER,
+                (String) stabilityFilterCombo.getSelectedItem());
+        element.setProperty(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER,
+                (String) improvementFilterCombo.getSelectedItem());
         // Persist column visibility so each listener retains its own selection across saves/loads.
         if (columnSelector != null) {
             boolean[] vis = columnSelector.getVisibility();
@@ -471,6 +522,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             includeExcludeCombo.setSelectedItem(
                     element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
             chartIntervalField.setText(element.getPropertyAsString(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, "0"));
+            String stabFilter = element.getPropertyAsString(BpmConstants.TEST_ELEMENT_STABILITY_FILTER, "All");
+            stabilityFilterCombo.setSelectedItem(stabFilter.isEmpty() ? "All" : stabFilter);
+            String impFilter = element.getPropertyAsString(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER, "All");
+            improvementFilterCombo.setSelectedItem(impFilter.isEmpty() ? "All" : impFilter);
             if (element instanceof BpmListener listener) {
                 // Assign a stable UUID if missing (old .jmx files saved before UUID support).
                 // Must happen before any early return so testStarted() can distinguish elements.
@@ -478,6 +533,11 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                     element.setProperty(BpmConstants.TEST_ELEMENT_ID,
                             java.util.UUID.randomUUID().toString());
                 }
+                // Detect UUID collision from copy-paste (clone() copies all properties
+                // including the UUID). If another element in the tree already owns this
+                // UUID, assign a fresh one so testStarted() registers distinct primaries
+                // and sampleOccurred() doesn't double-count.
+                deduplicateUuid(element);
                 // Wire listenerRef before any early return so that browseFile()
                 // can persist the selected path to the backing element even for freshly-created listeners.
                 this.listenerRef = listener;
@@ -495,6 +555,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                         transactionNamesField.getText().trim(),
                         regexCheckBox.isSelected(),
                         "Include".equals(includeExcludeCombo.getSelectedItem()));
+                tableModel.setDropdownFilters(
+                        (String) stabilityFilterCombo.getSelectedItem(),
+                        (String) improvementFilterCombo.getSelectedItem());
 
                 // Always sync GUI with the element's authoritative data (Aggregate Report pattern).
                 String eid = BpmListener.buildElementKey(element);
@@ -591,6 +654,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                         bl.setProperty(BpmConstants.TEST_ELEMENT_REGEX, false);
                         bl.setProperty(BpmConstants.TEST_ELEMENT_INCLUDE, true);
                         bl.setProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, "0");
+                        bl.setProperty(BpmConstants.TEST_ELEMENT_STABILITY_FILTER, "All");
+                        bl.setProperty(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER, "All");
                     }
                 }
             }
@@ -646,6 +711,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             transactionNamesField.setText("");
             regexCheckBox.setSelected(false);
             includeExcludeCombo.setSelectedIndex(0); // "Include"
+            stabilityFilterCombo.setSelectedIndex(0); // "All"
+            improvementFilterCombo.setSelectedIndex(0); // "All"
             chartIntervalField.setText("0");
         } finally {
             configuringElement = false;
@@ -960,6 +1027,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 transactionNamesField.getText().trim(),
                 regexCheckBox.isSelected(),
                 "Include".equals(includeExcludeCombo.getSelectedItem()));
+        tableModel.setDropdownFilters(
+                (String) stabilityFilterCombo.getSelectedItem(),
+                (String) improvementFilterCombo.getSelectedItem());
         rebuildTableFromRaw();
     }
 

@@ -77,7 +77,7 @@ Sampler via Chrome DevTools Protocol. Includes HTML performance reports with tre
 | `gui`        | `BpmListenerGui` (Swing table + report button), `BpmTableModel`, `BpmCellRenderer` (SLA color-coded cells), `TooltipTableHeader`, `ColumnSelectorPopup`, `TotalPinnedRowSorter`                                                                                                                                                                                    |
 | `report`     | `BpmHtmlReportRenderer` (Chart.js), `BpmHtmlReportRenderer.RenderConfig` (metadata + SLA thresholds), `BpmReportCoordinator` (returns `GenerateResult` with html + suggestedFilename), `BpmReportLauncher`, `ReportDataBuilder` (pre-computed verdicts + risks), `ReportData`, `ReportPanelBuilder` (template-based panel rendering), `TrendAnalyzer`, `TrendData` |
 | `cli`        | `Main` (entry point, exit codes 0-4), `CliArgs` (zero-dep parser: -i, -o, --search, --regex, --exclude, --chart-interval, --scenario-name, --virtual-users), `BpmCliReportPipeline`, `TimeBucketBuilder`, `BpmParseException`                                                                                                                                      |
-| `util`       | `JsSnippets`, `ConsoleSanitizer`, `BpmConstants`, `BpmDebugLogger`, `TypeConverters` (shared toDouble/toLong/toInt), `BpmFileUtils` (ensureParentDirectories), `HtmlUtils` (escapeHtml)                                                                                                                                                                            |
+| `util`       | `JsSnippets`, `ConsoleSanitizer`, `BpmConstants`, `BpmDebugLogger`, `TypeConverters` (shared toDouble/toLong/toInt), `BpmFileUtils` (ensureParentDirectories), `HtmlUtils` (escapeHtml, severityTag)                                                                                                                                                               |
 | `error`      | `BpmErrorHandler`, `LogOnceTracker`                                                                                                                                                                                                                                                                                                                                |
 
 ### Key Design Decisions
@@ -138,51 +138,62 @@ Sampler via Chrome DevTools Protocol. Includes HTML performance reports with tre
 - **All Java-generated**: All 6 panels are rendered entirely in Java. No external API calls.
 - **CSS/JS externalized**: Report CSS in `bpm-report.css`, interactive JS in `bpm-report.js` — both loaded from
   classpath and cached in static fields at class init. CSS/JS are inlined into the HTML `<style>`/`<script>` tags
-  at render time. Chart.js and SheetJS bundled as classpath resources with CDN fallback via `inlineOrCdn()`.
+  at render time. Chart.js and xlsx-js-style bundled as classpath resources with CDN fallback via `inlineOrCdn()`.
 - **`ReportDataBuilder`**: Pre-computes SLA verdicts (`VERDICT_GOOD`/`VERDICT_NEEDS_WORK`/`VERDICT_POOR`),
-  risk assessments (headroom, boundary, SPA blind spots), best/worst performers, error summaries, and trend
-  analysis from per-label aggregates. Returns structured `ReportData` record. No label cap — all transactions
-  processed.
+  risk assessments (headroom, boundary, SPA blind spots), best/worst performers, weighted score/LCP, error
+  summaries, and trend analysis from per-label aggregates. Returns structured `ReportData` record (single source
+  of truth for all panels). No label cap — all transactions processed.
 - **`ReportPanelBuilder`**: Template-based rendering for Executive Summary and Risk Assessment panels.
-  Loads HTML templates from classpath (`bpm-executive-summary.html`, `bpm-risk-assessment.html`),
-  replaces `{{placeholder}}` markers, handles conditional `{{#section}}...{{/section}}` blocks.
+  Templates cached in static fields at class init. Replaces `{{placeholder}}` markers, handles conditional
+  `{{#section}}...{{/section}}` blocks. Breach items grouped by bottleneck type with nested expandable
+  page lists. Error items use ratio-based relative frequency labels.
 - **`TrendAnalyzer`**: Splits time-series into first/second half, computes direction (RISING/FALLING/STABLE),
   percentage changes, and pre-written alert sentences. Returns `TrendData` record. Requires ≥4 time buckets.
 - **Verdict constants**: `BpmConstants.VERDICT_GOOD/NEEDS_WORK/POOR/NA` are the single source of truth.
-  `verdictToCss()` maps to CSS classes (`sla-pass/sla-warn/sla-fail/sla-na`).
-  `verdictToDisplay()` maps to human labels (`Pass/Warning/Fail`).
+  `verdictToCss()` maps to CSS classes. `verdictToDisplay()` maps to human labels. `verdictToIcon()` maps
+  to accessibility icons (checkmark/warning/cross).
+- **Trend constants**: `BpmConstants.TREND_STABLE/MOSTLY_STABLE/DEGRADING` for trend stability labels.
+  Shared `trendStabilityText()` in ReportPanelBuilder produces consistent prose across panels.
+- **Bottleneck display names**: `BpmConstants.BOTTLENECK_DISPLAY_NAMES` maps bottleneck constants to
+  friendly names (e.g., "Reduce Server Response" → "Slow Server Response") used in breach and findings cards.
+- **Single source of truth**: `ReportData` is the authoritative data source for all panels — Executive
+  Summary, KPI cards, SLA Compliance summary, Critical Findings, and Risk Assessment all read from the same
+  pre-computed record. No independent verdict re-computation from string data.
 - **Accessibility**: ARIA tab pattern (role=tablist/tab/tabpanel, aria-selected, aria-controls, keyboard
-  navigation with arrow keys). SLA cells include accessibility icons (checkmark/warning/cross) alongside color.
-  Dark mode via `@media (prefers-color-scheme: dark)` in CSS.
+  navigation with arrow keys). SLA cells use color + accessibility icons. Dark mode via `@media
+  (prefers-color-scheme: dark)` + manual toggle (`html[data-theme]`).
 - **CLI workflow** (two-step):
   ```
   jmeter -n -t test.jmx -Jbpm.output=results.jsonl    # Step 1: run test
   bpm-report -i results.jsonl                           # Step 2: generate report
   ```
 - **HTML report panels** (6 total):
-    1. Executive Summary — KPI cards + descriptive prose (overall assessment, breach summary, best/worst, errors)
+    1. Executive Summary — KPI cards (from ReportData) + 5-paragraph narrative (health, trend, risk, actions,
+       errors). Breaches grouped by bottleneck with nested expandable page lists. Errors with relative frequency.
     2. Performance Metrics — full data table with pagination, sorting, search, sticky label column
     3. Performance Trends — 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render Time) with SLA lines +
-       per-label filter
-    4. SLA Compliance — verdict matrix with Pass/Warning/Fail per metric, verdict badges, search
-    5. Critical Findings — context-aware bottleneck findings with root cause, impact, recommended action
-    6. Risk Assessment — severity-colored cards (capacity risks, borderline pages, unmeasured navigations, trend);
+       per-label filter. Render Time shows "No SLA threshold" subtitle.
+    4. SLA Compliance — color + icon verdict matrix (no text badges), intro line, thresholds above table
+    5. Critical Findings — grouped by bottleneck type, expandable cards with 4-part recommendations
+       (what to do, quick win, long-term fix, expected outcome), expandable transaction lists
+    6. Risk Assessment — professional cards with CSS status dots and left-border accent (no emojis);
        green "all clear" cards collapsed via `<details>` element
 - **Report features**: sidebar navigation (ARIA tabs + keyboard nav), metadata grid, page-based pagination +
-  column sorting on all tables, transaction search, Excel export (SheetJS with grey-out fallback),
-  print/PDF CSS, save dialog (JFileChooser), dark mode, scroll shadow indicators, Chart.js CDN fallback.
+  column sorting on all tables, transaction search, styled Excel export (xlsx-js-style with header styling,
+  SLA cell coloring, auto column widths), dark mode toggle (auto/dark/light cycle), save dialog (JFileChooser),
+  scroll shadow indicators, Chart.js CDN fallback.
 - **CLI exit codes**: 0 = success, 1 = bad args, 2 = parse error, 3 = write error, 4 = unexpected.
 - **CLI pipeline**: parse JSONL → apply label filter (--search/--regex/--exclude) → load properties →
   build report data → render HTML → save file.
 
 ### Resource Files
 
-- `bpm-executive-summary.html` — Executive Summary panel template with `{{placeholder}}` markers.
-- `bpm-risk-assessment.html` — Risk Assessment panel template with severity-colored cards and collapsible green cards.
-- `bpm-report.css` — All report CSS (layout, tables, SLA colors, verdict badges, dark mode, print styles, scroll
-  shadows). Cached in `BpmHtmlReportRenderer` static field at class init.
-- `bpm-report.js` — Interactive JS (panel switching with ARIA, table pagination/sorting, search filter, Excel export,
-  scroll shadow detection, error banner helper). Cached in static field at class init.
+- `bpm-executive-summary.html` — Executive Summary template: 5-paragraph assessment, expandable breach/error sections.
+- `bpm-risk-assessment.html` — Risk Assessment template: professional cards with CSS dots, expandable risk items.
+- `bpm-report.css` — All report CSS (layout, tables, SLA colors, dark mode auto + manual toggle, critical findings
+  cards, breach/error expandables, risk assessment dots, scroll shadows). Cached in static field.
+- `bpm-report.js` — Interactive JS (panel switching with ARIA, table pagination/sorting, search filter, styled Excel
+  export via xlsx-js-style, dark mode toggle, scroll shadow detection, error banner helper). Cached in static field.
 - `chart.umd.min.js` — Chart.js 4.4.1 bundled for offline use. Falls back to CDN if missing.
 - `xlsx-style.bundle.js` — xlsx-js-style 1.2.0 (SheetJS fork with cell styling) bundled for offline use. Falls back to
   CDN if missing. Excel button greyed out if neither source loads.
@@ -196,8 +207,9 @@ Sampler via Chrome DevTools Protocol. Includes HTML performance reports with tre
 - `performanceScore` is `Integer` (nullable) everywhere — unboxing `null` to `int` will NPE and silently abort JSONL
   writes.
 - `BpmConstants` is the single source of truth — never hardcode column indices, label strings, property keys, verdict
-  strings (`VERDICT_*`), or bottleneck labels (`BOTTLENECK_*`) outside it. Use `verdictToCss()`/`verdictToDisplay()`
-  for verdict rendering.
+  strings (`VERDICT_*`), bottleneck labels (`BOTTLENECK_*`), trend stability labels (`TREND_*`), or bottleneck
+  display names (`BOTTLENECK_DISPLAY_NAMES`) outside it. Use `verdictToCss()`/`verdictToDisplay()`/`verdictToIcon()`
+  for verdict rendering. Use `HtmlUtils.severityTag()` for Critical/Warning badge HTML.
 - JSONL schema (`DerivedMetrics`, `BpmResult` `@JsonProperty` names) is public and backward-compatible — field renames
   are breaking changes.
 - `BpmConstants.TEST_ELEMENT_*` key strings are stored in `.jmx` files — renaming breaks existing test plans.

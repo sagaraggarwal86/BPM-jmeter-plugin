@@ -225,31 +225,32 @@ need to dig deeper.
 Click **Generate HTML Report** to create a comprehensive performance analysis report.
 A save dialog lets you choose where to save the HTML file. The report opens automatically in your browser.
 
-No external API keys or internet connection required (except for Chart.js and SheetJS CDN in the browser).
+No external API keys or internet connection required (except for Chart.js and xlsx-js-style CDN in the browser).
 
 ### Report Panels
 
-| # | Panel               | Description                                                                             |
-|---|---------------------|-----------------------------------------------------------------------------------------|
-| 1 | Executive Summary   | KPI cards + descriptive prose: overall assessment, breaches, best/worst, errors         |
-| 2 | Performance Metrics | Full data table with pagination, column sorting, and transaction search                 |
-| 3 | Performance Trends  | 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render) with SLA threshold lines         |
-| 4 | SLA Compliance      | Pass/Warning/Fail verdict matrix per metric per transaction                             |
-| 5 | Critical Findings   | Only transactions needing attention, with root cause and recommended actions            |
-| 6 | Risk Assessment     | Severity-colored cards: capacity risks, borderline pages, unmeasured navigations, trend |
+| # | Panel               | Description                                                                                         |
+|---|---------------------|-----------------------------------------------------------------------------------------------------|
+| 1 | Executive Summary   | KPI cards + 5-paragraph narrative. Breaches grouped by bottleneck. Errors with relative frequency   |
+| 2 | Performance Metrics | Full data table with pagination, column sorting, and transaction search                             |
+| 3 | Performance Trends  | 6 Chart.js charts (Score, LCP, FCP, TTFB, CLS, Render) with SLA threshold lines                     |
+| 4 | SLA Compliance      | Color + icon verdict matrix per metric per transaction                                              |
+| 5 | Critical Findings   | Grouped by bottleneck type with 4-part recommendations (what to do, quick win, long-term, outcome)  |
+| 6 | Risk Assessment     | Professional cards with status indicators: capacity risks, borderline pages, unmeasured navs, trend |
 
 ### Report Features
 
-- Sidebar panel navigation
+- Sidebar panel navigation with ARIA keyboard support
 - Metadata grid (scenario name, virtual users, run date/time, duration)
+- Dark mode toggle (auto / dark / light) — auto-detects OS preference
 - Page-based pagination with configurable rows per page (10/25/50/100)
 - Click-to-sort on all table columns (ascending/descending)
 - Transaction search filter (Performance Metrics + SLA Compliance)
 - Per-transaction chart filter in Performance Trends
 - SLA threshold lines on charts (green for Score, red for LCP/FCP/TTFB/CLS)
-- Excel export via SheetJS (all transactions, not limited by pagination)
-- Print/PDF CSS for offline sharing
-- Self-contained HTML — one file, no external dependencies except Chart.js and SheetJS CDN
+- Styled Excel export with header styling, SLA cell coloring, and auto column widths
+- Progressive disclosure — expandable sections throughout (breach details, transaction lists, risk items)
+- Self-contained HTML — one file, no external dependencies except Chart.js and xlsx-js-style CDN
 
 ---
 
@@ -438,8 +439,8 @@ A test plan may contain more than one BPM Listener element. Each instance operat
 - **WebDriver Sampler required:** BPM instruments only WebDriver Samplers. HTTP Samplers and
   other sampler types are silently skipped.
 - **Pure observer:** BPM never modifies SampleResults, JTL output, or other listeners' behavior.
-- **Charts require internet:** The HTML report loads Chart.js and SheetJS from CDNs. Open in a
-  browser with internet access for charts and Excel export to work.
+- **Charts require internet:** The HTML report loads Chart.js and xlsx-js-style from CDNs if not
+  bundled. Open in a browser with internet access for charts and Excel export to work.
 
 ---
 

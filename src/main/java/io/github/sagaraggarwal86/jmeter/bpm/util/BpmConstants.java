@@ -89,6 +89,14 @@ public final class BpmConstants {
      * {@code BpmListener.primaryByName} to allow multiple distinct BpmListener
      * elements in one test plan to each run their own setup independently.
      */
+    /**
+     * TestElement property key: stability category filter (GUI only). "All" = no filter.
+     */
+    public static final String TEST_ELEMENT_STABILITY_FILTER = "bpm.stabilityFilter";
+    /**
+     * TestElement property key: improvement area filter (GUI only). "All" = no filter.
+     */
+    public static final String TEST_ELEMENT_IMPROVEMENT_FILTER = "bpm.improvementFilter";
     public static final String TEST_ELEMENT_ID = "bpm.elementId";
     /**
      * Property key: enable/disable Web Vitals metric collection tier.

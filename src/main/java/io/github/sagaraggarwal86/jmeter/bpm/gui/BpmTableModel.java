@@ -21,6 +21,8 @@ public class BpmTableModel extends AbstractTableModel {
     private Pattern txCompiledPattern;
     private boolean txRegex;
     private boolean txInclude = true;
+    private String stabilityFilter;       // null or "All" = no filter
+    private String improvementFilter;     // null or "All" = no filter
     private List<RowData> filteredRows;
 
     private static boolean matchesTransaction(String label, String pattern, Pattern compiled, boolean useRegex) {
@@ -99,6 +101,15 @@ public class BpmTableModel extends AbstractTableModel {
         this.filteredRows = null;
     }
 
+    /**
+     * Sets the stability and improvement area filters. "All" or null means no filter.
+     */
+    public void setDropdownFilters(String stability, String improvement) {
+        this.stabilityFilter = (stability == null || "All".equals(stability)) ? null : stability;
+        this.improvementFilter = (improvement == null || "All".equals(improvement)) ? null : improvement;
+        this.filteredRows = null;
+    }
+
     public void addOrUpdateResult(BpmResult result) {
         String label = result.samplerLabel();
         RowData row = rows.computeIfAbsent(label, k -> new RowData(label));
@@ -123,6 +134,18 @@ public class BpmTableModel extends AbstractTableModel {
                     continue;
                 }
                 if (!txInclude && matches) {
+                    continue;
+                }
+            }
+            // Stability filter: match against lastStabilityCategory
+            if (stabilityFilter != null) {
+                if (!stabilityFilter.equals(row.lastStabilityCategory)) {
+                    continue;
+                }
+            }
+            // Improvement area filter: match against lastImprovementArea
+            if (improvementFilter != null) {
+                if (!improvementFilter.equals(row.lastImprovementArea)) {
                     continue;
                 }
             }
