@@ -214,4 +214,56 @@ class BpmErrorHandlerTest {
         // Different thread, same key — first time
         assertTrue(tracker.markOnce("Thread-2", "reinit-success"));
     }
+
+    @Test
+    @DisplayName("hasWarned returns false for unlogged warning")
+    void trackerHasWarned_unlogged_returnsFalse() {
+        assertFalse(tracker.hasWarned("Thread-1", "never-logged"));
+    }
+
+    @Test
+    @DisplayName("markReInitSuccess logs INFO first time and DEBUG second time")
+    void markReInitSuccess_firstInfoThenDebug() {
+        handler.handleCollectionError("Thread-1", new RuntimeException("err"));
+        handler.markReInitSuccess("Thread-1");  // first time — markOnce returns true
+        assertEquals(1, handler.getReInitCount());
+
+        // Second re-init on same thread — markOnce returns false (DEBUG path)
+        handler.handleCollectionError("Thread-1", new RuntimeException("err2"));
+        handler.markReInitSuccess("Thread-1");
+        assertEquals(2, handler.getReInitCount());
+        assertEquals(BpmErrorHandler.ThreadState.HEALTHY, handler.getThreadState("Thread-1"));
+    }
+
+    @Test
+    @DisplayName("handleSessionError on already DISABLED thread increments failure count")
+    void handleSessionError_onAlreadyDisabled_incrementsCount() {
+        handler.handleCollectionError("Thread-1", new RuntimeException("err"));
+        handler.handleSessionError("Thread-1", new RuntimeException("fail1"));
+        assertTrue(handler.isThreadDisabled("Thread-1"));
+        int countBefore = handler.getFailureCount();
+
+        handler.handleSessionError("Thread-1", new RuntimeException("fail2"));
+        assertTrue(handler.isThreadDisabled("Thread-1"));
+        assertEquals(countBefore + 1, handler.getFailureCount());
+    }
+
+    @Test
+    @DisplayName("needsReInit returns false for HEALTHY and DISABLED threads")
+    void needsReInit_falseForHealthyAndDisabled() {
+        assertFalse(handler.needsReInit("Thread-1")); // HEALTHY
+        handler.handleCollectionError("Thread-1", new RuntimeException("err"));
+        handler.handleSessionError("Thread-1", new RuntimeException("fail"));
+        assertFalse(handler.needsReInit("Thread-1")); // DISABLED
+    }
+
+    @Test
+    @DisplayName("getLoggedCount increments correctly with different keys")
+    void trackerGetLoggedCount_differentKeys() {
+        assertEquals(0, tracker.getLoggedCount());
+        tracker.warnOnce("T1", "key1", "msg");
+        tracker.warnOnce("T1", "key2", "msg");
+        tracker.warnOnce("T1", "key1", "msg"); // duplicate
+        assertEquals(2, tracker.getLoggedCount());
+    }
 }

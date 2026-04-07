@@ -85,4 +85,43 @@ class BpmConstantsTest {
         assertNull(BpmConstants.getStabilityValueTooltip(null));
         assertNull(BpmConstants.getStabilityValueTooltip("Unknown"));
     }
+
+    // ── verdictToDisplay ──
+
+    @Test
+    @DisplayName("verdictToDisplay maps all verdicts correctly")
+    void verdictToDisplay_allVerdicts() {
+        assertEquals("Pass", BpmConstants.verdictToDisplay(BpmConstants.VERDICT_GOOD));
+        assertEquals("Warning", BpmConstants.verdictToDisplay(BpmConstants.VERDICT_NEEDS_WORK));
+        assertEquals("Fail", BpmConstants.verdictToDisplay(BpmConstants.VERDICT_POOR));
+        assertNull(BpmConstants.verdictToDisplay(BpmConstants.VERDICT_NA));
+        assertNull(BpmConstants.verdictToDisplay(null));
+        assertNull(BpmConstants.verdictToDisplay("UNKNOWN"));
+    }
+
+    // ── verdictToIcon ──
+
+    @Test
+    @DisplayName("verdictToIcon maps all verdicts correctly")
+    void verdictToIcon_allVerdicts() {
+        assertEquals("\u2713 ", BpmConstants.verdictToIcon(BpmConstants.VERDICT_GOOD));
+        assertEquals("\u26A0 ", BpmConstants.verdictToIcon(BpmConstants.VERDICT_NEEDS_WORK));
+        assertEquals("\u2717 ", BpmConstants.verdictToIcon(BpmConstants.VERDICT_POOR));
+        assertEquals("", BpmConstants.verdictToIcon(BpmConstants.VERDICT_NA));
+        assertEquals("", BpmConstants.verdictToIcon(null));
+        assertEquals("", BpmConstants.verdictToIcon("UNKNOWN"));
+    }
+
+    // ── verdictToCss ──
+
+    @Test
+    @DisplayName("verdictToCss maps all verdicts correctly")
+    void verdictToCss_allVerdicts() {
+        assertEquals("sla-pass", BpmConstants.verdictToCss(BpmConstants.VERDICT_GOOD));
+        assertEquals("sla-warn", BpmConstants.verdictToCss(BpmConstants.VERDICT_NEEDS_WORK));
+        assertEquals("sla-fail", BpmConstants.verdictToCss(BpmConstants.VERDICT_POOR));
+        assertEquals("sla-na", BpmConstants.verdictToCss(BpmConstants.VERDICT_NA));
+        assertEquals("sla-na", BpmConstants.verdictToCss(null));
+        assertEquals("sla-na", BpmConstants.verdictToCss("UNKNOWN"));
+    }
 }

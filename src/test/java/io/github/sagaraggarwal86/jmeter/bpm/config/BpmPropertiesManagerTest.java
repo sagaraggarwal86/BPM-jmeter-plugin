@@ -164,6 +164,140 @@ class BpmPropertiesManagerTest {
         assertEquals(BpmConstants.DEFAULT_SLA_LCP_GOOD, mgr.getSlaLcpGood());
     }
 
+    @Test
+    @DisplayName("detectVersion returns null when version not in first 5 lines")
+    void detectVersion_noVersionHeader_returnsNull(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        Files.writeString(propsPath,
+                "# Some comment\n# Another comment\n# Third line\n# Fourth line\n# Fifth line\nmetrics.webvitals=true\n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        assertNull(mgr.detectVersion(propsPath));
+    }
+
+    @Test
+    @DisplayName("detectVersion returns null for non-existent file")
+    void detectVersion_nonExistentFile_returnsNull(@TempDir Path tempDir) {
+        Path propsPath = tempDir.resolve("does-not-exist.properties");
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        assertNull(mgr.detectVersion(propsPath));
+    }
+
+    @Test
+    @DisplayName("Properties not loaded returns defaults (null properties)")
+    void noLoad_returnsDefaults() {
+        // Don't call load() — properties stays null
+        TestablePropertiesManager mgr = new TestablePropertiesManager(Path.of("fake.properties"));
+
+        assertEquals(BpmConstants.DEFAULT_SLA_FCP_GOOD, mgr.getSlaFcpGood());
+        assertEquals(BpmConstants.DEFAULT_NETWORK_TOP_N, mgr.getNetworkTopN());
+        assertEquals(BpmConstants.DEFAULT_SLA_CLS_GOOD, mgr.getSlaClsGood(), 0.001);
+        assertTrue(mgr.isWebVitalsEnabled());
+        assertTrue(mgr.isSanitizeEnabled());
+        assertFalse(mgr.isDebugEnabled());
+        assertEquals(BpmConstants.DEFAULT_OUTPUT_FILENAME, mgr.getOutputPath());
+    }
+
+    @Test
+    @DisplayName("Blank property values fall back to defaults")
+    void load_blankValues_fallBackToDefaults(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        Files.writeString(propsPath,
+                "# Browser Performance Metrics (BPM) v1.0\n"
+                        + "sla.fcp.good=   \n"
+                        + "network.topN=\n"
+                        + "sla.cls.good=  \n"
+                        + "metrics.webvitals=  \n"
+                        + "bpm.debug=  \n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        mgr.load();
+
+        assertEquals(BpmConstants.DEFAULT_SLA_FCP_GOOD, mgr.getSlaFcpGood());
+        assertEquals(BpmConstants.DEFAULT_NETWORK_TOP_N, mgr.getNetworkTopN());
+        assertEquals(BpmConstants.DEFAULT_SLA_CLS_GOOD, mgr.getSlaClsGood(), 0.001);
+        assertTrue(mgr.isWebVitalsEnabled());
+        assertFalse(mgr.isDebugEnabled());
+    }
+
+    @Test
+    @DisplayName("getOutputPath reads bpm.output from properties file")
+    void getOutputPath_fromPropertiesFile(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        Files.writeString(propsPath,
+                "# Browser Performance Metrics (BPM) v1.0\nbpm.output=custom-output.jsonl\n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        mgr.load();
+
+        assertEquals("custom-output.jsonl", mgr.getOutputPath());
+    }
+
+    @Test
+    @DisplayName("Version null triggers backup with .old.bak suffix")
+    void load_nullVersion_backsUpWithOldSuffix(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        // No version header — detectVersion returns null, != CURRENT_VERSION
+        Files.writeString(propsPath, "# No version here\nsla.fcp.good=1234\n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        mgr.load();
+
+        Path backupPath = tempDir.resolve("bpm.properties.old.bak");
+        assertTrue(Files.exists(backupPath), "Backup with .old.bak suffix should be created");
+    }
+
+    @Test
+    @DisplayName("Boolean property with non-true value returns false")
+    void load_booleanNonTrue_returnsFalse(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        Files.writeString(propsPath,
+                "# Browser Performance Metrics (BPM) v1.0\nmetrics.webvitals=maybe\nsecurity.sanitize=yes\n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        mgr.load();
+
+        // Boolean.parseBoolean returns false for anything that isn't "true"
+        assertFalse(mgr.isWebVitalsEnabled());
+        assertFalse(mgr.isSanitizeEnabled());
+    }
+
+    @Test
+    @DisplayName("All SLA getters return correct values from properties file")
+    void load_allSlaGetters(@TempDir Path tempDir) throws IOException {
+        Path propsPath = tempDir.resolve("bpm.properties");
+        Files.writeString(propsPath,
+                "# Browser Performance Metrics (BPM) v1.0\n"
+                        + "sla.fcp.good=100\nsla.fcp.poor=200\n"
+                        + "sla.lcp.good=300\nsla.lcp.poor=400\n"
+                        + "sla.cls.good=0.05\nsla.cls.poor=0.15\n"
+                        + "sla.ttfb.good=500\nsla.ttfb.poor=600\n"
+                        + "sla.jserrors.good=1\nsla.jserrors.poor=5\n"
+                        + "sla.score.good=80\nsla.score.poor=40\n",
+                StandardCharsets.UTF_8);
+
+        TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
+        mgr.load();
+
+        assertEquals(100, mgr.getSlaFcpGood());
+        assertEquals(200, mgr.getSlaFcpPoor());
+        assertEquals(300, mgr.getSlaLcpGood());
+        assertEquals(400, mgr.getSlaLcpPoor());
+        assertEquals(0.05, mgr.getSlaClsGood(), 0.001);
+        assertEquals(0.15, mgr.getSlaClsPoor(), 0.001);
+        assertEquals(500, mgr.getSlaTtfbGood());
+        assertEquals(600, mgr.getSlaTtfbPoor());
+        assertEquals(1, mgr.getSlaJsErrorsGood());
+        assertEquals(5, mgr.getSlaJsErrorsPoor());
+        assertEquals(80, mgr.getSlaScoreGood());
+        assertEquals(40, mgr.getSlaScorePoor());
+    }
+
     /**
      * Subclass that redirects properties path to a temp directory
      * and stubs out JMeterUtils calls.

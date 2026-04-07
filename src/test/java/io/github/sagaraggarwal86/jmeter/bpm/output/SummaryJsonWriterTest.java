@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -102,5 +103,67 @@ class SummaryJsonWriterTest {
         JsonNode spaDetail = root.get("details").get(1);
         assertTrue(spaDetail.get("score").isNull(), "SPA-stale label score must be JSON null");
         assertEquals("N/A", spaDetail.get("lcpVerdict").asText(), "lcp=0 verdict must be N/A");
+    }
+
+    @Test
+    @DisplayName("deriveSummaryPath appends -summary.json for non-.jsonl filename")
+    void deriveSummaryPath_nonJsonlExtension() {
+        Path input = Path.of("/some/dir/results.txt");
+        Path result = SummaryJsonWriter.deriveSummaryPath(input);
+        assertEquals("results.txt-summary.json", result.getFileName().toString());
+    }
+
+    @Test
+    @DisplayName("deriveSummaryPath handles bare filename with no parent")
+    void deriveSummaryPath_bareFilename() {
+        Path input = Path.of("output.jsonl");
+        Path result = SummaryJsonWriter.deriveSummaryPath(input);
+        assertEquals("output-summary.json", result.getFileName().toString());
+    }
+
+    @Test
+    @DisplayName("buildSummaryJson handles non-String label and non-Number values gracefully")
+    void buildSummaryJson_nonTypedValues() {
+        Map<String, Object> stat = new HashMap<>();
+        stat.put("label", 12345);         // not a String
+        stat.put("score", "not-a-number"); // not a Number
+        stat.put("lcp", "bad");            // not a Number
+        stat.put("bottleneck", 99);        // not a String
+        stat.put("samples", "ten");        // not a Number
+
+        SummaryJsonWriter writer = new SummaryJsonWriter();
+        JsonNode root = mapper.valueToTree(writer.buildSummaryJson(List.of(stat), 4000L, 50));
+
+        JsonNode detail = root.get("details").get(0);
+        assertEquals("", detail.get("label").asText());
+        assertTrue(detail.get("score").isNull());
+        assertEquals(0, detail.get("lcp").asLong());
+        assertEquals("", detail.get("bottleneck").asText());
+        assertEquals(0, root.get("totalSamples").asInt());
+    }
+
+    @Test
+    @DisplayName("verdict is FAIL when overall score below poor threshold")
+    void buildSummaryJson_lowScore_verdictFail() {
+        List<Map<String, Object>> stats = List.of(
+                Map.of("label", "Slow", "score", 30, "lcp", 2000L, "bottleneck", "Server", "samples", 10));
+
+        SummaryJsonWriter writer = new SummaryJsonWriter();
+        JsonNode root = mapper.valueToTree(writer.buildSummaryJson(stats, 4000L, 50));
+
+        assertEquals("FAIL", root.get("verdict").asText());
+        assertEquals(30, root.get("overallScore").asInt());
+    }
+
+    @Test
+    @DisplayName("empty stats produces zero totals and FAIL verdict")
+    void buildSummaryJson_emptyStats() {
+        SummaryJsonWriter writer = new SummaryJsonWriter();
+        JsonNode root = mapper.valueToTree(writer.buildSummaryJson(List.of(), 4000L, 50));
+
+        assertEquals("FAIL", root.get("verdict").asText());
+        assertEquals(0, root.get("overallScore").asInt());
+        assertEquals(0, root.get("totalSamples").asInt());
+        assertEquals(0, root.get("slaBreaches").asInt());
     }
 }

@@ -102,8 +102,8 @@
         <maven-enforcer-plugin.version>3.5.0
         </maven-enforcer-plugin.version>
 
-        <!-- JaCoCo threshold — 84% line coverage on the main bundle -->
-        <jacoco.line.coverage.minimum>0.84</jacoco.line.coverage.minimum>
+        <!-- JaCoCo threshold — 90% line coverage on the main bundle -->
+        <jacoco.line.coverage.minimum>0.90</jacoco.line.coverage.minimum>
     </properties>
 
     <!-- =============================================================
@@ -265,7 +265,7 @@
                     <!-- Fail build if no tests found — prevents silent green on broken suite -->
                     <failIfNoTests>true</failIfNoTests>
                     <!-- argLine property populated by jacoco:prepare-agent below -->
-                    <argLine>@{argLine}</argLine>
+                    <argLine>@{argLine} -Djava.awt.headless=true</argLine>
                 </configuration>
             </plugin>
 

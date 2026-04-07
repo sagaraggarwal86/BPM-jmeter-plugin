@@ -228,9 +228,24 @@ try {
         left: {style: 'thin', color: {rgb: 'E2E8F0'}},
         right: {style: 'thin', color: {rgb: 'E2E8F0'}}
     };
-    var SLA_PASS = {font: {color: {rgb: '276749'}, bold: true}, fill: {fgColor: {rgb: 'F0FFF4'}}, border: CELL_BORDER, alignment: {horizontal: 'center'}};
-    var SLA_WARN = {font: {color: {rgb: 'B7791F'}, bold: true}, fill: {fgColor: {rgb: 'FFFFF0'}}, border: CELL_BORDER, alignment: {horizontal: 'center'}};
-    var SLA_FAIL = {font: {color: {rgb: 'C53030'}, bold: true}, fill: {fgColor: {rgb: 'FFF5F5'}}, border: CELL_BORDER, alignment: {horizontal: 'center'}};
+    var SLA_PASS = {
+        font: {color: {rgb: '276749'}, bold: true},
+        fill: {fgColor: {rgb: 'F0FFF4'}},
+        border: CELL_BORDER,
+        alignment: {horizontal: 'center'}
+    };
+    var SLA_WARN = {
+        font: {color: {rgb: 'B7791F'}, bold: true},
+        fill: {fgColor: {rgb: 'FFFFF0'}},
+        border: CELL_BORDER,
+        alignment: {horizontal: 'center'}
+    };
+    var SLA_FAIL = {
+        font: {color: {rgb: 'C53030'}, bold: true},
+        fill: {fgColor: {rgb: 'FFF5F5'}},
+        border: CELL_BORDER,
+        alignment: {horizontal: 'center'}
+    };
     var CELL_DEFAULT = {border: CELL_BORDER, alignment: {vertical: 'center'}};
     var CELL_NUM = {border: CELL_BORDER, alignment: {horizontal: 'right', vertical: 'center'}};
     var CELL_LABEL = {border: CELL_BORDER, font: {bold: true}, alignment: {vertical: 'center'}};
@@ -354,13 +369,19 @@ try {
                     autoColWidths(ws);
 
                     // Restore hidden rows
-                    hiddenRows.forEach(function (tr) { tr.style.display = 'none'; });
+                    hiddenRows.forEach(function (tr) {
+                        tr.style.display = 'none';
+                    });
                 } else {
                     // Text panels (Executive Summary, Risk Assessment, Critical Findings)
                     var text = panel.innerText || '';
                     var rows = text.split('\n')
-                        .filter(function (l) { return l.trim().length > 0; })
-                        .map(function (l) { return [l.trim()]; });
+                        .filter(function (l) {
+                            return l.trim().length > 0;
+                        })
+                        .map(function (l) {
+                            return [l.trim()];
+                        });
                     ws = XLSX.utils.aoa_to_sheet(rows.length > 0 ? rows : [['(empty)']]);
                     ws['!cols'] = [{wch: 120}];
                     // Style first row as title

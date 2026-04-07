@@ -10,6 +10,7 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -21,6 +22,8 @@ public class BpmTableModel extends AbstractTableModel {
     private Pattern txCompiledPattern;
     private boolean txRegex;
     private boolean txInclude = true;
+    private Set<String> stabilityFilter;       // null = no filter (all)
+    private Set<String> improvementFilter;     // null = no filter (all)
     private List<RowData> filteredRows;
 
     private static boolean matchesTransaction(String label, String pattern, Pattern compiled, boolean useRegex) {
@@ -99,6 +102,15 @@ public class BpmTableModel extends AbstractTableModel {
         this.filteredRows = null;
     }
 
+    /**
+     * Sets the stability and improvement area filters. {@code null} means no filter (all).
+     */
+    public void setDropdownFilters(Set<String> stability, Set<String> improvement) {
+        this.stabilityFilter = stability;
+        this.improvementFilter = improvement;
+        this.filteredRows = null;
+    }
+
     public void addOrUpdateResult(BpmResult result) {
         String label = result.samplerLabel();
         RowData row = rows.computeIfAbsent(label, k -> new RowData(label));
@@ -123,6 +135,16 @@ public class BpmTableModel extends AbstractTableModel {
                     continue;
                 }
                 if (!txInclude && matches) {
+                    continue;
+                }
+            }
+            if (stabilityFilter != null) {
+                if (!stabilityFilter.contains(row.lastStabilityCategory)) {
+                    continue;
+                }
+            }
+            if (improvementFilter != null) {
+                if (!improvementFilter.contains(row.lastImprovementArea)) {
                     continue;
                 }
             }
