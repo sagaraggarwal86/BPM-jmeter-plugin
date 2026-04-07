@@ -88,7 +88,7 @@
         <selenium.version>4.13.0</selenium.version>
         <jackson.version>2.15.3</jackson.version>
         <junit.version>5.11.3</junit.version>
-        <mockito.version>5.14.2</mockito.version>
+        <mockito.version>5.23.0</mockito.version>
 
         <!-- ── Plugin versions ── -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
