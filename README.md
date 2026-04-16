@@ -1,5 +1,9 @@
 # BPM — Browser Performance Metrics
 
+[![Release](https://img.shields.io/github/v/release/sagaraggarwal86/BPM-jmeter-plugin?label=release&sort=semver&cacheSeconds=300)](https://github.com/sagaraggarwal86/BPM-jmeter-plugin/releases/latest)
+[![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fsagaraggarwal86%2Fbpm-jmeter-plugin%2Fmaven-metadata.xml&label=Maven%20Central&cacheSeconds=300)](https://central.sonatype.com/artifact/io.github.sagaraggarwal86/bpm-jmeter-plugin)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 A live Apache JMeter listener plugin that captures browser-side rendering and performance metrics
 from WebDriver Sampler executions via Chrome DevTools Protocol (CDP). Provides Core Web Vitals,
 network waterfall, runtime health, JS errors, a composite Performance Score, Improvement Area
@@ -17,12 +21,12 @@ detection, and an HTML performance report with trend analysis.
 - [GUI Overview](#gui-overview)
 - [HTML Performance Report](#html-performance-report)
 - [CLI Mode](#cli-mode)
-- [Output Files](#output-files)
+- [JSONL Output](#jsonl-output)
 - [Configuration](#configuration)
 - [Performance Impact](#performance-impact)
-- [Multiple BPM Listener Instances](#multiple-bpm-listener-instances)
 - [Known Limitations](#known-limitations)
 - [Troubleshooting](#troubleshooting)
+- [Uninstall](#uninstall)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -99,8 +103,13 @@ Search for "Browser Performance Metrics" in the Plugins Manager and install.
 git clone https://github.com/sagaraggarwal86/bpm-jmeter-plugin.git
 cd bpm-jmeter-plugin
 mvn clean verify
-cp target/bpm-jmeter-plugin-*.jar $JMETER_HOME/lib/ext/
 ```
+
+Then copy the built JAR into `<JMETER_HOME>/lib/ext/`:
+
+- **Linux / macOS**: `cp target/bpm-jmeter-plugin-*.jar "$JMETER_HOME/lib/ext/"`
+- **Windows (PowerShell)**: `Copy-Item target\bpm-jmeter-plugin-*.jar "$env:JMETER_HOME\lib\ext\"`
+- **Windows (cmd)**: `copy target\bpm-jmeter-plugin-*.jar "%JMETER_HOME%\lib\ext\"`
 
 ---
 
@@ -168,14 +177,12 @@ The listener provides a single-panel GUI:
 - **Filter Settings** — Start/End Offset, Transaction Names, Stability, Improvement Area, Column Selector, Apply Filters
 - **Test Time Info** — Start, End, Duration (live-updating during test)
 - **Overall Performance Score** — colored progress bar with Good / Needs Work / Poor counts
-- **Results Table** — 10 always-visible derived columns + 8 toggleable raw columns with SLA coloring
+- **Results Table** — live-updating; columns described in [What BPM Captures](#what-bpm-captures)
 - **Bottom Bar** — Save Table Data (CSV), Generate HTML Report, Chart Interval
 
 ### Column Selector
 
-Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns).
-All are OFF by default — the 10 derived columns tell the full story. Enable raw columns when you
-need to dig deeper.
+Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns) — all OFF by default.
 
 ### Filter Settings
 
@@ -208,16 +215,9 @@ row must match every active filter to appear.
 | Minor Shifts | 0.1 < CLS ≤ 0.25 |
 | Unstable     | CLS > 0.25       |
 
-**Improvement Area** — Multi-select checkbox dropdown by bottleneck type:
-
-| Option                 | Matches                               |
-|------------------------|---------------------------------------|
-| None                   | No bottleneck detected (shown as `-`) |
-| Reduce Server Response | Server TTFB is the primary bottleneck |
-| Optimise Heavy Assets  | Large resources delaying render       |
-| Reduce Render Work     | Client-side rendering overhead        |
-| Reduce DOM Complexity  | Excessive DOM causing layout thrash   |
-| Fix Network Failures   | Failed network requests detected      |
+**Improvement Area** — Multi-select checkbox dropdown. Options match the bottleneck names from
+[Improvement Area Detection](#improvement-area-detection), plus **None** (no bottleneck detected,
+shown as `-`).
 
 ---
 
@@ -326,15 +326,15 @@ jmeter -n -t test.jmx -Jbpm.output=bpm-results.jsonl
 
 ---
 
-## Output Files
-
-### JSONL (primary)
+## JSONL Output
 
 One JSON object per line, per WebDriver Sampler execution. Default: `bpm-results.jsonl`.
 
 Contains: `bpmVersion`, `timestamp`, `threadName`, `iterationNumber`, `samplerLabel`,
 `samplerSuccess`, `samplerDuration`, raw metric objects (`webVitals`, `network`, `runtime`,
 `console`), and `derived` object with score, improvement area, ratios, stability, headroom.
+
+CSV export is available from the GUI via **Save Table Data**.
 
 ---
 
@@ -365,10 +365,9 @@ defaults matching Google Core Web Vitals thresholds.
 | Security         | `security.sanitize`                       | `true`          | Redact sensitive data in console messages |
 | Debug            | `bpm.debug`                               | `false`         | Detailed operational logging              |
 
-### Version Upgrades
-
-When BPM detects a version mismatch in `bpm.properties`, it backs up the old file as
-`bpm.properties.v<old>.bak` and writes the new template.
+> [!NOTE]
+> When BPM detects a version mismatch in `bpm.properties`, it backs up the old file as
+> `bpm.properties.v<old>.bak` and writes the new template.
 
 ---
 
@@ -380,15 +379,7 @@ When BPM detects a version mismatch in `bpm.properties`, it backs up the old fil
 | Transaction Controller inflation | ~1-2%                                              |
 | Throughput reduction             | ~1% (negligible for WebDriver tests)               |
 | Memory                           | Running averages per label — not stored per-sample |
-| JSONL writes                     | Buffered, flush every 1 record                     |
-
----
-
-## Multiple BPM Listener Instances
-
-- Each listener maintains its own JSONL writer, health counters, and GUI state independently.
-- On test start, a single dialog lists all file conflicts across all listeners. Choose **Overwrite** or **Don't Start**.
-- Always assign distinct output paths when using multiple listeners (default is shared `bpm-results.jsonl`).
+| JSONL writes                     | Flushed every record (synchronized)                |
 
 ---
 
@@ -396,9 +387,9 @@ When BPM detects a version mismatch in `bpm.properties`, it backs up the old fil
 
 - **SPA caveats:** For client-side route changes, the old LCP may linger (no new `largest-contentful-paint` event).
   BPM detects stale LCP and reports null for that sample.
-- **WebDriver Sampler only:** HTTP Samplers and other non-WebDriver types are silently skipped.
-- **Charts offline:** Chart.js and xlsx-js-style are bundled in the JAR for offline use. If the bundled versions fail
-  to load, the report falls back to CDN — internet access required in that case.
+- **Multiple listeners share a default output path:** Each listener has its own writer, health counters, and GUI
+  state, but all default to `bpm-results.jsonl`. Assign distinct paths when using more than one; a single pre-flight
+  dialog lists all file conflicts with **Overwrite** / **Don't Start** choices.
 
 ---
 
@@ -410,8 +401,13 @@ When BPM detects a version mismatch in `bpm.properties`, it backs up the old fil
 | Generate HTML Report button greyed out   | No data in the table. Run a test or load a JSONL file first.                            |
 | "No performance data available" dialog   | No data captured or loaded. Run a test or load a JSONL file.                            |
 | Charts blank in HTML report              | Chart.js CDN unreachable. Open in a browser with internet access.                       |
-| SPA actions show null scores             | Expected — stale LCP detected. Only actions with metric weight >= 0.45 receive a score. |
-| bpm.properties overwritten after upgrade | BPM creates a backup (`bpm.properties.v<old>.bak`). Check it for your customizations.   |
+
+---
+
+## Uninstall
+
+Remove the JAR from `<JMETER_HOME>/lib/ext/`. Your `bpm.properties` and any generated JSONL
+files remain intact — delete them manually if no longer needed.
 
 ---
 
@@ -423,12 +419,12 @@ Bug reports and pull requests are welcome via
 Before submitting a pull request:
 
 ```bash
-mvn clean verify          # All tests + coverage check must pass
-mvn clean deploy -Prelease  # Release to Maven Central
+mvn clean verify          # All tests must pass (JaCoCo ≥90% line coverage enforced)
 ```
 
 - Test manually with JMeter 5.6.3 on your platform
 - Keep each pull request focused on a single change
+- See [CLAUDE.md](CLAUDE.md) for architecture, design decisions, and enforced invariants
 
 ---
 
