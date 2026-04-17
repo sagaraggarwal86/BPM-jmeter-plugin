@@ -1,7 +1,17 @@
 # ── Maven ──────────────────────────────────────────
 target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# https://maven.apache.org/wrapper/#usage-without-binary-jar
+.mvn/wrapper/maven-wrapper.jar
 
-# ── IntelliJ IDEA ─────────────────────────────────
+# ── IntelliJ IDEA ──────────────────────────────────
 .idea/
 *.iml
 out/
@@ -19,26 +29,38 @@ out/
 Thumbs.db
 desktop.ini
 
+# ── Environment / secrets ──────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Credentials ────────────────────────────────────
+*.pem
+*.key
+*.p12
+credentials.json
+service-account*.json
+
+# ── GPG ────────────────────────────────────────────
+*.gpg
+secring.*
+
+# ── Claude Code ────────────────────────────────────
+.claude/
+
+# ── Logs ───────────────────────────────────────────
+*.log
+
 # ── Test output ────────────────────────────────────
 *.jsonl
 *.csv
 bpm-results*
 bpm-*-summary.json
 
-# ── BPM runtime config ────────────────────────────
+# ── BPM runtime config ─────────────────────────────
 bpm.properties
 bpm.properties.*.bak
 
-# ── Development prompts ───────────────────────────
+# ── Development prompts ────────────────────────────
 Prompt.md
 implement-major-fixes-prompt.md
-
-# ── Claude Code ───────────────────────────────────
-.claude/
-
-# ── GPG ────────────────────────────────────────────
-*.gpg
-secring.*
-
-# ── Logs ───────────────────────────────────────────
-*.log
