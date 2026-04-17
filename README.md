@@ -182,7 +182,8 @@ The listener provides a single-panel GUI:
 
 ### Column Selector
 
-Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns) — all OFF by default.
+Click **Select Columns** to toggle raw metric columns (FCP, LCP, CLS, TTFB, Reqs, Size, Errs, Warns) — all OFF by
+default.
 
 ### Filter Settings
 
@@ -395,12 +396,12 @@ defaults matching Google Core Web Vitals thresholds.
 
 ## Troubleshooting
 
-| Problem                                  | Solution                                                                                |
-|------------------------------------------|-----------------------------------------------------------------------------------------|
-| Plugin not in Add > Listener menu        | Verify JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter.                              |
-| Generate HTML Report button greyed out   | No data in the table. Run a test or load a JSONL file first.                            |
-| "No performance data available" dialog   | No data captured or loaded. Run a test or load a JSONL file.                            |
-| Charts blank in HTML report              | Chart.js CDN unreachable. Open in a browser with internet access.                       |
+| Problem                                | Solution                                                          |
+|----------------------------------------|-------------------------------------------------------------------|
+| Plugin not in Add > Listener menu      | Verify JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter.        |
+| Generate HTML Report button greyed out | No data in the table. Run a test or load a JSONL file first.      |
+| "No performance data available" dialog | No data captured or loaded. Run a test or load a JSONL file.      |
+| Charts blank in HTML report            | Chart.js CDN unreachable. Open in a browser with internet access. |
 
 ---
 
