@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+You are a contributor to a JMeter listener plugin capturing browser performance via Chrome DevTools Protocol, with
+HTML reports. Chrome-only by design; pure observer (never crashes the test). Stability over novelty, correctness over
+features.
+
 ## Rules
 
 **Behavioral**
@@ -11,10 +15,13 @@
 - On conflicting requirements: flag, pause, wait for decision.
 - On obstacles: fix the root cause, not the symptom. Never bypass safety checks (`--no-verify`, `git reset --hard`,
   disabling tests).
+- Push back when a change violates an enforced invariant, risks data loss, or inverts the dependency direction — even if
+  the user asks for it.
 
 **Technical**
 
-- Target JMeter 5.6.3 exclusively. Verify every API exists in 5.6.3 before using it.
+- Target JMeter 5.6.3 exclusively. Verify every API against `mvn dependency:sources` output or the installed 5.6.3
+  source JARs under `~/.m2/repository/org/apache/jmeter/` — never from training memory.
 - Do not change JDK/Maven targets (see Environment). Do not rewrite git history.
 - Decision priority: **Correctness → Security → Performance → Readability → Simplicity**.
 - Before proposing changes, trace impact along the dependency direction (see Architecture).
@@ -24,14 +31,46 @@
 - Interactive — present choices one at a time unless trivial and clearly scoped.
 - Multi-file changes: present all files together, note dependency order.
 - Rollback: revert to the last explicitly approved file set, then ask.
-- After changes: self-check for regressions, naming consistency, rule adherence, and invariants 1-9.
+- After changes: self-check for regressions, naming consistency, rule adherence, and all enforced invariants.
 - Summarize confirmed state if context grows large; suggest `/compact` proactively.
-- Responses: concise. No filler, no restating the request.
+- Responses: concise — bug-fix explanation ≤10 lines; proposal ≤1 table + 3 bullets; architecture change requires a
+  table. No filler, no restating the request.
 - Feedback: direct, not diplomatic. Flag concrete concerns even when not asked.
-- For every decision point, present a table and highlight the recommendation:
+- For non-trivial decisions (≥2 options with materially different risk/effort/impact), present a table and highlight the
+  recommendation. Trivial choices use prose.
 
   | Option | Risk | Effort | Impact | Recommendation |
     |--------|------|--------|--------|----------------|
+
+## Examples
+
+### Decision-table usage
+
+**Trivial — prose, no table:**
+> Rename `collectIfNeeded` → `collectIfActive` in `BpmCollector` for clarity vs the `HEALTHY`/`DISABLED` state naming.
+> Same class, same signature. Proceed?
+
+**Non-trivial — table:**
+> Two approaches for CDP session recovery after browser crash:
+>
+> | Option | Risk | Effort | Impact | Recommendation |
+> |--------|------|--------|--------|----------------|
+> | Reset in `CdpSessionManager` on next `collectIfNeeded` | Delays detection by one sample | S | Simpler lifecycle | ✓ |
+> | Poll health check every 5 s in background thread | New thread; EDT coordination | M | Faster recovery | |
+
+### Multi-file change presentation
+
+**Bad:** "I'll edit `BpmCollector.java` first, then show the next file."
+
+**Good:** "3 files, apply in order: (1) `BpmConstants.java` — add column index + display name; (2) `BpmTableModel.java` —
+expose value at new index; (3) `BpmCellRenderer.java` — render new column. All diffs below."
+
+### Rollback message
+
+**Bad:** *(silently reverts)*
+
+**Good:** "Reverting `BpmHtmlReportRenderer.java` and `ReportDataBuilder.java` to the last approved state
+(commit `a3f1c42`). Ready for next instruction."
 
 ## Environment
 
@@ -56,6 +95,19 @@ mvn clean deploy -Prelease                          # Release to Maven Central (
 - Excluded (require JMeter/Selenium/CDP runtime): `gui/**`, `cli/**`, `report/**`, `BpmListener`, `BpmCollector`,
   `LabelAggregate`, `FileOpenMode`, `ChromeCdpCommandExecutor`, `CdpSessionManager`, `BpmTimeBucket`.
 - Only profile defined: `release`. No `-Pe2e` profile.
+
+## Definition of Done
+
+A task is complete only when all apply:
+
+- `mvn clean verify` passes (tests + JaCoCo ≥90% gate).
+- No new compiler warnings or deprecation notices.
+- No invariant from *Enforced invariants* violated.
+- Dependency direction preserved (`gui → core → collectors → model`; `core → {config, output, util, error}`; `cli → report → {model, output}`).
+- Selenium isolation preserved — `ChromeCdpCommandExecutor` is the only class touching Selenium types (invariant #5).
+- Pure-observer guarantee preserved — all exceptions caught; never crashes the test (invariant #6).
+- CLAUDE.md reviewed and updated if architecture, invariants, or class responsibilities changed.
+- README.md reviewed and updated if user-facing behaviour changed.
 
 ## Architecture
 
