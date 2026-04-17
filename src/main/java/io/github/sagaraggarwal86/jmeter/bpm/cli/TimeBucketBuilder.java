@@ -11,7 +11,7 @@ import java.util.*;
  * <p>Supports two modes:</p>
  * <ul>
  *   <li>Auto (interval = 0): dynamically computes bucket size targeting ~50 buckets</li>
- *   <li>Fixed: uses the specified interval in seconds</li>
+ *   <li>Fixed: uses specified interval in seconds</li>
  * </ul>
  *
  * <p>Aggregated {@code avgScore} uses {@code -1} as a sentinel value meaning
