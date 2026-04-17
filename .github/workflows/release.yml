@@ -24,8 +24,12 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
+      - name: Resolve release version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Set release version in POM
-        run: mvn --batch-mode versions:set -DnewVersion="${GITHUB_REF_NAME}" -DgenerateBackupPoms=false
+        run: mvn --batch-mode versions:set -DnewVersion="${{ steps.ver.outputs.version }}" -DgenerateBackupPoms=false
 
       - name: Verify before release
         run: mvn --batch-mode clean verify "-Dgpg.skip=true"
@@ -39,7 +43,7 @@ jobs:
 
       - name: Assemble distribution zip
         run: |
-          VERSION="${GITHUB_REF_NAME}"
+          VERSION="${{ steps.ver.outputs.version }}"
           DIR="bpm-jmeter-plugin-${VERSION}"
           mkdir -p "${DIR}"
           cp target/bpm-jmeter-plugin-${VERSION}.jar "${DIR}/"
