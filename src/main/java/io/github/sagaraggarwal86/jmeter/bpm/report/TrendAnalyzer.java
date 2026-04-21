@@ -50,13 +50,13 @@ public final class TrendAnalyzer {
 
         // Per-metric trends
         MetricTrendResult scoreTrend = computeTrend("Score",
-                avgScore(firstHalf), avgScore(secondHalf), false);
+            avgScore(firstHalf), avgScore(secondHalf), false);
         MetricTrendResult lcpTrend = computeTrend("LCP",
-                avgLcp(firstHalf), avgLcp(secondHalf), true);
+            avgLcp(firstHalf), avgLcp(secondHalf), true);
         MetricTrendResult fcpTrend = computeTrend("FCP",
-                avgFcp(firstHalf), avgFcp(secondHalf), true);
+            avgFcp(firstHalf), avgFcp(secondHalf), true);
         MetricTrendResult ttfbTrend = computeTrend("TTFB",
-                avgTtfb(firstHalf), avgTtfb(secondHalf), true);
+            avgTtfb(firstHalf), avgTtfb(secondHalf), true);
 
         // Pre-written alert sentences
         List<String> alerts = new ArrayList<>();
@@ -85,19 +85,19 @@ public final class TrendAnalyzer {
             case TREND_STABLE -> "Performance was stable throughout the test. No degradation detected.";
             case TREND_MOSTLY_STABLE -> "Performance was mostly stable with minor fluctuations in one metric.";
             case TREND_DEGRADING ->
-                    degradedCount + " of 4 tracked metrics degraded during the test, suggesting performance instability under sustained load.";
+                degradedCount + " of 4 tracked metrics degraded during the test, suggesting performance instability under sustained load.";
             default -> "";
         };
 
         return new TrendData(
-                timeBuckets.size(),
-                toMetricTrend(scoreTrend),
-                toMetricTrend(lcpTrend),
-                toMetricTrend(fcpTrend),
-                toMetricTrend(ttfbTrend),
-                List.copyOf(alerts),
-                stability,
-                stabilityText
+            timeBuckets.size(),
+            toMetricTrend(scoreTrend),
+            toMetricTrend(lcpTrend),
+            toMetricTrend(fcpTrend),
+            toMetricTrend(ttfbTrend),
+            List.copyOf(alerts),
+            stability,
+            stabilityText
         );
     }
 
@@ -105,8 +105,8 @@ public final class TrendAnalyzer {
 
     private static TrendData.MetricTrend toMetricTrend(MetricTrendResult r) {
         return new TrendData.MetricTrend(
-                r.name, r.firstHalfAvg, r.secondHalfAvg,
-                r.direction, r.changePct, r.degraded);
+            r.name, r.firstHalfAvg, r.secondHalfAvg,
+            r.direction, r.changePct, r.degraded);
     }
 
     private static MetricTrendResult computeTrend(String name, double firstAvg, double secondAvg,
@@ -138,7 +138,7 @@ public final class TrendAnalyzer {
         }
 
         return new MetricTrendResult(name, round1(firstAvg), round1(secondAvg),
-                direction, absChange, degraded);
+            direction, absChange, degraded);
     }
 
     private static void addAlert(List<String> alerts, MetricTrendResult trend,
@@ -148,9 +148,9 @@ public final class TrendAnalyzer {
 
         String verb = higherIsBad ? "increased" : "dropped";
         alerts.add(String.format(Locale.US,
-                "%s %s %d%% in the second half of the test (%.0f%s \u2192 %.0f%s).",
-                displayName, verb, trend.changePct,
-                trend.firstHalfAvg, unit, trend.secondHalfAvg, unit));
+            "%s %s %d%% in the second half of the test (%.0f%s \u2192 %.0f%s).",
+            displayName, verb, trend.changePct,
+            trend.firstHalfAvg, unit, trend.secondHalfAvg, unit));
     }
 
     // ── Averaging helpers ───────────────────────────────────────────────────
@@ -189,12 +189,12 @@ public final class TrendAnalyzer {
     }
 
     private record MetricTrendResult(
-            String name,
-            double firstHalfAvg,
-            double secondHalfAvg,
-            String direction,
-            int changePct,
-            boolean degraded
+        String name,
+        double firstHalfAvg,
+        double secondHalfAvg,
+        String direction,
+        int changePct,
+        boolean degraded
     ) {
     }
 }

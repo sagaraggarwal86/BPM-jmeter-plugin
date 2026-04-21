@@ -48,7 +48,7 @@ public final class ReportDataBuilder {
         Objects.requireNonNull(props, "props must not be null");
 
         int totalSamples = aggregates.values().stream()
-                .mapToInt(LabelAggregate::getSampleCount).sum();
+            .mapToInt(LabelAggregate::getSampleCount).sum();
 
         // ── Best / Worst (from full dataset) ────────────────────────────────
         String globalBestLabel = null;
@@ -135,25 +135,25 @@ public final class ReportDataBuilder {
             // Collect breaches
             if (hasPoor || hasWarn) {
                 breaches.add(new ReportData.BreachEntry(
-                        label, avgScore, scoreVerdict,
-                        avgLcp, lcpVerdict,
-                        avgFcp, fcpVerdict,
-                        avgTtfb, ttfbVerdict,
-                        Math.round(avgCls * 1000.0) / 1000.0, clsVerdict,
-                        agg.getPrimaryImprovementArea(),
-                        hasPoor));
+                    label, avgScore, scoreVerdict,
+                    avgLcp, lcpVerdict,
+                    avgFcp, fcpVerdict,
+                    avgTtfb, ttfbVerdict,
+                    Math.round(avgCls * 1000.0) / 1000.0, clsVerdict,
+                    agg.getPrimaryImprovementArea(),
+                    hasPoor));
             }
 
             // Boundary risks
             if (avgScore != null) {
                 if (VERDICT_NEEDS_WORK.equals(scoreVerdict)
-                        && avgScore >= props.getSlaScoreGood() - 5) {
+                    && avgScore >= props.getSlaScoreGood() - 5) {
                     boundaryRisks.add(new ReportData.RiskEntry(label, avgScore,
-                            "just below the passing threshold. Targeted optimisation could move it from warning to passing."));
+                        "just below the passing threshold. Targeted optimisation could move it from warning to passing."));
                 } else if (VERDICT_POOR.equals(scoreVerdict)
-                        && avgScore >= props.getSlaScorePoor() - 10) {
+                    && avgScore >= props.getSlaScorePoor() - 10) {
                     boundaryRisks.add(new ReportData.RiskEntry(label, avgScore,
-                            "near the failing boundary. A minor regression would cause a more severe quality failure."));
+                        "near the failing boundary. A minor regression would cause a more severe quality failure."));
                 }
             }
 
@@ -174,7 +174,7 @@ public final class ReportDataBuilder {
 
         // Sort breaches: critical first, then warnings; within each group, by score ascending
         breaches.sort(Comparator.<ReportData.BreachEntry, Boolean>comparing(b -> !b.hasCritical())
-                .thenComparingInt(b -> b.score() != null ? b.score() : Integer.MAX_VALUE));
+            .thenComparingInt(b -> b.score() != null ? b.score() : Integer.MAX_VALUE));
 
         // Sort headroom risks by headroom ascending (most at risk first)
         headroomRisks.sort(Comparator.comparingInt(ReportData.RiskEntry::value));
@@ -184,12 +184,12 @@ public final class ReportDataBuilder {
         int totalErrorLabels = 0;
         List<ReportData.ErrorEntry> topJsErrors = new ArrayList<>();
         aggregates.entrySet().stream()
-                .filter(e -> e.getValue().getTotalErrors() > 0)
-                .sorted(Comparator.<Map.Entry<String, LabelAggregate>>comparingInt(
-                        e -> e.getValue().getTotalErrors()).reversed())
-                .limit(5)
-                .forEach(e -> topJsErrors.add(
-                        new ReportData.ErrorEntry(e.getKey(), e.getValue().getTotalErrors())));
+            .filter(e -> e.getValue().getTotalErrors() > 0)
+            .sorted(Comparator.<Map.Entry<String, LabelAggregate>>comparingInt(
+                e -> e.getValue().getTotalErrors()).reversed())
+            .limit(5)
+            .forEach(e -> topJsErrors.add(
+                new ReportData.ErrorEntry(e.getKey(), e.getValue().getTotalErrors())));
         for (LabelAggregate agg : aggregates.values()) {
             totalErrors += agg.getTotalErrors();
             if (agg.getTotalErrors() > 0) {
@@ -201,46 +201,46 @@ public final class ReportDataBuilder {
         String overallVerdict;
         if (globalWorstLabel != null) {
             overallVerdict = globalWorstScore >= props.getSlaScoreGood() ? VERDICT_GOOD
-                    : globalWorstScore >= props.getSlaScorePoor() ? VERDICT_NEEDS_WORK : VERDICT_POOR;
+                : globalWorstScore >= props.getSlaScorePoor() ? VERDICT_NEEDS_WORK : VERDICT_POOR;
         } else {
             overallVerdict = VERDICT_NA;
         }
 
         int weightedScore = weightedScoreSamples > 0
-                ? (int) Math.round((double) weightedScoreSum / weightedScoreSamples)
-                : 0;
+            ? (int) Math.round((double) weightedScoreSum / weightedScoreSamples)
+            : 0;
         long weightedLcp = weightedLcpSamples > 0
-                ? Math.round((double) weightedLcpSum / weightedLcpSamples)
-                : 0;
+            ? Math.round((double) weightedLcpSum / weightedLcpSamples)
+            : 0;
 
         String worstImprovementArea = globalWorstLabel != null
-                ? aggregates.get(globalWorstLabel).getPrimaryImprovementArea()
-                : "";
+            ? aggregates.get(globalWorstLabel).getPrimaryImprovementArea()
+            : "";
 
         // ── Trend analysis ──────────────────────────────────────────────────
         TrendData trends = TrendAnalyzer.analyze(timeBuckets);
 
         log.debug("build: {} labels, {} samples, {} breaches, {} headroom risks, "
-                        + "{} boundary risks, {} SPA labels, trends={}",
-                aggregates.size(), totalSamples, breaches.size(),
-                headroomRisks.size(), boundaryRisks.size(), spaLabels.size(),
-                trends != null ? trends.overallStability() : VERDICT_NA);
+                + "{} boundary risks, {} SPA labels, trends={}",
+            aggregates.size(), totalSamples, breaches.size(),
+            headroomRisks.size(), boundaryRisks.size(), spaLabels.size(),
+            trends != null ? trends.overallStability() : VERDICT_NA);
 
         return new ReportData(
-                aggregates.size(), totalSamples,
-                overallVerdict, passCount, warnCount, criticalCount, weightedScore, weightedLcp,
-                List.copyOf(breaches),
-                globalBestLabel != null ? globalBestLabel : "",
-                globalBestLabel != null ? globalBestScore : 0,
-                globalBestLabel != null ? globalBestLcp : 0,
-                globalWorstLabel != null ? globalWorstLabel : "",
-                globalWorstLabel != null ? globalWorstScore : 0,
-                globalWorstLabel != null ? globalWorstLcp : 0,
-                worstImprovementArea,
-                totalErrors, totalErrorLabels, List.copyOf(topJsErrors),
-                List.copyOf(headroomRisks), List.copyOf(boundaryRisks),
-                List.copyOf(spaLabels),
-                trends
+            aggregates.size(), totalSamples,
+            overallVerdict, passCount, warnCount, criticalCount, weightedScore, weightedLcp,
+            List.copyOf(breaches),
+            globalBestLabel != null ? globalBestLabel : "",
+            globalBestLabel != null ? globalBestScore : 0,
+            globalBestLabel != null ? globalBestLcp : 0,
+            globalWorstLabel != null ? globalWorstLabel : "",
+            globalWorstLabel != null ? globalWorstScore : 0,
+            globalWorstLabel != null ? globalWorstLcp : 0,
+            worstImprovementArea,
+            totalErrors, totalErrorLabels, List.copyOf(topJsErrors),
+            List.copyOf(headroomRisks), List.copyOf(boundaryRisks),
+            List.copyOf(spaLabels),
+            trends
         );
     }
 

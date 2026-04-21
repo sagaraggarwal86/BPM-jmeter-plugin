@@ -46,7 +46,7 @@ public class BpmPropertiesManager {
      * Pattern to extract version from the header comment: {@code # Browser Performance Metrics (BPM) vX.Y}
      */
     private static final Pattern VERSION_PATTERN =
-            Pattern.compile("^#.*Browser Performance Metrics \\(BPM\\)\\s+v(\\S+)");
+        Pattern.compile("^#.*Browser Performance Metrics \\(BPM\\)\\s+v(\\S+)");
     // -J flag property keys (JMeter system properties set via -Jbpm.output / -Jbpm.debug)
     private static final String J_FLAG_OUTPUT = "bpm.output";
     private static final String J_FLAG_DEBUG = "bpm.debug";
@@ -388,7 +388,7 @@ public class BpmPropertiesManager {
         try (InputStream templateStream = getClass().getResourceAsStream(TEMPLATE_RESOURCE)) {
             if (templateStream == null) {
                 log.error("BPM: Bundled template {} not found in JAR. Cannot auto-generate properties.",
-                        TEMPLATE_RESOURCE);
+                    TEMPLATE_RESOURCE);
                 return;
             }
             Files.createDirectories(propertiesPath.getParent());

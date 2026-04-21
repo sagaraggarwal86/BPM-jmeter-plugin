@@ -51,8 +51,8 @@ class BpmCellRenderer extends DefaultTableCellRenderer {
         applySlaColor(c, modelCol, value, props);
         // Text columns left-aligned; numeric columns right-aligned
         if (modelCol == BpmConstants.COL_IDX_LABEL
-                || modelCol == BpmConstants.COL_IDX_IMPROVEMENT_AREA
-                || modelCol == BpmConstants.COL_IDX_STABILITY) {
+            || modelCol == BpmConstants.COL_IDX_IMPROVEMENT_AREA
+            || modelCol == BpmConstants.COL_IDX_STABILITY) {
             setHorizontalAlignment(SwingConstants.LEFT);
         } else {
             setHorizontalAlignment(SwingConstants.RIGHT);

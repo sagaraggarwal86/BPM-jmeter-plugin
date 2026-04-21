@@ -26,14 +26,14 @@ class LabelAggregateTest {
 
     private static DerivedMetrics derivedWithScore(Integer score) {
         return new DerivedMetrics(0L, 0.0, null, 0L, null, null, 0.0,
-                BpmConstants.BOTTLENECK_NONE, List.of(), score);
+            BpmConstants.BOTTLENECK_NONE, List.of(), score);
     }
 
     // ── Initial state ────────────────────────────────────────────────────────
 
     private static DerivedMetrics derivedWithArea(String area) {
         return new DerivedMetrics(0L, 0.0, null, 0L, null, null, 0.0,
-                area, List.of(area), 50);
+            area, List.of(area), 50);
     }
 
     // ── Single update ────────────────────────────────────────────────────────
@@ -78,8 +78,8 @@ class LabelAggregateTest {
         @DisplayName("Updates all counters from a fully-populated sample")
         void singleUpdate_fullPopulated() {
             DerivedMetrics derived = new DerivedMetrics(500L, 50.0, 300L,
-                    200L, "Stable", 40, 25.0,
-                    BpmConstants.BOTTLENECK_SERVER, List.of(BpmConstants.BOTTLENECK_SERVER), 75);
+                200L, "Stable", 40, 25.0,
+                BpmConstants.BOTTLENECK_SERVER, List.of(BpmConstants.BOTTLENECK_SERVER), 75);
 
             WebVitalsResult vitals = new WebVitalsResult(1800L, 2500L, 0.05, 500L);
             NetworkResult network = new NetworkResult(20, 50000L, 0, List.of());
@@ -105,8 +105,8 @@ class LabelAggregateTest {
         @DisplayName("Null performanceScore produces null average")
         void singleUpdate_nullScore() {
             DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null,
-                    0L, null, null, 0.0,
-                    BpmConstants.BOTTLENECK_NONE, List.of(), null);
+                0L, null, null, 0.0,
+                BpmConstants.BOTTLENECK_NONE, List.of(), null);
 
             agg.update(derived, null, null, null);
 
@@ -137,11 +137,11 @@ class LabelAggregateTest {
         @DisplayName("Vitals averaged over non-null samples only")
         void multipleUpdates_vitalsAverageNonNull() {
             agg.update(minDerived(),
-                    new WebVitalsResult(1000L, 2000L, 0.1, 400L), null, null);
+                new WebVitalsResult(1000L, 2000L, 0.1, 400L), null, null);
             agg.update(minDerived(),
-                    new WebVitalsResult(null, null, null, null), null, null);
+                new WebVitalsResult(null, null, null, null), null, null);
             agg.update(minDerived(),
-                    new WebVitalsResult(2000L, 3000L, 0.2, 600L), null, null);
+                new WebVitalsResult(2000L, 3000L, 0.2, 600L), null, null);
 
             assertEquals(2500, agg.getAverageLcp());
             assertEquals(1500, agg.getAverageFcp());
@@ -173,9 +173,9 @@ class LabelAggregateTest {
         @DisplayName("Average server ratio and FCP-LCP gap computed correctly")
         void multipleUpdates_serverRatioAndGap() {
             DerivedMetrics d1 = new DerivedMetrics(400L, 30.0, null, 100L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 80);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 80);
             DerivedMetrics d2 = new DerivedMetrics(600L, 50.0, null, 200L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 90);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 90);
             agg.update(d1, null, null, null);
             agg.update(d2, null, null, null);
 
@@ -188,9 +188,9 @@ class LabelAggregateTest {
         @DisplayName("Network averages computed from non-null samples")
         void multipleUpdates_networkAverages() {
             agg.update(minDerived(), null,
-                    new NetworkResult(10, 20000L, 0, List.of()), null);
+                new NetworkResult(10, 20000L, 0, List.of()), null);
             agg.update(minDerived(), null,
-                    new NetworkResult(30, 60000L, 0, List.of()), null);
+                new NetworkResult(30, 60000L, 0, List.of()), null);
 
             assertEquals(20, agg.getAverageRequests());
             assertEquals(40000, agg.getAverageBytes());
@@ -205,11 +205,11 @@ class LabelAggregateTest {
         @DisplayName("Average frontendTime computed over non-null samples only")
         void frontendTime_averagedOverNonNull() {
             DerivedMetrics withFt = new DerivedMetrics(0L, 0.0, 300L, 0L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
             DerivedMetrics withoutFt = new DerivedMetrics(0L, 0.0, null, 0L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
             DerivedMetrics withFt2 = new DerivedMetrics(0L, 0.0, 500L, 0L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
 
             agg.update(withFt, null, null, null);
             agg.update(withoutFt, null, null, null);
@@ -229,11 +229,11 @@ class LabelAggregateTest {
         @DisplayName("Average headroom computed over non-null samples only")
         void headroom_averagedOverNonNull() {
             DerivedMetrics withH = new DerivedMetrics(0L, 0.0, null, 0L,
-                    null, 40, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, 40, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
             DerivedMetrics withoutH = new DerivedMetrics(0L, 0.0, null, 0L,
-                    null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
             DerivedMetrics withH2 = new DerivedMetrics(0L, 0.0, null, 0L,
-                    null, 60, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+                null, 60, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
 
             agg.update(withH, null, null, null);
             agg.update(withoutH, null, null, null);

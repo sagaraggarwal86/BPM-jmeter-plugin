@@ -23,34 +23,34 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({"fcp", "lcp", "cls", "ttfb"})
 public record WebVitalsResult(
 
-        /**
-         * First Contentful Paint in milliseconds.
-         * Time until the browser renders the first piece of DOM content.
-         * {@code null} if the value could not be read from the PerformanceObserver buffer.
-         */
-        @JsonProperty("fcp") Long fcp,
+    /**
+     * First Contentful Paint in milliseconds.
+     * Time until the browser renders the first piece of DOM content.
+     * {@code null} if the value could not be read from the PerformanceObserver buffer.
+     */
+    @JsonProperty("fcp") Long fcp,
 
-        /**
-         * Largest Contentful Paint in milliseconds.
-         * Time until the largest visible element is rendered.
-         * {@code null} for SPA actions where no new LCP event occurred (stale detection),
-         * or if the value could not be read.
-         */
-        @JsonProperty("lcp") Long lcp,
+    /**
+     * Largest Contentful Paint in milliseconds.
+     * Time until the largest visible element is rendered.
+     * {@code null} for SPA actions where no new LCP event occurred (stale detection),
+     * or if the value could not be read.
+     */
+    @JsonProperty("lcp") Long lcp,
 
-        /**
-         * Cumulative Layout Shift score (dimensionless, lower is better).
-         * Accumulated for the lifetime of the page; reset on hard navigation.
-         * {@code null} if the value could not be read.
-         */
-        @JsonProperty("cls") Double cls,
+    /**
+     * Cumulative Layout Shift score (dimensionless, lower is better).
+     * Accumulated for the lifetime of the page; reset on hard navigation.
+     * {@code null} if the value could not be read.
+     */
+    @JsonProperty("cls") Double cls,
 
-        /**
-         * Time to First Byte in milliseconds, sourced from Navigation Timing
-         * ({@code responseStart - requestStart}).
-         * {@code null} if the value could not be read.
-         */
-        @JsonProperty("ttfb") Long ttfb
+    /**
+     * Time to First Byte in milliseconds, sourced from Navigation Timing
+     * ({@code responseStart - requestStart}).
+     * {@code null} if the value could not be read.
+     */
+    @JsonProperty("ttfb") Long ttfb
 
 ) {
 }

@@ -56,50 +56,50 @@ public final class CliArgs {
      */
     public static void printHelp() {
         System.out.println("""
-                BPM Report Generator — Command-Line Interface
-                
-                Generates a browser performance analysis report
-                from a BPM JSONL results file produced by JMeter with the BPM plugin.
-                
-                Step 1: Run your JMeter test (standard JMeter non-GUI):
-                  jmeter -n -t test.jmx -l results.jtl -Jbpm.output=bpm-results.jsonl
-                
-                Step 2: Generate report:
-                  bpm-report -i bpm-results.jsonl
-                
-                REQUIRED:
-                  -i, --input FILE            BPM JSONL results file
-                
-                OUTPUT:
-                  -o, --output FILE           HTML report path (default: bpm-report.html)
-                
-                FILTER OPTIONS:
-                  --chart-interval INT        Seconds per chart bucket, 0=auto (default: 0)
-                  --search STRING             Label filter text (include mode by default)
-                  --regex                     Treat --search as regex
-                  --exclude                   Exclude matching labels (default: include)
-                
-                REPORT METADATA:
-                  --scenario-name STRING      Scenario name for report header
-                  --description STRING        Scenario description
-                  --virtual-users INT         Virtual user count for report header
-                
-                HELP:
-                  -h, --help                  Show this help message
-                
-                EXAMPLES:
-                  bpm-report -i bpm-results.jsonl
-                  bpm-report -i bpm-results.jsonl -o report.html \\
-                    --scenario-name "Sprint 42" --description "Peak load test" --virtual-users 50
-                  bpm-report -i bpm-results.jsonl --search "Login|Checkout" --regex
-                
-                EXIT CODES:
-                  0  Success — report generated
-                  1  Invalid command-line arguments
-                  2  JSONL parse error
-                  3  Report file write error
-                  4  Unexpected error
-                """);
+            BPM Report Generator — Command-Line Interface
+
+            Generates a browser performance analysis report
+            from a BPM JSONL results file produced by JMeter with the BPM plugin.
+
+            Step 1: Run your JMeter test (standard JMeter non-GUI):
+              jmeter -n -t test.jmx -l results.jtl -Jbpm.output=bpm-results.jsonl
+
+            Step 2: Generate report:
+              bpm-report -i bpm-results.jsonl
+
+            REQUIRED:
+              -i, --input FILE            BPM JSONL results file
+
+            OUTPUT:
+              -o, --output FILE           HTML report path (default: bpm-report.html)
+
+            FILTER OPTIONS:
+              --chart-interval INT        Seconds per chart bucket, 0=auto (default: 0)
+              --search STRING             Label filter text (include mode by default)
+              --regex                     Treat --search as regex
+              --exclude                   Exclude matching labels (default: include)
+
+            REPORT METADATA:
+              --scenario-name STRING      Scenario name for report header
+              --description STRING        Scenario description
+              --virtual-users INT         Virtual user count for report header
+
+            HELP:
+              -h, --help                  Show this help message
+
+            EXAMPLES:
+              bpm-report -i bpm-results.jsonl
+              bpm-report -i bpm-results.jsonl -o report.html \\
+                --scenario-name "Sprint 42" --description "Peak load test" --virtual-users 50
+              bpm-report -i bpm-results.jsonl --search "Login|Checkout" --regex
+
+            EXIT CODES:
+              0  Success — report generated
+              1  Invalid command-line arguments
+              2  JSONL parse error
+              3  Report file write error
+              4  Unexpected error
+            """);
     }
 
     private void doParse(String[] args) {

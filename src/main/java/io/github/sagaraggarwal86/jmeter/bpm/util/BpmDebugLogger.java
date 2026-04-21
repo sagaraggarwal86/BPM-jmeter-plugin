@@ -80,8 +80,8 @@ public final class BpmDebugLogger {
         }
         long total = vitalsMs + networkMs + runtimeMs + consoleMs;
         LOG.debug("BPM: Collecting metrics for '{}' [webvitals={}ms, network={}ms,"
-                        + " runtime={}ms, console={}ms, total={}ms]",
-                samplerLabel, vitalsMs, networkMs, runtimeMs, consoleMs, total);
+                + " runtime={}ms, console={}ms, total={}ms]",
+            samplerLabel, vitalsMs, networkMs, runtimeMs, consoleMs, total);
     }
 
     /**
@@ -120,7 +120,7 @@ public final class BpmDebugLogger {
         }
         String scoreStr = score != null ? String.valueOf(score) : "—";
         LOG.debug("BPM: Derived metrics for '{}' score={}, improvementArea={}",
-                samplerLabel, scoreStr, improvementArea);
+            samplerLabel, scoreStr, improvementArea);
     }
 
     /**
@@ -140,7 +140,7 @@ public final class BpmDebugLogger {
             return;
         }
         LOG.debug("BPM: JSONL write: {} record(s), {} bytes, flush in {}ms",
-                recordCount, bytes, flushMs);
+            recordCount, bytes, flushMs);
     }
 
     /**

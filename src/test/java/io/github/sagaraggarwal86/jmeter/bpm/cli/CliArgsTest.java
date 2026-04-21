@@ -89,7 +89,7 @@ class CliArgsTest {
     void filterFlags() throws IOException {
         Path f = createTempFile("in.jsonl");
         CliArgs cli = CliArgs.parse(new String[]{
-                "-i", f.toString(), "--search", "Login.*", "--regex", "--exclude"});
+            "-i", f.toString(), "--search", "Login.*", "--regex", "--exclude"});
         assertEquals("Login.*", cli.search());
         assertTrue(cli.regex());
         assertTrue(cli.exclude());
@@ -102,7 +102,7 @@ class CliArgsTest {
     void invalidRegex_error() throws IOException {
         Path f = createTempFile("in.jsonl");
         CliArgs cli = CliArgs.parse(new String[]{
-                "-i", f.toString(), "--search", "[invalid", "--regex"});
+            "-i", f.toString(), "--search", "[invalid", "--regex"});
         assertTrue(cli.errors().stream().anyMatch(e -> e.contains("regex")));
     }
 
@@ -130,9 +130,9 @@ class CliArgsTest {
     void metadata() throws IOException {
         Path f = createTempFile("in.jsonl");
         CliArgs cli = CliArgs.parse(new String[]{
-                "-i", f.toString(),
-                "--scenario-name", "Sprint 42",
-                "--description", "Peak load"});
+            "-i", f.toString(),
+            "--scenario-name", "Sprint 42",
+            "--description", "Peak load"});
         assertEquals("Sprint 42", cli.scenarioName());
         assertEquals("Peak load", cli.description());
     }

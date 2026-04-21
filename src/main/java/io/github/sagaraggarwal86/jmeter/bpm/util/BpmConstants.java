@@ -329,12 +329,12 @@ public final class BpmConstants {
      * Friendly display names for bottleneck areas (used in report cards).
      */
     public static final Map<String, String> BOTTLENECK_DISPLAY_NAMES = Map.of(
-            BOTTLENECK_SERVER, "Slow Server Response",
-            BOTTLENECK_RESOURCE, "Heavy Page Assets",
-            BOTTLENECK_CLIENT, "Client Rendering Overhead",
-            BOTTLENECK_LAYOUT, "Excessive DOM Complexity",
-            BOTTLENECK_RELIABILITY, "Failed Network Requests",
-            BOTTLENECK_NONE, "Mixed Performance Issues"
+        BOTTLENECK_SERVER, "Slow Server Response",
+        BOTTLENECK_RESOURCE, "Heavy Page Assets",
+        BOTTLENECK_CLIENT, "Client Rendering Overhead",
+        BOTTLENECK_LAYOUT, "Excessive DOM Complexity",
+        BOTTLENECK_RELIABILITY, "Failed Network Requests",
+        BOTTLENECK_NONE, "Mixed Performance Issues"
     );
 
     // ── Stability category labels ─────────────────────────────────────────────────────────────
@@ -481,74 +481,74 @@ public final class BpmConstants {
      * Indices align with {@code COL_IDX_LABEL} through {@code COL_IDX_IMPROVEMENT_AREA}.
      */
     public static final String[] ALWAYS_VISIBLE_HEADERS = {
-            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
-            "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area"
+        "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
+        "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area"
     };
     /**
      * Column headers for the 8 raw metric columns in display order.
      * Indices align with {@code COL_IDX_FCP} through {@code COL_IDX_WARNS}.
      */
     public static final String[] RAW_METRIC_HEADERS = {
-            "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
+        "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
     /**
      * All 18 column headers in full model order (always-visible first, then raw).
      */
     public static final String[] ALL_COLUMN_HEADERS = {
-            // Always visible (0-9)
-            "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
-            "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area",
-            // Raw metrics (10-17)
-            "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
+        // Always visible (0-9)
+        "Label", "Smpl", "Score", "Rndr(ms)", "Srvr(%)",
+        "Front(ms)", "Gap(ms)", "Stability", "Headroom", "Improvement Area",
+        // Raw metrics (10-17)
+        "FCP(ms)", "LCP(ms)", "CLS", "TTFB(ms)", "Reqs", "Size(KB)", "Errs", "Warns"
     };
     /**
      * Default visibility for each of the 8 raw metric columns (index 0 = FCP … index 7 = Warns).
      */
     public static final boolean[] RAW_COLUMNS_DEFAULT_VISIBILITY = {
-            false, false, false, false, false, false, false, false
+        false, false, false, false, false, false, false, false
     };
     /**
      * Tooltip for the Score column.
      */
     public static final String TOOLTIP_SCORE =
-            "Performance score (0-100). Weighted average of Core Web Vitals against SLA thresholds. Null for SPA actions where LCP/FCP/TTFB are not applicable.";
+        "Performance score (0-100). Weighted average of Core Web Vitals against SLA thresholds. Null for SPA actions where LCP/FCP/TTFB are not applicable.";
     /**
      * Tooltip for the Render Time column.
      */
     public static final String TOOLTIP_RENDER_TIME =
-            "Render Time = LCP \u2212 TTFB. Time spent on client-side rendering after the server responded.";
+        "Render Time = LCP \u2212 TTFB. Time spent on client-side rendering after the server responded.";
 
     // ── Column header tooltips ────────────────────────────────────────────────────────────────
     /**
      * Tooltip for the Server Ratio column.
      */
     public static final String TOOLTIP_SERVER_RATIO =
-            "Server Ratio = (TTFB \u00f7 LCP) \u00d7 100. Percentage of LCP time attributable to server response. Higher = more server-dominated.";
+        "Server Ratio = (TTFB \u00f7 LCP) \u00d7 100. Percentage of LCP time attributable to server response. Higher = more server-dominated.";
     /**
      * Tooltip for the Frontend Time column.
      */
     public static final String TOOLTIP_FRONTEND_TIME =
-            "Frontend Time = FCP \u2212 TTFB. Time the browser spent parsing HTML and executing blocking scripts before showing any content. Large values indicate render-blocking resources.";
+        "Frontend Time = FCP \u2212 TTFB. Time the browser spent parsing HTML and executing blocking scripts before showing any content. Large values indicate render-blocking resources.";
     /**
      * Tooltip for the FCP-LCP Gap column.
      */
     public static final String TOOLTIP_FCP_LCP_GAP =
-            "FCP\u2013LCP Gap = LCP \u2212 FCP. Time between first paint and largest paint. Large gap = main content loads much later than initial paint, suggesting lazy-loaded or blocking content.";
+        "FCP\u2013LCP Gap = LCP \u2212 FCP. Time between first paint and largest paint. Large gap = main content loads much later than initial paint, suggesting lazy-loaded or blocking content.";
     /**
      * Tooltip for the Stability column.
      */
     public static final String TOOLTIP_STABILITY =
-            "Visual Stability based on Cumulative Layout Shift (CLS). Stable = CLS \u2264 0.10 (good). Minor Shifts = CLS 0.10\u20130.25 (needs work). Unstable = CLS > 0.25 (poor).";
+        "Visual Stability based on Cumulative Layout Shift (CLS). Stable = CLS \u2264 0.10 (good). Minor Shifts = CLS 0.10\u20130.25 (needs work). Unstable = CLS > 0.25 (poor).";
     /**
      * Tooltip for the Headroom column.
      */
     public static final String TOOLTIP_HEADROOM =
-            "LCP Performance Budget Remaining. Percentage of LCP budget left before hitting the Poor threshold. Trending toward 0% means the action is at risk of SLA breach under load.";
+        "LCP Performance Budget Remaining. Percentage of LCP budget left before hitting the Poor threshold. Trending toward 0% means the action is at risk of SLA breach under load.";
     /**
      * Tooltip for the Improvement Area column.
      */
     public static final String TOOLTIP_IMPROVEMENT_AREA =
-            "Improvement Area: identifies the biggest factor consuming load time for this action. Where to focus if performance needs to improve further. Not a failure indicator \u2014 present even when Score is 100.";
+        "Improvement Area: identifies the biggest factor consuming load time for this action. Where to focus if performance needs to improve further. Not a failure indicator \u2014 present even when Score is 100.";
     /**
      * @deprecated Use {@link #TOOLTIP_IMPROVEMENT_AREA}.
      */
@@ -558,91 +558,91 @@ public final class BpmConstants {
      * Tooltip for the FCP column.
      */
     public static final String TOOLTIP_FCP =
-            "First Contentful Paint. Time until first text or image is visible.";
+        "First Contentful Paint. Time until first text or image is visible.";
     /**
      * Tooltip for the LCP column.
      */
     public static final String TOOLTIP_LCP =
-            "Largest Contentful Paint. Time until the largest visible element renders.";
+        "Largest Contentful Paint. Time until the largest visible element renders.";
     /**
      * Tooltip for the CLS column.
      */
     public static final String TOOLTIP_CLS =
-            "Cumulative Layout Shift score (raw). Lower is better. See Stability column for categorised view.";
+        "Cumulative Layout Shift score (raw). Lower is better. See Stability column for categorised view.";
     /**
      * Tooltip for the TTFB column.
      */
     public static final String TOOLTIP_TTFB =
-            "Time To First Byte. Server response time from request sent to first byte received.";
+        "Time To First Byte. Server response time from request sent to first byte received.";
     /**
      * Tooltip for the Reqs column.
      */
     public static final String TOOLTIP_REQS =
-            "Average number of network requests per action.";
+        "Average number of network requests per action.";
     /**
      * Tooltip for the Size column.
      */
     public static final String TOOLTIP_SIZE =
-            "Average total transfer size per action in kilobytes.";
+        "Average total transfer size per action in kilobytes.";
     /**
      * Tooltip for the Errs column.
      */
     public static final String TOOLTIP_ERRS =
-            "Total JavaScript errors captured from the browser console.";
+        "Total JavaScript errors captured from the browser console.";
     /**
      * Tooltip for the Warns column.
      */
     public static final String TOOLTIP_WARNS =
-            "Total JavaScript warnings captured from the browser console.";
+        "Total JavaScript warnings captured from the browser console.";
     /**
      * Cell tooltip for {@link #BOTTLENECK_NONE}.
      */
     public static final String VALUE_TOOLTIP_NONE =
-            "All load factors are within proportion. No specific area needs attention.";
+        "All load factors are within proportion. No specific area needs attention.";
     /**
      * Cell tooltip for {@link #BOTTLENECK_RELIABILITY}.
      */
     public static final String VALUE_TOOLTIP_RELIABILITY =
-            "One or more network requests failed (4xx/5xx or connection error). Investigate failing endpoints before optimising anything else.";
+        "One or more network requests failed (4xx/5xx or connection error). Investigate failing endpoints before optimising anything else.";
 
     // ── Improvement Area value tooltips ──────────────────────────────────────────────────────
     /**
      * Cell tooltip for {@link #BOTTLENECK_SERVER}.
      */
     public static final String VALUE_TOOLTIP_SERVER =
-            "Time To First Byte is consuming more than 60% of LCP time. Consider server-side caching, CDN placement, or backend query optimisation.";
+        "Time To First Byte is consuming more than 60% of LCP time. Consider server-side caching, CDN placement, or backend query optimisation.";
     /**
      * Cell tooltip for {@link #BOTTLENECK_RESOURCE}.
      */
     public static final String VALUE_TOOLTIP_RESOURCE =
-            "A single asset (script, image, or third-party resource) is consuming more than 40% of LCP time. Compress, lazy-load, or defer it.";
+        "A single asset (script, image, or third-party resource) is consuming more than 40% of LCP time. Compress, lazy-load, or defer it.";
     /**
      * Cell tooltip for {@link #BOTTLENECK_CLIENT}.
      */
     public static final String VALUE_TOOLTIP_CLIENT =
-            "Client-side rendering is consuming more than 60% of LCP time. Reduce JavaScript execution, defer non-critical scripts, or optimise the critical rendering path.";
+        "Client-side rendering is consuming more than 60% of LCP time. Reduce JavaScript execution, defer non-critical scripts, or optimise the critical rendering path.";
     /**
      * Cell tooltip for {@link #BOTTLENECK_LAYOUT}.
      */
     public static final String VALUE_TOOLTIP_LAYOUT =
-            "Excessive layout recalculations detected relative to DOM size. Avoid reading and writing DOM layout properties in the same frame, and reduce DOM depth.";
+        "Excessive layout recalculations detected relative to DOM size. Avoid reading and writing DOM layout properties in the same frame, and reduce DOM depth.";
     /**
      * Cell tooltip for {@link #STABILITY_STABLE}.
      */
     public static final String VALUE_TOOLTIP_STABLE =
-            "CLS \u2264 0.10. No perceptible layout shift. Visual stability is good.";
+        "CLS \u2264 0.10. No perceptible layout shift. Visual stability is good.";
     /**
      * Cell tooltip for {@link #STABILITY_MINOR_SHIFTS}.
      */
     public static final String VALUE_TOOLTIP_MINOR_SHIFTS =
-            "CLS 0.10\u20130.25. Noticeable layout shift. Users may lose their place on the page.";
+        "CLS 0.10\u20130.25. Noticeable layout shift. Users may lose their place on the page.";
 
     // ── Stability value tooltips ──────────────────────────────────────────────────────────────
     /**
      * Cell tooltip for {@link #STABILITY_UNSTABLE}.
      */
     public static final String VALUE_TOOLTIP_UNSTABLE =
-            "CLS > 0.25. Disruptive layout shift. Elements visibly jump as the page loads.";
+        "CLS > 0.25. Disruptive layout shift. Elements visibly jump as the page loads.";
     /**
      * LCP contribution to the composite performance score: 40%.
      */
@@ -676,19 +676,19 @@ public final class BpmConstants {
      * Info-bar text shown before any test runs.
      */
     public static final String INFO_DEFAULT =
-            "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
-                    + " Chrome DevTools Protocol.";
+        "\u2139 Captures browser rendering metrics from WebDriver Samplers using"
+            + " Chrome DevTools Protocol.";
     /**
      * URL opened by the Help button in the info bar.
      */
     public static final String HELP_URL =
-            "https://github.com/sagaraggarwal86/BPM-jmeter-plugin#readme";
+        "https://github.com/sagaraggarwal86/BPM-jmeter-plugin#readme";
     /**
      * Info-bar text shown when Selenium/WebDriver classes are absent (Scenario A).
      */
     public static final String INFO_NO_SELENIUM =
-            "\u26A0 Selenium/WebDriver Support plugin not found."
-                    + " Install it via JMeter Plugins Manager.";
+        "\u26A0 Selenium/WebDriver Support plugin not found."
+            + " Install it via JMeter Plugins Manager.";
     /**
      * Info-bar text shown when no WebDriver Sampler data has arrived yet (Scenario B).
      */
@@ -697,7 +697,7 @@ public final class BpmConstants {
      * Info-bar text shown when all active threads use a non-Chrome browser (Scenario C).
      */
     public static final String INFO_NON_CHROME =
-            "\u26A0 Non-Chrome browser detected. CDP metrics require Chrome/Chromium.";
+        "\u26A0 Non-Chrome browser detected. CDP metrics require Chrome/Chromium.";
 
     // ── GUI info-bar state messages ───────────────────────────────────────────────────────────
     /**

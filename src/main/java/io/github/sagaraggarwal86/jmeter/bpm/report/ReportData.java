@@ -15,40 +15,40 @@ import static io.github.sagaraggarwal86.jmeter.bpm.util.BpmConstants.BOTTLENECK_
  * and Risk Assessment panels.</p>
  */
 public record ReportData(
-        // ── Summary ─────────────────────────────────────────────────────────
-        int totalLabels,
-        int totalSamples,
-        String overallVerdict,     // GOOD, NEEDS_WORK, POOR, N/A
-        int passCount,
-        int warnCount,
-        int criticalCount,
-        int weightedScore,
-        long weightedLcp,          // weighted average LCP (ms), 0 if no LCP data
+    // ── Summary ─────────────────────────────────────────────────────────
+    int totalLabels,
+    int totalSamples,
+    String overallVerdict,     // GOOD, NEEDS_WORK, POOR, N/A
+    int passCount,
+    int warnCount,
+    int criticalCount,
+    int weightedScore,
+    long weightedLcp,          // weighted average LCP (ms), 0 if no LCP data
 
-        // ── Breaches ────────────────────────────────────────────────────────
-        List<BreachEntry> breaches,
+    // ── Breaches ────────────────────────────────────────────────────────
+    List<BreachEntry> breaches,
 
-        // ── Best / Worst ────────────────────────────────────────────────────
-        String bestLabel,
-        int bestScore,
-        long bestLcp,
-        String worstLabel,
-        int worstScore,
-        long worstLcp,
-        String worstImprovementArea,
+    // ── Best / Worst ────────────────────────────────────────────────────
+    String bestLabel,
+    int bestScore,
+    long bestLcp,
+    String worstLabel,
+    int worstScore,
+    long worstLcp,
+    String worstImprovementArea,
 
-        // ── JavaScript Errors ───────────────────────────────────────────────
-        int totalErrors,
-        int totalErrorLabels,
-        List<ErrorEntry> topJsErrors,
+    // ── JavaScript Errors ───────────────────────────────────────────────
+    int totalErrors,
+    int totalErrorLabels,
+    List<ErrorEntry> topJsErrors,
 
-        // ── Risk Assessment ─────────────────────────────────────────────────
-        List<RiskEntry> headroomRisks,
-        List<RiskEntry> boundaryRisks,
-        List<String> spaLabels,
+    // ── Risk Assessment ─────────────────────────────────────────────────
+    List<RiskEntry> headroomRisks,
+    List<RiskEntry> boundaryRisks,
+    List<String> spaLabels,
 
-        // ── Trends (nullable) ───────────────────────────────────────────────
-        TrendData trends
+    // ── Trends (nullable) ───────────────────────────────────────────────
+    TrendData trends
 ) {
 
     /**
@@ -61,7 +61,7 @@ public record ReportData(
         Map<String, List<BreachEntry>> groups = new LinkedHashMap<>();
         for (BreachEntry entry : entries) {
             String area = entry.improvementArea() != null && !entry.improvementArea().isEmpty()
-                    ? entry.improvementArea() : BOTTLENECK_NONE;
+                ? entry.improvementArea() : BOTTLENECK_NONE;
             groups.computeIfAbsent(area, k -> new ArrayList<>()).add(entry);
         }
         return groups;
@@ -72,19 +72,19 @@ public record ReportData(
      * Ordered by severity (critical first, then warnings).
      */
     public record BreachEntry(
-            String label,
-            Integer score,
-            String scoreVerdict,
-            long lcp,
-            String lcpVerdict,
-            long fcp,
-            String fcpVerdict,
-            long ttfb,
-            String ttfbVerdict,
-            double cls,
-            String clsVerdict,
-            String improvementArea,
-            boolean hasCritical   // at least one POOR verdict
+        String label,
+        Integer score,
+        String scoreVerdict,
+        long lcp,
+        String lcpVerdict,
+        long fcp,
+        String fcpVerdict,
+        long ttfb,
+        String ttfbVerdict,
+        double cls,
+        String clsVerdict,
+        String improvementArea,
+        boolean hasCritical   // at least one POOR verdict
     ) {
     }
 

@@ -50,7 +50,7 @@ class DerivedMetricsCalculatorTest {
     void compute_perfectVitals_score100() {
         WebVitalsResult vitals = new WebVitalsResult(500L, 1000L, 0.01, 200L);
         DerivedMetrics result = calculator.compute(vitals, new NetworkResult(10, 100000L, 0, List.of()),
-                new RuntimeResult(5000000L, 500, 5, 3), new ConsoleResult(0, 0, List.of()), 2000);
+            new RuntimeResult(5000000L, 500, 5, 3), new ConsoleResult(0, 0, List.of()), 2000);
         assertEquals(100, result.performanceScore());
     }
 
@@ -59,7 +59,7 @@ class DerivedMetricsCalculatorTest {
     void compute_poorVitals_score0() {
         WebVitalsResult vitals = new WebVitalsResult(5000L, 6000L, 0.5, 3000L);
         DerivedMetrics result = calculator.compute(vitals, new NetworkResult(10, 100000L, 0, List.of()),
-                new RuntimeResult(5000000L, 500, 5, 3), new ConsoleResult(10, 0, List.of()), 2000);
+            new RuntimeResult(5000000L, 500, 5, 3), new ConsoleResult(10, 0, List.of()), 2000);
         assertEquals(0, result.performanceScore());
     }
 
@@ -67,10 +67,10 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("SPA-stale sample (only CLS + errors) produces null score, not inflated 100")
     void compute_spaStale_nullScore() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(null, null, 0.0, null), null, null,
-                new ConsoleResult(0, 0, List.of()), 1000);
+            new WebVitalsResult(null, null, 0.0, null), null, null,
+            new ConsoleResult(0, 0, List.of()), 1000);
         assertNull(result.performanceScore(),
-                "SPA-stale: only CLS+errors contribute — weight 0.30 < SCORE_MIN_WEIGHT 0.45 → null");
+            "SPA-stale: only CLS+errors contribute — weight 0.30 < SCORE_MIN_WEIGHT 0.45 → null");
     }
 
     @Test
@@ -90,7 +90,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("renderTime = LCP - TTFB")
     void compute_renderTime_isLcpMinusTtfb() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1180L, 0.01, 380L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1180L, 0.01, 380L), null, null, null, 2000);
         assertEquals(800, result.renderTime());
     }
 
@@ -98,7 +98,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("serverClientRatio has 2 decimal precision")
     void compute_serverRatio_twoDecimalPrecision() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1180L, 0.01, 380L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1180L, 0.01, 380L), null, null, null, 2000);
         assertEquals(32.20, result.serverClientRatio(), 0.01);
     }
 
@@ -106,7 +106,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("fcpLcpGap = LCP - FCP")
     void compute_fcpLcpGap_correct() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(420L, 1180L, 0.01, 380L), null, null, null, 2000);
+            new WebVitalsResult(420L, 1180L, 0.01, 380L), null, null, null, 2000);
         assertEquals(760, result.fcpLcpGap());
     }
 
@@ -114,7 +114,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("failedRequestRate computed correctly")
     void compute_failedRequestRate_correct() {
         DerivedMetrics result = calculator.compute(
-                null, new NetworkResult(20, 100000L, 5, List.of()), null, null, 2000);
+            null, new NetworkResult(20, 100000L, 5, List.of()), null, null, 2000);
         assertEquals(25.0, result.failedRequestRate(), 0.01);
     }
 
@@ -128,7 +128,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("LCP=0 produces zero ratios without division error")
     void compute_lcpZero_noDivisionError() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(0L, 0L, 0.0, 0L), null, null, null, 2000);
+            new WebVitalsResult(0L, 0L, 0.0, 0L), null, null, null, 2000);
         assertEquals(0.0, result.serverClientRatio());
         assertEquals(0, result.renderTime());
     }
@@ -139,7 +139,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("frontendTime = FCP - TTFB when both present")
     void compute_frontendTime_isFcpMinusTtfb() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1000L, 0.01, 200L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1000L, 0.01, 200L), null, null, null, 2000);
         assertNotNull(result.frontendTime());
         assertEquals(300L, result.frontendTime(), "FCP(500) - TTFB(200) = 300ms");
     }
@@ -148,7 +148,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("frontendTime is null when FCP or TTFB is null")
     void compute_frontendTime_nullWhenSpaStale() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);
+            new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);
         assertNull(result.frontendTime());
     }
 
@@ -156,7 +156,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("stabilityCategory = Stable when CLS <= 0.10")
     void compute_stabilityCategory_stable() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1000L, 0.05, 200L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1000L, 0.05, 200L), null, null, null, 2000);
         assertEquals(BpmConstants.STABILITY_STABLE, result.stabilityCategory());
     }
 
@@ -164,7 +164,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("stabilityCategory = Minor Shifts when CLS between 0.10 and 0.25")
     void compute_stabilityCategory_minorShifts() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1000L, 0.15, 200L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1000L, 0.15, 200L), null, null, null, 2000);
         assertEquals(BpmConstants.STABILITY_MINOR_SHIFTS, result.stabilityCategory());
     }
 
@@ -172,7 +172,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("stabilityCategory = Unstable when CLS > 0.25")
     void compute_stabilityCategory_unstable() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 1000L, 0.30, 200L), null, null, null, 2000);
+            new WebVitalsResult(500L, 1000L, 0.30, 200L), null, null, null, 2000);
         assertEquals(BpmConstants.STABILITY_UNSTABLE, result.stabilityCategory());
     }
 
@@ -180,7 +180,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("stabilityCategory is null when CLS is null")
     void compute_stabilityCategory_nullWhenClsNull() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(null, null, null, null), null, null, null, 2000);
+            new WebVitalsResult(null, null, null, null), null, null, null, 2000);
         assertNull(result.stabilityCategory());
     }
 
@@ -189,7 +189,7 @@ class DerivedMetricsCalculatorTest {
     void compute_headroom_fastPageHighHeadroom() {
         // 100 - (400/4000 * 100) = 90%
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(500L, 400L, 0.01, 200L), null, null, null, 2000);
+            new WebVitalsResult(500L, 400L, 0.01, 200L), null, null, null, 2000);
         assertNotNull(result.headroom());
         assertEquals(90, result.headroom());
     }
@@ -198,7 +198,7 @@ class DerivedMetricsCalculatorTest {
     @DisplayName("headroom is null when LCP is null")
     void compute_headroom_nullWhenLcpNull() {
         DerivedMetrics result = calculator.compute(
-                new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);
+            new WebVitalsResult(null, null, 0.0, null), null, null, null, 2000);
         assertNull(result.headroom());
     }
 
@@ -212,8 +212,8 @@ class DerivedMetricsCalculatorTest {
         @DisplayName("Priority 1: Fix Network Failures when failedRequests > 0")
         void improvementArea_failedRequests_fixNetworkFailures() {
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(500L, 1000L, 0.01, 200L),
-                    new NetworkResult(10, 100000L, 2, List.of()), null, null, 2000);
+                new WebVitalsResult(500L, 1000L, 0.01, 200L),
+                new NetworkResult(10, 100000L, 2, List.of()), null, null, 2000);
             assertEquals(BpmConstants.BOTTLENECK_RELIABILITY, result.improvementArea());
         }
 
@@ -222,8 +222,8 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_highTtfbRatio_reduceServerResponse() {
             // TTFB=700, LCP=1000 → 70% > 60%
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(500L, 1000L, 0.01, 700L),
-                    new NetworkResult(10, 100000L, 0, List.of()), null, null, 2000);
+                new WebVitalsResult(500L, 1000L, 0.01, 700L),
+                new NetworkResult(10, 100000L, 0, List.of()), null, null, 2000);
             assertEquals(BpmConstants.BOTTLENECK_SERVER, result.improvementArea());
         }
 
@@ -232,9 +232,9 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_slowResource_optimiseHeavyAssets() {
             // Slowest=500ms, LCP=1000ms → 50% > 40%
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(500L, 1000L, 0.01, 200L),
-                    new NetworkResult(10, 300000L, 0, List.of(new ResourceEntry("/big.js", 500, 300000, 100))),
-                    null, null, 2000);
+                new WebVitalsResult(500L, 1000L, 0.01, 200L),
+                new NetworkResult(10, 300000L, 0, List.of(new ResourceEntry("/big.js", 500, 300000, 100))),
+                null, null, 2000);
             assertEquals(BpmConstants.BOTTLENECK_RESOURCE, result.improvementArea());
         }
 
@@ -243,8 +243,8 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_highRenderTime_reduceRenderWork() {
             // TTFB=100, LCP=1000 → renderTime=900 → 90% > 60%
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(500L, 1000L, 0.01, 100L),
-                    new NetworkResult(10, 100000L, 0, List.of()), null, null, 2000);
+                new WebVitalsResult(500L, 1000L, 0.01, 100L),
+                new NetworkResult(10, 100000L, 0, List.of()), null, null, 2000);
             assertEquals(BpmConstants.BOTTLENECK_CLIENT, result.improvementArea());
         }
 
@@ -253,9 +253,9 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_excessiveLayouts_reduceDomComplexity() {
             // layoutCount=600, domNodes=1000 → 600 > 500
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(400L, 1000L, 0.01, 400L),
-                    new NetworkResult(10, 100000L, 0, List.of()),
-                    new RuntimeResult(5000000L, 1000, 600, 50), null, 2000);
+                new WebVitalsResult(400L, 1000L, 0.01, 400L),
+                new NetworkResult(10, 100000L, 0, List.of()),
+                new RuntimeResult(5000000L, 1000, 600, 50), null, 2000);
             assertTrue(result.improvementAreas().contains(BpmConstants.BOTTLENECK_LAYOUT));
         }
 
@@ -263,10 +263,10 @@ class DerivedMetricsCalculatorTest {
         @DisplayName("LCP=0 skips all bottleneck ratio checks — returns None")
         void improvementArea_lcpZero_skipsAllRatioChecks() {
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(0L, 0L, 0.01, 0L),
-                    new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/big.js", 500, 300000, 100))),
-                    new RuntimeResult(5000000L, 1000, 10, 5),
-                    new ConsoleResult(0, 0, List.of()), 2000);
+                new WebVitalsResult(0L, 0L, 0.01, 0L),
+                new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/big.js", 500, 300000, 100))),
+                new RuntimeResult(5000000L, 1000, 10, 5),
+                new ConsoleResult(0, 0, List.of()), 2000);
             // LCP=0 means server ratio, resource ratio, client ratio all skipped
             assertEquals(BpmConstants.BOTTLENECK_NONE, result.improvementArea());
         }
@@ -276,22 +276,22 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_domNodesZero_skipsLayoutThrashing() {
             // layoutCount=600, domNodes=0 → should skip (not divide by zero or false-positive)
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(200L, 1000L, 0.01, 400L),
-                    new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/small.js", 100, 5000, 50))),
-                    new RuntimeResult(5000000L, 0, 600, 50),
-                    new ConsoleResult(0, 0, List.of()), 2000);
+                new WebVitalsResult(200L, 1000L, 0.01, 400L),
+                new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/small.js", 100, 5000, 50))),
+                new RuntimeResult(5000000L, 0, 600, 50),
+                new ConsoleResult(0, 0, List.of()), 2000);
             assertFalse(result.improvementAreas().contains(BpmConstants.BOTTLENECK_LAYOUT),
-                    "Layout thrashing should not be detected when domNodes=0");
+                "Layout thrashing should not be detected when domNodes=0");
         }
 
         @Test
         @DisplayName("No condition matched — 'None' label")
         void improvementArea_noneMatched_noneLabel() {
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(200L, 1000L, 0.01, 400L),
-                    new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/small.js", 100, 5000, 50))),
-                    new RuntimeResult(5000000L, 1000, 10, 5),
-                    new ConsoleResult(0, 0, List.of()), 2000);
+                new WebVitalsResult(200L, 1000L, 0.01, 400L),
+                new NetworkResult(10, 100000L, 0, List.of(new ResourceEntry("/small.js", 100, 5000, 50))),
+                new RuntimeResult(5000000L, 1000, 10, 5),
+                new ConsoleResult(0, 0, List.of()), 2000);
             assertEquals(BpmConstants.BOTTLENECK_NONE, result.improvementArea());
             assertTrue(result.improvementAreas().isEmpty());
         }
@@ -301,8 +301,8 @@ class DerivedMetricsCalculatorTest {
         void improvementArea_multiple_allRecordedFirstIsPrimary() {
             // failedRequests > 0 AND TTFB/LCP > 60%
             DerivedMetrics result = calculator.compute(
-                    new WebVitalsResult(500L, 1000L, 0.01, 700L),
-                    new NetworkResult(10, 100000L, 2, List.of()), null, null, 2000);
+                new WebVitalsResult(500L, 1000L, 0.01, 700L),
+                new NetworkResult(10, 100000L, 2, List.of()), null, null, 2000);
             assertEquals(BpmConstants.BOTTLENECK_RELIABILITY, result.improvementArea());
             assertTrue(result.improvementAreas().size() >= 2);
             assertTrue(result.improvementAreas().contains(BpmConstants.BOTTLENECK_SERVER));

@@ -38,9 +38,9 @@ class BpmTableModelTest {
                                    String stability, String improvementArea) {
         WebVitalsResult vitals = new WebVitalsResult(500L, lcp, 0.02, 300L);
         DerivedMetrics derived = new DerivedMetrics(lcp - 300, 30.0, null, lcp - 500,
-                stability, null, 0.0, improvementArea, List.of(), score);
+            stability, null, 0.0, improvementArea, List.of(), score);
         return new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
-                label, true, 2000, vitals, null, null, null, derived);
+            label, true, 2000, vitals, null, null, null, derived);
     }
 
     @Test
@@ -226,8 +226,8 @@ class BpmTableModelTest {
             model.addOrUpdateResult(createResult("C", 70, 2500, BpmConstants.STABILITY_STABLE, BpmConstants.BOTTLENECK_RESOURCE));
 
             model.setDropdownFilters(
-                    Set.of(BpmConstants.STABILITY_STABLE),
-                    Set.of(BpmConstants.BOTTLENECK_SERVER));
+                Set.of(BpmConstants.STABILITY_STABLE),
+                Set.of(BpmConstants.BOTTLENECK_SERVER));
 
             // Only A matches both: Stable AND Server
             assertEquals(2, model.getFilteredRowCount()); // A + TOTAL
@@ -243,8 +243,8 @@ class BpmTableModelTest {
 
             model.setTransactionFilter("Login", false, true);
             model.setDropdownFilters(
-                    Set.of(BpmConstants.STABILITY_STABLE),
-                    Set.of(BpmConstants.BOTTLENECK_SERVER));
+                Set.of(BpmConstants.STABILITY_STABLE),
+                Set.of(BpmConstants.BOTTLENECK_SERVER));
 
             // Only Login matches all three filters
             assertEquals(2, model.getFilteredRowCount()); // Login + TOTAL
@@ -259,10 +259,10 @@ class BpmTableModelTest {
         private BpmResult resultAt(String label, Instant time) {
             WebVitalsResult vitals = new WebVitalsResult(500L, 1200L, 0.02, 300L);
             DerivedMetrics derived = new DerivedMetrics(900, 25.0, null, 700,
-                    BpmConstants.STABILITY_STABLE, 80, 0.0,
-                    BpmConstants.BOTTLENECK_NONE, List.of(), 90);
+                BpmConstants.STABILITY_STABLE, 80, 0.0,
+                BpmConstants.BOTTLENECK_NONE, List.of(), 90);
             return new BpmResult("1.0", time.toString(), "Thread-1", 1,
-                    label, true, 2000, vitals, null, null, null, derived);
+                label, true, 2000, vitals, null, null, null, derived);
         }
 
         private List<BpmResult> sampleData() {

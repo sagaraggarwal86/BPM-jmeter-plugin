@@ -34,9 +34,9 @@ class TrendAnalyzerTest {
     @DisplayName("Returns null for fewer than 4 buckets")
     void tooFewBuckets() {
         List<BpmTimeBucket> buckets = List.of(
-                bucket(1000, 80, 1200, 800, 400),
-                bucket(2000, 82, 1150, 790, 390),
-                bucket(3000, 81, 1180, 810, 410));
+            bucket(1000, 80, 1200, 800, 400),
+            bucket(2000, 82, 1150, 790, 390),
+            bucket(3000, 81, 1180, 810, 410));
         assertNull(TrendAnalyzer.analyze(buckets));
     }
 
@@ -44,10 +44,10 @@ class TrendAnalyzerTest {
     @DisplayName("Stable metrics produce STABLE overall stability")
     void stableMetrics() {
         List<BpmTimeBucket> buckets = List.of(
-                bucket(1000, 80, 1200, 800, 400),
-                bucket(2000, 82, 1150, 790, 390),
-                bucket(3000, 81, 1180, 810, 410),
-                bucket(4000, 80, 1200, 800, 400));
+            bucket(1000, 80, 1200, 800, 400),
+            bucket(2000, 82, 1150, 790, 390),
+            bucket(3000, 81, 1180, 810, 410),
+            bucket(4000, 80, 1200, 800, 400));
         TrendData result = TrendAnalyzer.analyze(buckets);
 
         assertNotNull(result);
@@ -61,10 +61,10 @@ class TrendAnalyzerTest {
     @DisplayName("Rising LCP produces MOSTLY_STABLE with alert")
     void risingLcp() {
         List<BpmTimeBucket> buckets = List.of(
-                bucket(1000, 85, 1000, 700, 300),
-                bucket(2000, 84, 1050, 710, 310),
-                bucket(3000, 83, 1500, 900, 500),
-                bucket(4000, 82, 1600, 950, 520));
+            bucket(1000, 85, 1000, 700, 300),
+            bucket(2000, 84, 1050, 710, 310),
+            bucket(3000, 83, 1500, 900, 500),
+            bucket(4000, 82, 1600, 950, 520));
         TrendData result = TrendAnalyzer.analyze(buckets);
 
         assertNotNull(result);
@@ -77,10 +77,10 @@ class TrendAnalyzerTest {
     @DisplayName("Multiple degrading metrics produce DEGRADING stability")
     void degradingMetrics() {
         List<BpmTimeBucket> buckets = List.of(
-                bucket(1000, 90, 800, 500, 200),
-                bucket(2000, 88, 850, 520, 210),
-                bucket(3000, 60, 2000, 1200, 800),
-                bucket(4000, 55, 2200, 1400, 900));
+            bucket(1000, 90, 800, 500, 200),
+            bucket(2000, 88, 850, 520, 210),
+            bucket(3000, 60, 2000, 1200, 800),
+            bucket(4000, 55, 2200, 1400, 900));
         TrendData result = TrendAnalyzer.analyze(buckets);
 
         assertNotNull(result);
@@ -92,10 +92,10 @@ class TrendAnalyzerTest {
     @DisplayName("Falling score is detected as degraded")
     void fallingScore() {
         List<BpmTimeBucket> buckets = List.of(
-                bucket(1000, 90, 1000, 700, 300),
-                bucket(2000, 88, 1050, 710, 310),
-                bucket(3000, 70, 1100, 750, 350),
-                bucket(4000, 65, 1080, 740, 340));
+            bucket(1000, 90, 1000, 700, 300),
+            bucket(2000, 88, 1050, 710, 310),
+            bucket(3000, 70, 1100, 750, 350),
+            bucket(4000, 65, 1080, 740, 340));
         TrendData result = TrendAnalyzer.analyze(buckets);
 
         assertNotNull(result);

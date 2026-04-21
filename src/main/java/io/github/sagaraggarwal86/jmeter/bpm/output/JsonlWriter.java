@@ -76,11 +76,11 @@ public final class JsonlWriter {
         BpmFileUtils.ensureParentDirectories(path);
         if (append) {
             this.writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE);
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE);
         } else {
             // Overwrite (fresh for new test) — TRUNCATE_EXISTING + CREATE + WRITE
             this.writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         }
     }
 

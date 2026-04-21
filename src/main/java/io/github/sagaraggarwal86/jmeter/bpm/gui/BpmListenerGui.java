@@ -47,7 +47,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BpmListenerGui.class);
     private static final DateTimeFormatter TIME_FMT =
-            DateTimeFormatter.ofPattern("MM/dd/yy HH:mm:ss").withZone(ZoneId.systemDefault());
+        DateTimeFormatter.ofPattern("MM/dd/yy HH:mm:ss").withZone(ZoneId.systemDefault());
     private static final ObjectMapper FILE_MAPPER = new ObjectMapper();
     /**
      * Static reference to the shared BpmListenerGui instance. JMeter shares a single GUI
@@ -132,7 +132,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         ((AbstractDocument) field.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
             public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
-                    throws BadLocationException {
+                throws BadLocationException {
                 if (text != null && text.chars().allMatch(Character::isDigit)) {
                     super.insertString(fb, offset, text, attr);
                 }
@@ -140,7 +140,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
             @Override
             public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attr)
-                    throws BadLocationException {
+                throws BadLocationException {
                 if (text != null && text.chars().allMatch(Character::isDigit)) {
                     super.replace(fb, offset, length, text, attr);
                 }
@@ -221,11 +221,11 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             for (var node : guiPackage.getTreeModel().getNodesOfType(BpmListener.class)) {
                 TestElement other = node.getTestElement();
                 if (other != element && uuid.equals(
-                        other.getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, ""))) {
+                    other.getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, ""))) {
                     element.setProperty(BpmConstants.TEST_ELEMENT_ID,
-                            java.util.UUID.randomUUID().toString());
+                        java.util.UUID.randomUUID().toString());
                     log.debug("BPM: UUID collision detected — reassigned UUID for '{}'",
-                            element.getName());
+                        element.getName());
                     return;
                 }
             }
@@ -271,8 +271,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         }
 
         JScrollPane scrollPane = new JScrollPane(resultsTable,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setPreferredSize(new Dimension(800, 300));
 
         // Bottom panel
@@ -399,7 +399,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         columnSelector = new ColumnSelectorPopup(e -> applyColumnVisibility());
         JButton columnsButton = new JButton("Select Columns \u2610");
         columnsButton.addActionListener(e ->
-                columnSelector.show(columnsButton, 0, columnsButton.getHeight()));
+            columnSelector.show(columnsButton, 0, columnsButton.getHeight()));
         fieldset.add(columnsButton);
 
         fieldset.add(new JLabel("Transaction Names:"));
@@ -413,14 +413,14 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         fieldset.add(includeExcludeCombo);
 
         stabilityFilterButton = new CheckBoxFilterButton("Stability", new String[]{
-                BpmConstants.STABILITY_STABLE, BpmConstants.STABILITY_MINOR_SHIFTS,
-                BpmConstants.STABILITY_UNSTABLE});
+            BpmConstants.STABILITY_STABLE, BpmConstants.STABILITY_MINOR_SHIFTS,
+            BpmConstants.STABILITY_UNSTABLE});
         fieldset.add(stabilityFilterButton);
 
         improvementFilterButton = new CheckBoxFilterButton("Improvement Area", new String[]{
-                BpmConstants.BOTTLENECK_NONE, BpmConstants.BOTTLENECK_SERVER,
-                BpmConstants.BOTTLENECK_RESOURCE, BpmConstants.BOTTLENECK_CLIENT,
-                BpmConstants.BOTTLENECK_LAYOUT, BpmConstants.BOTTLENECK_RELIABILITY});
+            BpmConstants.BOTTLENECK_NONE, BpmConstants.BOTTLENECK_SERVER,
+            BpmConstants.BOTTLENECK_RESOURCE, BpmConstants.BOTTLENECK_CLIENT,
+            BpmConstants.BOTTLENECK_LAYOUT, BpmConstants.BOTTLENECK_RELIABILITY});
         fieldset.add(improvementFilterButton);
 
         applyFiltersButton = new JButton("Apply Filters");
@@ -536,9 +536,9 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         element.setProperty(BpmConstants.TEST_ELEMENT_INCLUDE, "Include".equals(includeExcludeCombo.getSelectedItem()));
         element.setProperty(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, chartIntervalField.getText().trim());
         element.setProperty(BpmConstants.TEST_ELEMENT_STABILITY_FILTER,
-                stabilityFilterButton.toPersistString());
+            stabilityFilterButton.toPersistString());
         element.setProperty(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER,
-                improvementFilterButton.toPersistString());
+            improvementFilterButton.toPersistString());
         // Persist column visibility so each listener retains its own selection across saves/loads.
         if (columnSelector != null) {
             boolean[] vis = columnSelector.getVisibility();
@@ -563,18 +563,18 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             transactionNamesField.setText(element.getPropertyAsString(BpmConstants.TEST_ELEMENT_TRANSACTION_NAMES, ""));
             regexCheckBox.setSelected(element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_REGEX, false));
             includeExcludeCombo.setSelectedItem(
-                    element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
+                element.getPropertyAsBoolean(BpmConstants.TEST_ELEMENT_INCLUDE, true) ? "Include" : "Exclude");
             chartIntervalField.setText(element.getPropertyAsString(BpmConstants.TEST_ELEMENT_CHART_INTERVAL, "0"));
             stabilityFilterButton.fromPersistString(
-                    element.getPropertyAsString(BpmConstants.TEST_ELEMENT_STABILITY_FILTER, "All"));
+                element.getPropertyAsString(BpmConstants.TEST_ELEMENT_STABILITY_FILTER, "All"));
             improvementFilterButton.fromPersistString(
-                    element.getPropertyAsString(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER, "All"));
+                element.getPropertyAsString(BpmConstants.TEST_ELEMENT_IMPROVEMENT_FILTER, "All"));
             if (element instanceof BpmListener listener) {
                 // Assign a stable UUID if missing (old .jmx files saved before UUID support).
                 // Must happen before any early return so testStarted() can distinguish elements.
                 if (element.getPropertyAsString(BpmConstants.TEST_ELEMENT_ID, "").isEmpty()) {
                     element.setProperty(BpmConstants.TEST_ELEMENT_ID,
-                            java.util.UUID.randomUUID().toString());
+                        java.util.UUID.randomUUID().toString());
                 }
                 // Detect UUID collision from copy-paste (clone() copies all properties
                 // including the UUID). If another element in the tree already owns this
@@ -595,12 +595,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 }
 
                 tableModel.setTransactionFilter(
-                        transactionNamesField.getText().trim(),
-                        regexCheckBox.isSelected(),
-                        "Include".equals(includeExcludeCombo.getSelectedItem()));
+                    transactionNamesField.getText().trim(),
+                    regexCheckBox.isSelected(),
+                    "Include".equals(includeExcludeCombo.getSelectedItem()));
                 tableModel.setDropdownFilters(
-                        stabilityFilterButton.getSelectedValues(),
-                        improvementFilterButton.getSelectedValues());
+                    stabilityFilterButton.getSelectedValues(),
+                    improvementFilterButton.getSelectedValues());
 
                 // Always sync GUI with the element's authoritative data (Aggregate Report pattern).
                 String eid = BpmListener.buildElementKey(element);
@@ -646,14 +646,14 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
 
                 // Restore column visibility from TestElement property.
                 String visProp = element.getPropertyAsString(
-                        BpmConstants.TEST_ELEMENT_COLUMN_VISIBILITY, "");
+                    BpmConstants.TEST_ELEMENT_COLUMN_VISIBILITY, "");
                 if (!visProp.isEmpty()) {
                     String[] parts = visProp.split(",");
                     // Default unspecified columns to their defaults (handles old .jmx
                     // files saved with fewer columns than the current version).
                     boolean[] vis = java.util.Arrays.copyOf(
-                            BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY,
-                            BpmConstants.RAW_COLUMN_COUNT);
+                        BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY,
+                        BpmConstants.RAW_COLUMN_COUNT);
                     for (int i = 0; i < vis.length && i < parts.length; i++) {
                         vis[i] = Boolean.parseBoolean(parts[i].trim());
                     }
@@ -770,7 +770,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             testEndField.setText(TIME_FMT.format(now));
             Duration elapsed = Duration.between(testStartTime, now);
             testDurationField.setText(String.format("%dh %dm %ds",
-                    elapsed.toHours(), elapsed.toMinutesPart(), elapsed.toSecondsPart()));
+                elapsed.toHours(), elapsed.toMinutesPart(), elapsed.toSecondsPart()));
         }
 
         BpmListener listener = this.listenerRef;
@@ -864,7 +864,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         if (testStartTime != null) {
             Duration dur = Duration.between(testStartTime, endTime);
             testDurationField.setText(String.format("%dh %dm %ds",
-                    dur.toHours(), dur.toMinutesPart(), dur.toSecondsPart()));
+                dur.toHours(), dur.toMinutesPart(), dur.toSecondsPart()));
         }
         // Final authoritative rebuild — picks up all samples including any
         // that arrived after the last timer drain.
@@ -923,7 +923,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             scoreBar.setValue(overallScore);
             scoreBar.setString(String.valueOf(overallScore));
             scoreBar.setForeground(overallScore >= scoreGood ? BpmCellRenderer.COLOR_GOOD
-                    : overallScore >= scorePoor ? BpmCellRenderer.COLOR_NEEDS_WORK : BpmCellRenderer.COLOR_POOR);
+                : overallScore >= scorePoor ? BpmCellRenderer.COLOR_NEEDS_WORK : BpmCellRenderer.COLOR_POOR);
         } else {
             scoreLabel.setText("\u2014");
             scoreBar.setValue(0);
@@ -931,7 +931,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             scoreBar.setForeground(Color.GRAY);
         }
         scoreCategoryLabel.setText(String.format("Good: %d  Needs Work: %d  Poor: %d",
-                goodCount, needsWorkCount, poorCount));
+            goodCount, needsWorkCount, poorCount));
     }
 
     private void resetScoreBox() {
@@ -954,7 +954,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         if (first != null && last != null) {
             Duration dur = Duration.between(first, last);
             testDurationField.setText(String.format("%dh %dm %ds",
-                    dur.toHours(), dur.toMinutesPart(), dur.toSecondsPart()));
+                dur.toHours(), dur.toMinutesPart(), dur.toSecondsPart()));
         } else {
             testDurationField.setText("");
         }
@@ -997,12 +997,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             scoreBar.setValue(overallScore);
             scoreBar.setString(String.valueOf(overallScore));
             scoreBar.setForeground(overallScore >= scoreGood ? BpmCellRenderer.COLOR_GOOD
-                    : overallScore >= scorePoor ? BpmCellRenderer.COLOR_NEEDS_WORK : BpmCellRenderer.COLOR_POOR);
+                : overallScore >= scorePoor ? BpmCellRenderer.COLOR_NEEDS_WORK : BpmCellRenderer.COLOR_POOR);
         } else {
             resetScoreBox();
         }
         scoreCategoryLabel.setText(String.format("Good: %d  Needs Work: %d  Poor: %d",
-                goodCount, needsWorkCount, poorCount));
+            goodCount, needsWorkCount, poorCount));
     }
 
     /**
@@ -1061,12 +1061,12 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             return;
         }
         tableModel.setTransactionFilter(
-                transactionNamesField.getText().trim(),
-                regexCheckBox.isSelected(),
-                "Include".equals(includeExcludeCombo.getSelectedItem()));
+            transactionNamesField.getText().trim(),
+            regexCheckBox.isSelected(),
+            "Include".equals(includeExcludeCombo.getSelectedItem()));
         tableModel.setDropdownFilters(
-                stabilityFilterButton.getSelectedValues(),
-                improvementFilterButton.getSelectedValues());
+            stabilityFilterButton.getSelectedValues(),
+            improvementFilterButton.getSelectedValues());
         rebuildTableFromRaw();
     }
 
@@ -1190,7 +1190,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                     } else if (!capReached) {
                         capReached = true;
                         log.warn("BPM: MAX_RAW_RESULTS ({}) reached. Excess records discarded.",
-                                BpmConstants.MAX_RAW_RESULTS);
+                            BpmConstants.MAX_RAW_RESULTS);
                     }
                     // testStartTime is the offset reference point — always the absolute first record's timestamp
                     if (testStartTime == null && result.timestamp() != null) {
@@ -1212,10 +1212,10 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         if (lineCount > 0 && allRawResults.isEmpty()) {
             log.warn("BPM: All {} lines in {} failed to parse. No data loaded.", lineCount, path);
             JOptionPane.showMessageDialog(this,
-                    "Failed to parse any records from:\n" + path.getFileName()
-                            + "\n\n" + errorCount + " line(s) had parse errors.\n"
-                            + "Ensure the file is a valid BPM JSONL file.",
-                    "BPM — Load Error", JOptionPane.WARNING_MESSAGE);
+                "Failed to parse any records from:\n" + path.getFileName()
+                    + "\n\n" + errorCount + " line(s) had parse errors.\n"
+                    + "Ensure the file is a valid BPM JSONL file.",
+                "BPM — Load Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -1268,8 +1268,8 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         } catch (IOException e) {
             log.warn("BPM: Failed to save CSV: {}", outputPath, e);
             JOptionPane.showMessageDialog(this,
-                    "Failed to save CSV file:\n" + e.getMessage(),
-                    "BPM — Save Error", JOptionPane.ERROR_MESSAGE);
+                "Failed to save CSV file:\n" + e.getMessage(),
+                "BPM — Save Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1330,7 +1330,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                     matches = txPattern.matcher(label).find();
                 } else {
                     matches = label.toLowerCase(java.util.Locale.ROOT)
-                            .contains(txFilter.toLowerCase(java.util.Locale.ROOT));
+                        .contains(txFilter.toLowerCase(java.util.Locale.ROOT));
                 }
                 if (txInclude && !matches) continue;
                 if (!txInclude && matches) continue;
@@ -1339,7 +1339,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             // Build filtered aggregates (same filter as charts/table)
             if (r.derived() != null && label != null && !label.isEmpty()) {
                 aggregates.computeIfAbsent(label, k -> new io.github.sagaraggarwal86.jmeter.bpm.core.LabelAggregate())
-                        .update(r.derived(), r.webVitals(), r.network(), r.console());
+                    .update(r.derived(), r.webVitals(), r.network(), r.console());
             }
 
             if (r.timestamp() != null && r.derived() != null) {
@@ -1348,14 +1348,14 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
                 long lcpVal = wv != null && wv.lcp() != null ? wv.lcp() : 0;
                 long ttfbVal = wv != null && wv.ttfb() != null ? wv.ttfb() : 0;
                 rawSamples.add(new TimeBucketBuilder.RawSample(
-                        r.timestamp(),
-                        label,
-                        d.performanceScore(),
-                        lcpVal,
-                        wv != null && wv.fcp() != null ? wv.fcp() : 0,
-                        ttfbVal,
-                        wv != null && wv.cls() != null ? wv.cls() : -1,
-                        d.renderTime()
+                    r.timestamp(),
+                    label,
+                    d.performanceScore(),
+                    lcpVal,
+                    wv != null && wv.fcp() != null ? wv.fcp() : 0,
+                    ttfbVal,
+                    wv != null && wv.cls() != null ? wv.cls() : -1,
+                    d.renderTime()
                 ));
                 long epochMs = rawSamples.get(rawSamples.size() - 1).epochMs;
                 if (epochMs < minTs) minTs = epochMs;
@@ -1376,7 +1376,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         String duration = "";
         if (minTs != Long.MAX_VALUE) {
             runDateTime = TIME_FMT.format(Instant.ofEpochMilli(minTs))
-                    + " - " + TIME_FMT.format(Instant.ofEpochMilli(maxTs));
+                + " - " + TIME_FMT.format(Instant.ofEpochMilli(maxTs));
             long durationSecs = (maxTs - minTs) / 1000;
             long h = durationSecs / 3600;
             long m = (durationSecs % 3600) / 60;
@@ -1392,18 +1392,18 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
             if (gui != null) {
                 var treeModel = gui.getTreeModel();
                 java.util.List<org.apache.jmeter.gui.tree.JMeterTreeNode> planNodes =
-                        treeModel.getNodesOfType(org.apache.jmeter.testelement.TestPlan.class);
+                    treeModel.getNodesOfType(org.apache.jmeter.testelement.TestPlan.class);
                 if (!planNodes.isEmpty()) {
                     scenarioName = planNodes.get(0).getTestElement().getName();
                 }
                 java.util.List<org.apache.jmeter.gui.tree.JMeterTreeNode> tgNodes =
-                        treeModel.getNodesOfType(org.apache.jmeter.threads.AbstractThreadGroup.class);
+                    treeModel.getNodesOfType(org.apache.jmeter.threads.AbstractThreadGroup.class);
                 int totalThreads = 0;
                 for (org.apache.jmeter.gui.tree.JMeterTreeNode tgNode : tgNodes) {
                     if (tgNode.isEnabled()) {
                         try {
                             String numStr = tgNode.getTestElement()
-                                    .getPropertyAsString("ThreadGroup.num_threads", "0");
+                                .getPropertyAsString("ThreadGroup.num_threads", "0");
                             totalThreads += Integer.parseInt(numStr.trim());
                         } catch (NumberFormatException ignored) {
                         }
@@ -1421,13 +1421,13 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         log.info("BPM: Report metadata — scenario='{}', virtualUsers='{}'", scenarioName, virtualUsersStr);
 
         BpmHtmlReportRenderer.RenderConfig renderConfig = new BpmHtmlReportRenderer.RenderConfig(
-                scenarioName, "", virtualUsersStr,
-                runDateTime, duration, "",
-                grouped.intervalSeconds,
-                props.getSlaScoreGood(), props.getSlaLcpGood(),
-                props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
-                props.getSlaScorePoor(), props.getSlaLcpPoor(),
-                props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
+            scenarioName, "", virtualUsersStr,
+            runDateTime, duration, "",
+            grouped.intervalSeconds,
+            props.getSlaScoreGood(), props.getSlaLcpGood(),
+            props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
+            props.getSlaScorePoor(), props.getSlaLcpPoor(),
+            props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
 
         // Build metrics table from current table model (already filtered)
         List<String[]> metricsTable = new ArrayList<>();
@@ -1443,7 +1443,7 @@ public class BpmListenerGui extends AbstractListenerGui implements Clearable {
         }
 
         BpmReportLauncher.launch(this, aggregates, props, outputDir,
-                generateReportButton, renderConfig,
-                grouped.globalBuckets, grouped.perLabelBuckets, metricsTable);
+            generateReportButton, renderConfig,
+            grouped.globalBuckets, grouped.perLabelBuckets, metricsTable);
     }
 }

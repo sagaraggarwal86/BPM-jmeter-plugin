@@ -26,8 +26,8 @@ class CsvExporterTest {
         Path path = tempDir.resolve("test.csv");
         List<String> headers = List.of("Label", "Score", "Bottleneck");
         List<List<String>> rows = List.of(
-                List.of("Login", "82", "Client rendering"),
-                List.of("Dashboard", "41", "Server bottleneck"));
+            List.of("Login", "82", "Client rendering"),
+            List.of("Dashboard", "41", "Server bottleneck"));
 
         CsvExporter.export(path, headers, rows);
 
@@ -43,7 +43,7 @@ class CsvExporterTest {
         Path path = tempDir.resolve("escape.csv");
         List<String> headers = List.of("Name", "Description");
         List<List<String>> rows = List.of(
-                List.of("Test", "value, with comma"));
+            List.of("Test", "value, with comma"));
 
         CsvExporter.export(path, headers, rows);
 

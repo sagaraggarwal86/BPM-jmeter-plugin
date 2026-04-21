@@ -61,12 +61,12 @@ public final class BpmErrorHandler {
                 threadStates.put(threadName, ThreadState.RE_INIT_NEEDED);
                 log.debug("BPM: [{}] collection error", threadName, exception);
                 logOnceTracker.warnOnce(threadName, "collection-error",
-                        "CDP collection error. Will attempt re-init. Cause: " + exception.getMessage());
+                    "CDP collection error. Will attempt re-init. Cause: " + exception.getMessage());
             }
             case RE_INIT_NEEDED -> {
                 // Already pending re-init; another failure before re-init was attempted
                 logOnceTracker.warnOnce(threadName, "collection-error-repeat",
-                        "Repeated collection error before re-init. Cause: " + exception.getMessage());
+                    "Repeated collection error before re-init. Cause: " + exception.getMessage());
             }
             case DISABLED -> {
                 // Thread already disabled; silently count
@@ -89,7 +89,7 @@ public final class BpmErrorHandler {
         threadStates.put(threadName, ThreadState.DISABLED);
         log.debug("BPM: [{}] session re-init failed", threadName, exception);
         logOnceTracker.warnOnce(threadName, "session-disabled",
-                "CDP re-init failed. BPM disabled for this thread. Cause: " + exception.getMessage());
+            "CDP re-init failed. BPM disabled for this thread. Cause: " + exception.getMessage());
     }
 
     /**

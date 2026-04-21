@@ -23,25 +23,25 @@ import java.util.List;
 @JsonPropertyOrder({"errors", "warnings", "messages"})
 public record ConsoleResult(
 
-        /**
-         * Number of {@code console.error()} / uncaught exception log entries
-         * captured in this drain interval. Used in error-score computation
-         * (15% weight in performance score) and SLA coloring.
-         */
-        @JsonProperty("errors") int errors,
+    /**
+     * Number of {@code console.error()} / uncaught exception log entries
+     * captured in this drain interval. Used in error-score computation
+     * (15% weight in performance score) and SLA coloring.
+     */
+    @JsonProperty("errors") int errors,
 
-        /**
-         * Number of {@code console.warn()} log entries captured in this drain
-         * interval.
-         */
-        @JsonProperty("warnings") int warnings,
+    /**
+     * Number of {@code console.warn()} log entries captured in this drain
+     * interval.
+     */
+    @JsonProperty("warnings") int warnings,
 
-        /**
-         * Sanitised text content of captured console messages (errors and
-         * warnings combined). Empty list when no messages were captured.
-         * Order matches CDP event arrival order.
-         */
-        @JsonProperty("messages") List<String> messages
+    /**
+     * Sanitised text content of captured console messages (errors and
+     * warnings combined). Empty list when no messages were captured.
+     * Order matches CDP event arrival order.
+     */
+    @JsonProperty("messages") List<String> messages
 
 ) {
     /**

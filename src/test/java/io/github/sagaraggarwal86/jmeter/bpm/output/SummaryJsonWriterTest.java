@@ -32,7 +32,7 @@ class SummaryJsonWriterTest {
         Files.createFile(jsonlPath);
 
         List<Map<String, Object>> stats = List.of(
-                Map.of("label", "Login", "score", 95, "lcp", 1500L, "bottleneck", "—", "samples", 50));
+            Map.of("label", "Login", "score", 95, "lcp", 1500L, "bottleneck", "—", "samples", 50));
 
         new SummaryJsonWriter().write(jsonlPath, stats, 4000L, 50);
 
@@ -52,7 +52,7 @@ class SummaryJsonWriterTest {
         Files.createFile(jsonlPath);
 
         List<Map<String, Object>> stats = List.of(
-                Map.of("label", "Dashboard", "score", 41, "lcp", 4200L, "bottleneck", "Server bottleneck", "samples", 46));
+            Map.of("label", "Dashboard", "score", 41, "lcp", 4200L, "bottleneck", "Server bottleneck", "samples", 46));
 
         new SummaryJsonWriter().write(jsonlPath, stats, 4000L, 50);
 
@@ -82,8 +82,8 @@ class SummaryJsonWriterTest {
 
         // Mix of a scored label (full page load) and a null-score label (SPA-stale)
         List<Map<String, Object>> stats = List.of(
-                Map.of("label", "Launch", "score", 100, "lcp", 500L, "bottleneck", "—", "samples", 10),
-                Map.of("label", "SPA_Click", "lcp", 0L, "bottleneck", "—", "samples", 10) // no "score" key → null
+            Map.of("label", "Launch", "score", 100, "lcp", 500L, "bottleneck", "—", "samples", 10),
+            Map.of("label", "SPA_Click", "lcp", 0L, "bottleneck", "—", "samples", 10) // no "score" key → null
         );
 
         // Must not throw NullPointerException
@@ -95,7 +95,7 @@ class SummaryJsonWriterTest {
         JsonNode root = mapper.readTree(summaryPath.toFile());
         // Overall score should be 100 (only the scored label contributes), not 50 (which would mean null treated as 0)
         assertEquals(100, root.get("overallScore").asInt(),
-                "Overall score must exclude SPA-stale null-score labels");
+            "Overall score must exclude SPA-stale null-score labels");
         assertEquals("PASS", root.get("verdict").asText());
         assertEquals(0, root.get("slaBreaches").asInt(), "lcp=0 (no data) must not count as SLA breach");
 
@@ -146,7 +146,7 @@ class SummaryJsonWriterTest {
     @DisplayName("verdict is FAIL when overall score below poor threshold")
     void buildSummaryJson_lowScore_verdictFail() {
         List<Map<String, Object>> stats = List.of(
-                Map.of("label", "Slow", "score", 30, "lcp", 2000L, "bottleneck", "Server", "samples", 10));
+            Map.of("label", "Slow", "score", 30, "lcp", 2000L, "bottleneck", "Server", "samples", 10));
 
         SummaryJsonWriter writer = new SummaryJsonWriter();
         JsonNode root = mapper.valueToTree(writer.buildSummaryJson(stats, 4000L, 50));

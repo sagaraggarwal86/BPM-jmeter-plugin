@@ -20,8 +20,8 @@ public final class HtmlUtils {
      */
     public static String escapeHtml(String text) {
         return text.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;")
-                .replace("'", "&#39;");
+            .replace(">", "&gt;").replace("\"", "&quot;")
+            .replace("'", "&#39;");
     }
 
     /**

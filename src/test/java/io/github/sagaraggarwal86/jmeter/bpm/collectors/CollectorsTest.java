@@ -52,7 +52,7 @@ class CollectorsTest {
         @DisplayName("Normal collection returns all four vitals")
         void collect_normalValues_returnsAllFour() {
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
-                    .thenReturn(Map.of("lcp", 1180.0, "fcp", 420.0, "cls", 0.02, "ttfb", 380.0));
+                .thenReturn(Map.of("lcp", 1180.0, "fcp", 420.0, "cls", 0.02, "ttfb", 380.0));
 
             WebVitalsCollector collector = new WebVitalsCollector();
             WebVitalsResult result = collector.collect(executor, buffer);
@@ -68,7 +68,7 @@ class CollectorsTest {
         @DisplayName("SPA stale detection: returns partial result with null LCP/FCP/TTFB when unchanged")
         void collect_lcpUnchanged_returnsPartialWithNullLcp() {
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
-                    .thenReturn(Map.of("lcp", 1180.0, "fcp", 420.0, "cls", 0.0, "ttfb", 380.0));
+                .thenReturn(Map.of("lcp", 1180.0, "fcp", 420.0, "cls", 0.0, "ttfb", 380.0));
 
             WebVitalsCollector collector = new WebVitalsCollector();
             // First call — stores LCP, FCP, TTFB
@@ -88,7 +88,7 @@ class CollectorsTest {
         @DisplayName("lcp=0 and fcp=0 are treated as unavailable (null), not perfect 0 ms values")
         void collect_zeroLcpFcp_returnsNull() {
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
-                    .thenReturn(Map.of("lcp", 0.0, "fcp", 0.0, "cls", 0.0, "ttfb", 0.0));
+                .thenReturn(Map.of("lcp", 0.0, "fcp", 0.0, "cls", 0.0, "ttfb", 0.0));
 
             WebVitalsCollector collector = new WebVitalsCollector();
             WebVitalsResult result = collector.collect(executor, buffer);
@@ -103,7 +103,7 @@ class CollectorsTest {
         @DisplayName("Unexpected return type returns null")
         void collect_unexpectedReturnType_returnsNull() {
             when(executor.executeScript(JsSnippets.COLLECT_WEB_VITALS))
-                    .thenReturn("unexpected string");
+                .thenReturn("unexpected string");
 
             WebVitalsCollector collector = new WebVitalsCollector();
             assertNull(collector.collect(executor, buffer));
@@ -186,14 +186,14 @@ class CollectorsTest {
         @DisplayName("Normal collection extracts all four runtime metrics")
         void collect_normalMetrics_extractsAll() {
             Map<String, Object> response = Map.of("metrics", List.of(
-                    Map.of("name", "JSHeapUsedSize", "value", 18400000.0),
-                    Map.of("name", "Nodes", "value", 1847.0),
-                    Map.of("name", "LayoutCount", "value", 12.0),
-                    Map.of("name", "RecalcStyleCount", "value", 8.0),
-                    Map.of("name", "SomeOtherMetric", "value", 999.0)));
+                Map.of("name", "JSHeapUsedSize", "value", 18400000.0),
+                Map.of("name", "Nodes", "value", 1847.0),
+                Map.of("name", "LayoutCount", "value", 12.0),
+                Map.of("name", "RecalcStyleCount", "value", 8.0),
+                Map.of("name", "SomeOtherMetric", "value", 999.0)));
 
             when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
-                    .thenReturn(response);
+                .thenReturn(response);
 
             RuntimeCollector collector = new RuntimeCollector();
             RuntimeResult result = collector.collect(executor, buffer);
@@ -208,7 +208,7 @@ class CollectorsTest {
         @DisplayName("Empty metrics array returns zeros")
         void collect_emptyMetrics_returnsZeros() {
             when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
-                    .thenReturn(Map.of("metrics", List.of()));
+                .thenReturn(Map.of("metrics", List.of()));
 
             RuntimeCollector collector = new RuntimeCollector();
             RuntimeResult result = collector.collect(executor, buffer);
@@ -221,7 +221,7 @@ class CollectorsTest {
         @DisplayName("Missing metrics key returns zeros gracefully")
         void collect_noMetricsKey_returnsZeros() {
             when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
-                    .thenReturn(Map.of());
+                .thenReturn(Map.of());
 
             RuntimeCollector collector = new RuntimeCollector();
             RuntimeResult result = collector.collect(executor, buffer);
@@ -233,7 +233,7 @@ class CollectorsTest {
         @DisplayName("Non-List metrics value returns zeros gracefully")
         void collect_nonListMetrics_returnsZeros() {
             when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
-                    .thenReturn(Map.of("metrics", "not-a-list"));
+                .thenReturn(Map.of("metrics", "not-a-list"));
 
             RuntimeCollector collector = new RuntimeCollector();
             RuntimeResult result = collector.collect(executor, buffer);
@@ -246,10 +246,10 @@ class CollectorsTest {
         @DisplayName("Non-Map items in metrics list are skipped")
         void collect_nonMapItems_skipped() {
             when(executor.executeCdpCommand(eq(JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS), eq(Map.of())))
-                    .thenReturn(Map.of("metrics", List.of(
-                            "not-a-map",
-                            42,
-                            Map.of("name", "JSHeapUsedSize", "value", 5000000.0))));
+                .thenReturn(Map.of("metrics", List.of(
+                    "not-a-map",
+                    42,
+                    Map.of("name", "JSHeapUsedSize", "value", 5000000.0))));
 
             RuntimeCollector collector = new RuntimeCollector();
             RuntimeResult result = collector.collect(executor, buffer);

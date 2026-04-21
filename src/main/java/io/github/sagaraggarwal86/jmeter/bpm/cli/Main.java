@@ -74,7 +74,7 @@ public final class Main {
             System.exit(EXIT_WRITE_ERROR);
         } catch (Exception e) {
             System.err.println("ERROR: Unexpected failure: "
-                    + (e.getMessage() != null ? e.getMessage() : e.getClass().getName()));
+                + (e.getMessage() != null ? e.getMessage() : e.getClass().getName()));
             e.printStackTrace(System.err);
             System.exit(EXIT_UNEXPECTED);
         }

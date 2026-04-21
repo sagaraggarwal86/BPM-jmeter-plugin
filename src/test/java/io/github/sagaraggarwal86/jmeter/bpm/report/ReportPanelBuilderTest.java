@@ -74,13 +74,13 @@ class ReportPanelBuilderTest {
         @DisplayName("All-pass scenario includes pass language")
         void allPass() {
             ReportData data = new ReportData(
-                    3, 100, VERDICT_GOOD, 3, 0, 0, 92, 1200L,
-                    Collections.emptyList(),
-                    "/home", 95, 1200,
-                    "/about", 88, 1800, "None",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                3, 100, VERDICT_GOOD, 3, 0, 0, 92, 1200L,
+                Collections.emptyList(),
+                "/home", 95, 1200,
+                "/about", 88, 1800, "None",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildExecutiveSummary(data, "", 90, 50);
             assertNotNull(html);
@@ -94,19 +94,19 @@ class ReportPanelBuilderTest {
         @DisplayName("Breach entries render with description")
         void withBreaches() {
             ReportData.BreachEntry breach = new ReportData.BreachEntry(
-                    "/checkout", 45, VERDICT_POOR,
-                    4200, VERDICT_POOR, 2000, VERDICT_NEEDS_WORK,
-                    800, VERDICT_GOOD, 0.15, VERDICT_GOOD,
-                    "Reduce Server Response", true);
+                "/checkout", 45, VERDICT_POOR,
+                4200, VERDICT_POOR, 2000, VERDICT_NEEDS_WORK,
+                800, VERDICT_GOOD, 0.15, VERDICT_GOOD,
+                "Reduce Server Response", true);
 
             ReportData data = new ReportData(
-                    2, 200, VERDICT_POOR, 1, 0, 1, 70, 4200L,
-                    List.of(breach),
-                    "/home", 95, 1200,
-                    "/checkout", 45, 4200, "Reduce Server Response",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 200, VERDICT_POOR, 1, 0, 1, 70, 4200L,
+                List.of(breach),
+                "/home", 95, 1200,
+                "/checkout", 45, 4200, "Reduce Server Response",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildExecutiveSummary(data, "", 90, 50);
             assertNotNull(html);
@@ -118,13 +118,13 @@ class ReportPanelBuilderTest {
         @DisplayName("Error section renders when errors present")
         void withErrors() {
             ReportData data = new ReportData(
-                    2, 200, VERDICT_GOOD, 2, 0, 0, 90, 1500L,
-                    Collections.emptyList(),
-                    "/home", 95, 1200,
-                    "/about", 88, 1800, "None",
-                    5, 1, List.of(new ReportData.ErrorEntry("/home", 5)),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 200, VERDICT_GOOD, 2, 0, 0, 90, 1500L,
+                Collections.emptyList(),
+                "/home", 95, 1200,
+                "/about", 88, 1800, "None",
+                5, 1, List.of(new ReportData.ErrorEntry("/home", 5)),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildExecutiveSummary(data, "", 90, 50);
             assertNotNull(html);
@@ -136,12 +136,12 @@ class ReportPanelBuilderTest {
         @DisplayName("Fallback rendering when template missing")
         void fallbackRendering() {
             ReportData data = new ReportData(
-                    2, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             // Test fallback by calling with empty data (template should load fine,
             // but we verify the output is not empty)
@@ -159,12 +159,12 @@ class ReportPanelBuilderTest {
         @DisplayName("All-clear scenario shows green cards")
         void allClear() {
             ReportData data = new ReportData(
-                    2, 100, VERDICT_GOOD, 2, 0, 0, 92, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 100, VERDICT_GOOD, 2, 0, 0, 92, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildRiskAssessment(data);
             assertNotNull(html);
@@ -176,13 +176,13 @@ class ReportPanelBuilderTest {
         @DisplayName("Headroom risks render red capacity card")
         void headroomRisks() {
             ReportData data = new ReportData(
-                    2, 100, VERDICT_GOOD, 2, 0, 0, 92, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    List.of(new ReportData.RiskEntry("/checkout", 12, "Only 12% margin remaining")),
-                    Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 100, VERDICT_GOOD, 2, 0, 0, 92, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                List.of(new ReportData.RiskEntry("/checkout", 12, "Only 12% margin remaining")),
+                Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildRiskAssessment(data);
             assertTrue(html.contains("ra-red"));
@@ -193,12 +193,12 @@ class ReportPanelBuilderTest {
         @DisplayName("SPA labels render yellow unmeasured card")
         void spaLabels() {
             ReportData data = new ReportData(
-                    3, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    List.of("/dashboard", "/settings"), null);
+                3, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                List.of("/dashboard", "/settings"), null);
 
             String html = ReportPanelBuilder.buildRiskAssessment(data);
             assertTrue(html.contains("ra-yellow"));
@@ -210,24 +210,24 @@ class ReportPanelBuilderTest {
         @DisplayName("Trend data renders in performance trend card")
         void withTrends() {
             TrendData trends = new TrendData(
-                    8,
-                    new TrendData.MetricTrend("Score", 85, 70, "FALLING", 18, true),
-                    new TrendData.MetricTrend("LCP", 1200, 1500, "RISING", 25, true),
-                    new TrendData.MetricTrend("FCP", 800, 850, "STABLE", 6, false),
-                    new TrendData.MetricTrend("TTFB", 400, 420, "STABLE", 5, false),
-                    List.of("Score dropped 18% in the second half of the test (85 → 70).",
-                            "LCP increased 25% in the second half of the test (1200ms → 1500ms)."),
-                    "DEGRADING",
-                    "2 of 4 tracked metrics degraded during the test."
+                8,
+                new TrendData.MetricTrend("Score", 85, 70, "FALLING", 18, true),
+                new TrendData.MetricTrend("LCP", 1200, 1500, "RISING", 25, true),
+                new TrendData.MetricTrend("FCP", 800, 850, "STABLE", 6, false),
+                new TrendData.MetricTrend("TTFB", 400, 420, "STABLE", 5, false),
+                List.of("Score dropped 18% in the second half of the test (85 → 70).",
+                    "LCP increased 25% in the second half of the test (1200ms → 1500ms)."),
+                "DEGRADING",
+                "2 of 4 tracked metrics degraded during the test."
             );
 
             ReportData data = new ReportData(
-                    2, 100, VERDICT_POOR, 1, 0, 1, 75, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), trends);
+                2, 100, VERDICT_POOR, 1, 0, 1, 75, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), trends);
 
             String html = ReportPanelBuilder.buildRiskAssessment(data);
             assertTrue(html.contains("DEGRADING"));
@@ -239,12 +239,12 @@ class ReportPanelBuilderTest {
         @DisplayName("No trend data shows N/A badge")
         void noTrends() {
             ReportData data = new ReportData(
-                    2, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
-                    Collections.emptyList(),
-                    "", 0, 0, "", 0, 0, "",
-                    0, 0, Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), null);
+                2, 100, VERDICT_GOOD, 2, 0, 0, 90, 0L,
+                Collections.emptyList(),
+                "", 0, 0, "", 0, 0, "",
+                0, 0, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null);
 
             String html = ReportPanelBuilder.buildRiskAssessment(data);
             assertTrue(html.contains(VERDICT_NA));

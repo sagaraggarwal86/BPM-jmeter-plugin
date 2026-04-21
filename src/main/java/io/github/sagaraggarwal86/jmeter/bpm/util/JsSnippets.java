@@ -47,42 +47,42 @@ public final class JsSnippets {
      * {@code PerformanceObserver} is stacked on top of a still-live first one.
      */
     public static final String INJECT_OBSERVERS = """
-            (function() {
-              // LCP: store the startTime of the last (most recent) largest-contentful-paint entry.
-              new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                if (entries.length > 0) {
-                  window.__bpm_lcp = entries[entries.length - 1].startTime;
-                }
-              }).observe({type: 'largest-contentful-paint', buffered: true});
-            
-              // CLS: accumulate layout-shift values, ignoring shifts caused by user input.
-              window.__bpm_cls = window.__bpm_cls || 0;
-              new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                for (var i = 0; i < entries.length; i++) {
-                  if (!entries[i].hadRecentInput) {
-                    window.__bpm_cls = (window.__bpm_cls || 0) + entries[i].value;
-                  }
-                }
-              }).observe({type: 'layout-shift', buffered: true});
-            
-              // Synchronous seed from performance buffer.
-              // Observer callbacks are queued as tasks (async), so if collectMetrics()
-              // runs immediately after injection, window.__bpm_lcp would still be 0.
-              // Reading the buffer directly ensures values are available instantly.
-              var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
-              if (lcpEntries.length > 0) {
-                window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+        (function() {
+          // LCP: store the startTime of the last (most recent) largest-contentful-paint entry.
+          new PerformanceObserver(function(list) {
+            var entries = list.getEntries();
+            if (entries.length > 0) {
+              window.__bpm_lcp = entries[entries.length - 1].startTime;
+            }
+          }).observe({type: 'largest-contentful-paint', buffered: true});
+
+          // CLS: accumulate layout-shift values, ignoring shifts caused by user input.
+          window.__bpm_cls = window.__bpm_cls || 0;
+          new PerformanceObserver(function(list) {
+            var entries = list.getEntries();
+            for (var i = 0; i < entries.length; i++) {
+              if (!entries[i].hadRecentInput) {
+                window.__bpm_cls = (window.__bpm_cls || 0) + entries[i].value;
               }
-              var clsEntries = performance.getEntriesByType('layout-shift');
-              var clsSum = 0;
-              for (var i = 0; i < clsEntries.length; i++) {
-                if (!clsEntries[i].hadRecentInput) clsSum += clsEntries[i].value;
-              }
-              if (clsSum > 0) window.__bpm_cls = clsSum;
-            })();
-            """;
+            }
+          }).observe({type: 'layout-shift', buffered: true});
+
+          // Synchronous seed from performance buffer.
+          // Observer callbacks are queued as tasks (async), so if collectMetrics()
+          // runs immediately after injection, window.__bpm_lcp would still be 0.
+          // Reading the buffer directly ensures values are available instantly.
+          var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+          if (lcpEntries.length > 0) {
+            window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+          }
+          var clsEntries = performance.getEntriesByType('layout-shift');
+          var clsSum = 0;
+          for (var i = 0; i < clsEntries.length; i++) {
+            if (!clsEntries[i].hadRecentInput) clsSum += clsEntries[i].value;
+          }
+          if (clsSum > 0) window.__bpm_cls = clsSum;
+        })();
+        """;
 
     // ── Observer injection ────────────────────────────────────────────────────────────────────
     /**
@@ -108,34 +108,34 @@ public final class JsSnippets {
      * {@link #INJECT_OBSERVERS} remains correct for first-time session initialisation.
      */
     public static final String REINJECT_OBSERVERS = """
-            (function() {
-              // LCP: re-register observer — safe on re-inject (scalar overwrite on next event).
-              new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                if (entries.length > 0) {
-                  window.__bpm_lcp = entries[entries.length - 1].startTime;
-                }
-              }).observe({type: 'largest-contentful-paint', buffered: true});
-            
-              // CLS: reset to 0 before registering a new observer to prevent double-counting.
-              // The old session's CLS was already flushed to JSONL before re-init was triggered.
-              window.__bpm_cls = 0;
-              new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                for (var i = 0; i < entries.length; i++) {
-                  if (!entries[i].hadRecentInput) {
-                    window.__bpm_cls = (window.__bpm_cls || 0) + entries[i].value;
-                  }
-                }
-              }).observe({type: 'layout-shift', buffered: true});
-            
-              // Synchronous seed (same as INJECT_OBSERVERS).
-              var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
-              if (lcpEntries.length > 0) {
-                window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+        (function() {
+          // LCP: re-register observer — safe on re-inject (scalar overwrite on next event).
+          new PerformanceObserver(function(list) {
+            var entries = list.getEntries();
+            if (entries.length > 0) {
+              window.__bpm_lcp = entries[entries.length - 1].startTime;
+            }
+          }).observe({type: 'largest-contentful-paint', buffered: true});
+
+          // CLS: reset to 0 before registering a new observer to prevent double-counting.
+          // The old session's CLS was already flushed to JSONL before re-init was triggered.
+          window.__bpm_cls = 0;
+          new PerformanceObserver(function(list) {
+            var entries = list.getEntries();
+            for (var i = 0; i < entries.length; i++) {
+              if (!entries[i].hadRecentInput) {
+                window.__bpm_cls = (window.__bpm_cls || 0) + entries[i].value;
               }
-            })();
-            """;
+            }
+          }).observe({type: 'layout-shift', buffered: true});
+
+          // Synchronous seed (same as INJECT_OBSERVERS).
+          var lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+          if (lcpEntries.length > 0) {
+            window.__bpm_lcp = lcpEntries[lcpEntries.length - 1].startTime;
+          }
+        })();
+        """;
 
     /**
      * JavaScript executed once per sampler to read all four Web Vitals in a single round-trip.
@@ -159,18 +159,18 @@ public final class JsSnippets {
      * LCP and CLS are sourced from the window globals set by {@link #INJECT_OBSERVERS}.
      */
     public static final String COLLECT_WEB_VITALS = """
-            return (function() {
-              var nav = (performance.getEntriesByType('navigation') || [])[0] || {};
-              var fcpEntries = performance.getEntriesByName('first-contentful-paint') || [];
-              var fcpEntry = fcpEntries.length > 0 ? fcpEntries[0] : null;
-              return {
-                lcp:  window.__bpm_lcp || 0,
-                cls:  window.__bpm_cls || 0,
-                fcp:  fcpEntry ? fcpEntry.startTime : 0,
-                ttfb: nav.responseStart || 0
-              };
-            })();
-            """;
+        return (function() {
+          var nav = (performance.getEntriesByType('navigation') || [])[0] || {};
+          var fcpEntries = performance.getEntriesByName('first-contentful-paint') || [];
+          var fcpEntry = fcpEntries.length > 0 ? fcpEntries[0] : null;
+          return {
+            lcp:  window.__bpm_lcp || 0,
+            cls:  window.__bpm_cls || 0,
+            fcp:  fcpEntry ? fcpEntry.startTime : 0,
+            ttfb: nav.responseStart || 0
+          };
+        })();
+        """;
 
     // ── Web Vitals collection ─────────────────────────────────────────────────────────────────
     /**
@@ -227,23 +227,23 @@ public final class JsSnippets {
      * for cross-validation in end-to-end tests.
      */
     public static final String COLLECT_RESOURCE_TIMING = """
-            return (function() {
-              var entries = performance.getEntriesByType('resource') || [];
-              var resources = [];
-              for (var i = 0; i < entries.length; i++) {
-                var e = entries[i];
-                resources.push({
-                  url:          (e.name || '').substring(0, 512),
-                  duration:     e.duration || 0,
-                  transferSize: e.transferSize || 0,
-                  ttfb:         e.responseStart || 0,
-                  status:       e.responseStatus || 0
-                });
-              }
-              performance.clearResourceTimings();
-              return JSON.stringify({resources: resources});
-            })();
-            """;
+        return (function() {
+          var entries = performance.getEntriesByType('resource') || [];
+          var resources = [];
+          for (var i = 0; i < entries.length; i++) {
+            var e = entries[i];
+            resources.push({
+              url:          (e.name || '').substring(0, 512),
+              duration:     e.duration || 0,
+              transferSize: e.transferSize || 0,
+              ttfb:         e.responseStart || 0,
+              status:       e.responseStatus || 0
+            });
+          }
+          performance.clearResourceTimings();
+          return JSON.stringify({resources: resources});
+        })();
+        """;
 
     // ── Resource Timing (supplementary) ──────────────────────────────────────────────────────
     /**
@@ -262,26 +262,26 @@ public final class JsSnippets {
      * resets the buffer.</p>
      */
     public static final String CONSOLE_CAPTURE_HOOK = """
-            (function() {
-              window.__bpm_console = [];
-              var origError = console.error;
-              var origWarn  = console.warn;
-              console.error = function() {
-                try {
-                  var msg = Array.prototype.slice.call(arguments).join(' ');
-                  window.__bpm_console.push({level: 'error', text: msg.substring(0, 2048)});
-                } catch(e) {}
-                return origError.apply(console, arguments);
-              };
-              console.warn = function() {
-                try {
-                  var msg = Array.prototype.slice.call(arguments).join(' ');
-                  window.__bpm_console.push({level: 'warning', text: msg.substring(0, 2048)});
-                } catch(e) {}
-                return origWarn.apply(console, arguments);
-              };
-            })();
-            """;
+        (function() {
+          window.__bpm_console = [];
+          var origError = console.error;
+          var origWarn  = console.warn;
+          console.error = function() {
+            try {
+              var msg = Array.prototype.slice.call(arguments).join(' ');
+              window.__bpm_console.push({level: 'error', text: msg.substring(0, 2048)});
+            } catch(e) {}
+            return origError.apply(console, arguments);
+          };
+          console.warn = function() {
+            try {
+              var msg = Array.prototype.slice.call(arguments).join(' ');
+              window.__bpm_console.push({level: 'warning', text: msg.substring(0, 2048)});
+            } catch(e) {}
+            return origWarn.apply(console, arguments);
+          };
+        })();
+        """;
 
     // ── Console event capture ────────────────────────────────────────────────────────────────
     /**
@@ -294,12 +294,12 @@ public final class JsSnippets {
      * to prevent double-counting on the next collection cycle.</p>
      */
     public static final String DRAIN_CONSOLE_BUFFER = """
-            return (function() {
-              var buf = window.__bpm_console || [];
-              window.__bpm_console = [];
-              return buf;
-            })();
-            """;
+        return (function() {
+          var buf = window.__bpm_console || [];
+          window.__bpm_console = [];
+          return buf;
+        })();
+        """;
     /**
      * Checks whether BPM observers are active in the current page context.
      * Returns {@code true} if observers were injected into this page, {@code false}
@@ -307,7 +307,7 @@ public final class JsSnippets {
      * Used by {@code CdpSessionManager.ensureObserversInjected()}.
      */
     public static final String CHECK_OBSERVERS_PRESENT =
-            "return typeof window.__bpm_observer_active !== 'undefined'";
+        "return typeof window.__bpm_observer_active !== 'undefined'";
 
     // ── Observer presence detection ───────────────────────────────────────────────────────
     /**
@@ -315,7 +315,7 @@ public final class JsSnippets {
      * Destroyed automatically when the page navigates (JavaScript context reset).
      */
     public static final String SET_OBSERVER_MARKER =
-            "window.__bpm_observer_active = true";
+        "window.__bpm_observer_active = true";
     /**
      * Raises the browser's Resource Timing buffer to 500 entries (default is 150).
      *
@@ -331,7 +331,7 @@ public final class JsSnippets {
      * but that is an edge case beyond practical concern.</p>
      */
     public static final String SET_RESOURCE_BUFFER_SIZE =
-            "performance.setResourceTimingBufferSize(500)";
+        "performance.setResourceTimingBufferSize(500)";
 
     // ── Resource timing buffer ──────────────────────────────────────────────────────────
 
