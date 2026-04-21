@@ -25,9 +25,9 @@ class JsonlWriterTest {
 
     private BpmResult createMinimalResult(String label) {
         DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
-                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
+            null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), 50);
         return new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
-                label, true, 100, null, null, null, null, derived);
+            label, true, 100, null, null, null, null, derived);
     }
 
     @Test
@@ -125,9 +125,9 @@ class JsonlWriterTest {
         writer.open(path);
 
         DerivedMetrics derived = new DerivedMetrics(0L, 0.0, null, 0L,
-                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), null); // null score
+            null, null, 0.0, BpmConstants.BOTTLENECK_NONE, List.of(), null); // null score
         BpmResult result = new BpmResult("1.0", "2026-01-01T00:00:00Z", "Thread-1", 1,
-                "SPA Page", true, 100, null, null, null, null, derived);
+            "SPA Page", true, 100, null, null, null, null, derived);
 
         assertDoesNotThrow(() -> writer.write(result));
         writer.close();

@@ -35,88 +35,88 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-        "renderTime", "serverClientRatio", "frontendTime", "fcpLcpGap",
-        "stabilityCategory", "headroom", "failedRequestRate",
-        "improvementArea", "improvementAreas", "performanceScore"
+    "renderTime", "serverClientRatio", "frontendTime", "fcpLcpGap",
+    "stabilityCategory", "headroom", "failedRequestRate",
+    "improvementArea", "improvementAreas", "performanceScore"
 })
 public record DerivedMetrics(
 
-        /**
-         * Pure client-side rendering duration in milliseconds.
-         * Formula: {@code LCP − TTFB}.
-         * Isolates rendering work from server response time.
-         * {@code 0} when LCP or TTFB is null (SPA-stale action).
-         */
-        @JsonProperty("renderTime") long renderTime,
+    /**
+     * Pure client-side rendering duration in milliseconds.
+     * Formula: {@code LCP − TTFB}.
+     * Isolates rendering work from server response time.
+     * {@code 0} when LCP or TTFB is null (SPA-stale action).
+     */
+    @JsonProperty("renderTime") long renderTime,
 
-        /**
-         * Percentage of total LCP time attributable to server response.
-         * Formula: {@code (TTFB ÷ LCP) × 100}, rounded to two decimal places.
-         * {@code 0.0} when LCP or TTFB is null.
-         */
-        @JsonProperty("serverClientRatio") double serverClientRatio,
+    /**
+     * Percentage of total LCP time attributable to server response.
+     * Formula: {@code (TTFB ÷ LCP) × 100}, rounded to two decimal places.
+     * {@code 0.0} when LCP or TTFB is null.
+     */
+    @JsonProperty("serverClientRatio") double serverClientRatio,
 
-        /**
-         * Frontend processing time in milliseconds — time the browser spent
-         * parsing HTML and executing blocking scripts before showing any content.
-         * Formula: {@code FCP − TTFB}.
-         * {@code null} when FCP or TTFB is null (SPA-stale action).
-         */
-        @JsonProperty("frontendTime") Long frontendTime,
+    /**
+     * Frontend processing time in milliseconds — time the browser spent
+     * parsing HTML and executing blocking scripts before showing any content.
+     * Formula: {@code FCP − TTFB}.
+     * {@code null} when FCP or TTFB is null (SPA-stale action).
+     */
+    @JsonProperty("frontendTime") Long frontendTime,
 
-        /**
-         * Gap between First Contentful Paint and Largest Contentful Paint, in ms.
-         * Formula: {@code LCP − FCP}.
-         * {@code 0} when LCP or FCP is null.
-         */
-        @JsonProperty("fcpLcpGap") long fcpLcpGap,
+    /**
+     * Gap between First Contentful Paint and Largest Contentful Paint, in ms.
+     * Formula: {@code LCP − FCP}.
+     * {@code 0} when LCP or FCP is null.
+     */
+    @JsonProperty("fcpLcpGap") long fcpLcpGap,
 
-        /**
-         * Visual stability category derived from CLS value.
-         * Values: {@code "Stable"} (CLS ≤ 0.10), {@code "Minor Shifts"} (≤ 0.25),
-         * {@code "Unstable"} (> 0.25).
-         * {@code null} when CLS is null.
-         */
-        @JsonProperty("stabilityCategory") String stabilityCategory,
+    /**
+     * Visual stability category derived from CLS value.
+     * Values: {@code "Stable"} (CLS ≤ 0.10), {@code "Minor Shifts"} (≤ 0.25),
+     * {@code "Unstable"} (> 0.25).
+     * {@code null} when CLS is null.
+     */
+    @JsonProperty("stabilityCategory") String stabilityCategory,
 
-        /**
-         * LCP performance budget remaining as a percentage (0–100).
-         * Formula: {@code max(0, 100 − (LCP / lcpPoorThreshold × 100))}.
-         * Shows how much room remains before LCP hits the Poor threshold.
-         * {@code null} when LCP is null (SPA-stale action).
-         */
-        @JsonProperty("headroom") Integer headroom,
+    /**
+     * LCP performance budget remaining as a percentage (0–100).
+     * Formula: {@code max(0, 100 − (LCP / lcpPoorThreshold × 100))}.
+     * Shows how much room remains before LCP hits the Poor threshold.
+     * {@code null} when LCP is null (SPA-stale action).
+     */
+    @JsonProperty("headroom") Integer headroom,
 
-        /**
-         * Percentage of network requests that failed (4xx/5xx or connection error).
-         * Formula: {@code (failedRequests ÷ totalRequests) × 100}.
-         * {@code 0.0} when no requests failed or network data is unavailable.
-         */
-        @JsonProperty("failedRequestRate") double failedRequestRate,
+    /**
+     * Percentage of network requests that failed (4xx/5xx or connection error).
+     * Formula: {@code (failedRequests ÷ totalRequests) × 100}.
+     * {@code 0.0} when no requests failed or network data is unavailable.
+     */
+    @JsonProperty("failedRequestRate") double failedRequestRate,
 
-        /**
-         * Primary Improvement Area label (first-match-wins from detection table).
-         * Identifies the biggest factor consuming load time — where to focus
-         * if performance needs to improve. Present even when Score is 100.
-         * Possible values: {@code "Fix Network Failures"}, {@code "Reduce Server Response"},
-         * {@code "Optimise Heavy Assets"}, {@code "Reduce Render Work"},
-         * {@code "Reduce DOM Complexity"}, or {@code "None"}.
-         */
-        @JsonProperty("improvementArea") String improvementArea,
+    /**
+     * Primary Improvement Area label (first-match-wins from detection table).
+     * Identifies the biggest factor consuming load time — where to focus
+     * if performance needs to improve. Present even when Score is 100.
+     * Possible values: {@code "Fix Network Failures"}, {@code "Reduce Server Response"},
+     * {@code "Optimise Heavy Assets"}, {@code "Reduce Render Work"},
+     * {@code "Reduce DOM Complexity"}, or {@code "None"}.
+     */
+    @JsonProperty("improvementArea") String improvementArea,
 
-        /**
-         * All matching Improvement Area labels in detection priority order.
-         * Empty list when no condition matches ({@code improvementArea} is {@code "None"}).
-         * Included in JSONL for report correlation.
-         */
-        @JsonProperty("improvementAreas") List<String> improvementAreas,
+    /**
+     * All matching Improvement Area labels in detection priority order.
+     * Empty list when no condition matches ({@code improvementArea} is {@code "None"}).
+     * Included in JSONL for report correlation.
+     */
+    @JsonProperty("improvementAreas") List<String> improvementAreas,
 
-        /**
-         * Composite performance score from 0 (worst) to 100 (best).
-         * Weighted average: LCP 40%, FCP 15%, CLS 15%, TTFB 15%, JS errors 15%.
-         * {@code null} when insufficient metric data is available (SPA-stale action).
-         */
-        @JsonProperty("performanceScore") Integer performanceScore
+    /**
+     * Composite performance score from 0 (worst) to 100 (best).
+     * Weighted average: LCP 40%, FCP 15%, CLS 15%, TTFB 15%, JS errors 15%.
+     * {@code null} when insufficient metric data is available (SPA-stale action).
+     */
+    @JsonProperty("performanceScore") Integer performanceScore
 
 ) {
     /**

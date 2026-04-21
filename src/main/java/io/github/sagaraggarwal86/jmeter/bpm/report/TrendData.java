@@ -10,14 +10,14 @@ import java.util.List;
  * averages, percentage changes, and pre-written alert sentences.</p>
  */
 public record TrendData(
-        int bucketCount,
-        MetricTrend score,
-        MetricTrend lcp,
-        MetricTrend fcp,
-        MetricTrend ttfb,
-        List<String> alerts,
-        String overallStability,   // STABLE, MOSTLY_STABLE, DEGRADING
-        String stabilityText
+    int bucketCount,
+    MetricTrend score,
+    MetricTrend lcp,
+    MetricTrend fcp,
+    MetricTrend ttfb,
+    List<String> alerts,
+    String overallStability,   // STABLE, MOSTLY_STABLE, DEGRADING
+    String stabilityText
 ) {
 
     /**
@@ -31,12 +31,12 @@ public record TrendData(
      * @param degraded      true if the trend direction is bad for performance
      */
     public record MetricTrend(
-            String name,
-            double firstHalfAvg,
-            double secondHalfAvg,
-            String direction,
-            int changePct,
-            boolean degraded
+        String name,
+        double firstHalfAvg,
+        double secondHalfAvg,
+        String direction,
+        int changePct,
+        boolean degraded
     ) {
     }
 }

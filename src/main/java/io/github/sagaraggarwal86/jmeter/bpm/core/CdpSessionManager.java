@@ -39,16 +39,16 @@ public final class CdpSessionManager {
      * CDP domains to enable for metric collection.
      */
     private static final String[] CDP_DOMAINS = {
-            JsSnippets.CDP_DOMAIN_NETWORK,
-            JsSnippets.CDP_DOMAIN_PERFORMANCE,
-            JsSnippets.CDP_DOMAIN_PAGE,
-            JsSnippets.CDP_DOMAIN_LOG
+        JsSnippets.CDP_DOMAIN_NETWORK,
+        JsSnippets.CDP_DOMAIN_PERFORMANCE,
+        JsSnippets.CDP_DOMAIN_PAGE,
+        JsSnippets.CDP_DOMAIN_LOG
     };
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, List<Map<String, Object>>>> RESOURCE_TIMING_TYPE =
-            new TypeReference<>() {
-            };
+        new TypeReference<>() {
+        };
 
     /**
      * Opens a CDP session: enables domains and injects all observer/hook scripts.
@@ -127,7 +127,7 @@ public final class CdpSessionManager {
      */
     public boolean ensureObserversInjected(CdpCommandExecutor executor) {
         Boolean present = Boolean.TRUE.equals(
-                executor.executeScript(JsSnippets.CHECK_OBSERVERS_PRESENT));
+            executor.executeScript(JsSnippets.CHECK_OBSERVERS_PRESENT));
         if (!present) {
             executor.executeScript(JsSnippets.SET_RESOURCE_BUFFER_SIZE);
             executor.executeScript(JsSnippets.INJECT_OBSERVERS);
@@ -170,7 +170,7 @@ public final class CdpSessionManager {
             log.debug("BPM: CDP session closed.");
         } catch (Exception e) {
             log.debug("BPM: Error closing CDP session (browser may already be closed): {}",
-                    e.getMessage());
+                e.getMessage());
         }
     }
 
@@ -186,7 +186,7 @@ public final class CdpSessionManager {
             Object result = executor.executeScript(JsSnippets.COLLECT_RESOURCE_TIMING);
             if (result instanceof String jsonString && !jsonString.isEmpty()) {
                 Map<String, List<Map<String, Object>>> parsed =
-                        OBJECT_MAPPER.readValue(jsonString, RESOURCE_TIMING_TYPE);
+                    OBJECT_MAPPER.readValue(jsonString, RESOURCE_TIMING_TYPE);
                 List<Map<String, Object>> resources = parsed.getOrDefault("resources", Collections.emptyList());
                 for (Map<String, Object> resource : resources) {
                     buffer.addNetworkResponse(resource);

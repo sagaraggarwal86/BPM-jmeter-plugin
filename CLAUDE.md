@@ -40,7 +40,7 @@ features.
   recommendation. Trivial choices use prose.
 
   | Option | Risk | Effort | Impact | Recommendation |
-    |--------|------|--------|--------|----------------|
+      |--------|------|--------|--------|----------------|
 
 ## Examples
 
@@ -62,7 +62,8 @@ features.
 
 **Bad:** "I'll edit `BpmCollector.java` first, then show the next file."
 
-**Good:** "3 files, apply in order: (1) `BpmConstants.java` — add column index + display name; (2) `BpmTableModel.java` —
+**Good:** "3 files, apply in order: (1) `BpmConstants.java` — add column index + display name; (2)
+`BpmTableModel.java` —
 expose value at new index; (3) `BpmCellRenderer.java` — render new column. All diffs below."
 
 ### Rollback message
@@ -103,7 +104,8 @@ A task is complete only when all apply:
 - `mvn clean verify` passes (tests + JaCoCo ≥90% gate).
 - No new compiler warnings or deprecation notices.
 - No invariant from *Enforced invariants* violated.
-- Dependency direction preserved (`gui → core → collectors → model`; `core → {config, output, util, error}`; `cli → report → {model, output}`).
+- Dependency direction preserved (`gui → core → collectors → model`; `core → {config, output, util, error}`;
+  `cli → report → {model, output}`).
 - Selenium isolation preserved — `ChromeCdpCommandExecutor` is the only class touching Selenium types (invariant #5).
 - Pure-observer guarantee preserved — all exceptions caught; never crashes the test (invariant #6).
 - CLAUDE.md reviewed and updated if architecture, invariants, or class responsibilities changed.
@@ -247,7 +249,8 @@ acknowledged constraint, documented not hidden.
 7. **UI contracts** — preserve `AbstractListenerGui` and `Clearable`.
 8. **TOTAL row pinning** — `TotalPinnedRowSorter` pins TOTAL to the last view row for every sort direction.
 9. **All runtime deps `provided`** — no shading. Depending on an unprovided runtime jar breaks the build contract.
-10. **`## Enforced invariants` heading is load-bearing** — extracted verbatim by `.github/workflows/pr-review.yml`. Do not rename, split, or change its position relative to the next `##` heading.
+10. **`## Enforced invariants` heading is load-bearing** — extracted verbatim by `.github/workflows/pr-review.yml`. Do
+    not rename, split, or change its position relative to the next `##` heading.
 
 ## Self-Maintenance
 

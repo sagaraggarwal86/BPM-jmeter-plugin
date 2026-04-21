@@ -29,16 +29,16 @@ public final class BpmHtmlReportRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(BpmHtmlReportRenderer.class);
     private static final DateTimeFormatter CHART_TIME_FMT =
-            DateTimeFormatter.ofPattern("HH:mm:ss");
+        DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter FOOTER_TIME_FMT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String[] SLA_HEADER_TOOLTIPS = {
-            "Transaction/sampler name",
-            "Performance score (0-100). Higher is better",
-            "Largest Contentful Paint \u2014 time until main content is visible. Lower is better",
-            "First Contentful Paint \u2014 time until first text/image appears. Lower is better",
-            "Time To First Byte \u2014 server processing + network latency. Lower is better",
-            "Cumulative Layout Shift \u2014 measures unexpected content movement. Lower is better"
+        "Transaction/sampler name",
+        "Performance score (0-100). Higher is better",
+        "Largest Contentful Paint \u2014 time until main content is visible. Lower is better",
+        "First Contentful Paint \u2014 time until first text/image appears. Lower is better",
+        "Time To First Byte \u2014 server processing + network latency. Lower is better",
+        "Cumulative Layout Shift \u2014 measures unexpected content movement. Lower is better"
     };
     // Unit suffixes for SLA value display: index 0=Page (unused), 1=Score, 2=LCP, 3=FCP, 4=TTFB, 5=CLS
     private static final String[] SLA_UNITS = {"", "", "ms", "ms", "ms", ""};
@@ -46,55 +46,55 @@ public final class BpmHtmlReportRenderer {
 
     // Sidebar icons for navigation panels
     private static final Map<String, String> SIDEBAR_ICONS = Map.of(
-            "Executive Summary", "\uD83D\uDCCA",      // chart emoji
-            "Performance Metrics", "\uD83D\uDCCB",     // clipboard emoji
-            "Performance Trends", "\uD83D\uDCC8",      // chart-increasing emoji
-            "SLA Compliance", "\u2705",                 // check mark emoji
-            "Critical Findings", "\u26A0\uFE0F",       // warning emoji
-            "Risk Assessment", "\uD83D\uDEE1\uFE0F"   // shield emoji
+        "Executive Summary", "\uD83D\uDCCA",      // chart emoji
+        "Performance Metrics", "\uD83D\uDCCB",     // clipboard emoji
+        "Performance Trends", "\uD83D\uDCC8",      // chart-increasing emoji
+        "SLA Compliance", "\u2705",                 // check mark emoji
+        "Critical Findings", "\u26A0\uFE0F",       // warning emoji
+        "Risk Assessment", "\uD83D\uDEE1\uFE0F"   // shield emoji
     );
 
 
     // Report-friendly column header names (longer than GUI abbreviations)
     private static final Map<String, String> REPORT_HEADER_NAMES = Map.ofEntries(
-            Map.entry("Label", "Transaction Name"),
-            Map.entry("Smpl", "Samples"),
-            Map.entry("Rndr(ms)", "Render(ms)"),
-            Map.entry("Srvr(%)", "Server(%)"),
-            Map.entry("Front(ms)", "Frontend(ms)"),
-            Map.entry("Gap(ms)", "FCP-LCP(ms)")
+        Map.entry("Label", "Transaction Name"),
+        Map.entry("Smpl", "Samples"),
+        Map.entry("Rndr(ms)", "Render(ms)"),
+        Map.entry("Srvr(%)", "Server(%)"),
+        Map.entry("Front(ms)", "Frontend(ms)"),
+        Map.entry("Gap(ms)", "FCP-LCP(ms)")
     );
 
     // ── Page assembly ───────────────────────────────────────────────────────
     private static final String[] METRICS_HEADER_TOOLTIPS = {
-            "Transaction/sampler name",
-            "Number of samples collected",
-            "Performance score (0-100). Higher is better",
-            "Render Time \u2014 client-side rendering duration (LCP \u2212 TTFB)",
-            "Server Ratio \u2014 percentage of load time spent on server response",
-            "Frontend Time \u2014 browser processing time (FCP \u2212 TTFB)",
-            "FCP-LCP Gap \u2014 delay between first paint and largest content",
-            "Layout stability category based on CLS",
-            "Percentage of SLA budget remaining before breach",
-            "Pre-computed bottleneck classification",
-            "First Contentful Paint \u2014 time until first text/image appears",
-            "Largest Contentful Paint \u2014 time until main content is visible",
-            "Cumulative Layout Shift \u2014 measures unexpected content movement",
-            "Time To First Byte \u2014 server processing + network latency",
-            "Average network requests per sample",
-            "Average transfer size per sample",
-            "Total JavaScript errors",
-            "Total console warnings"
+        "Transaction/sampler name",
+        "Number of samples collected",
+        "Performance score (0-100). Higher is better",
+        "Render Time \u2014 client-side rendering duration (LCP \u2212 TTFB)",
+        "Server Ratio \u2014 percentage of load time spent on server response",
+        "Frontend Time \u2014 browser processing time (FCP \u2212 TTFB)",
+        "FCP-LCP Gap \u2014 delay between first paint and largest content",
+        "Layout stability category based on CLS",
+        "Percentage of SLA budget remaining before breach",
+        "Pre-computed bottleneck classification",
+        "First Contentful Paint \u2014 time until first text/image appears",
+        "Largest Contentful Paint \u2014 time until main content is visible",
+        "Cumulative Layout Shift \u2014 measures unexpected content movement",
+        "Time To First Byte \u2014 server processing + network latency",
+        "Average network requests per sample",
+        "Average transfer size per sample",
+        "Total JavaScript errors",
+        "Total console warnings"
     };
 
     // ── Header ──────────────────────────────────────────────────────────────
     private static final Map<String, String> IMPROVEMENT_AREA_TOOLTIPS = Map.of(
-            "Fix Network Failures", "Check failed requests in DevTools Network tab (filter by status 4xx/5xx). Verify CDN and third-party resource availability.",
-            "Reduce Server Response", "Profile backend response time. Check database queries, API calls, and caching headers via DevTools Timing tab.",
-            "Optimise Heavy Assets", "Identify largest resources via DevTools Network tab (sort by Size). Compress images (WebP/AVIF), lazy-load below-fold content.",
-            "Reduce Render Work", "Profile main thread in DevTools Performance tab. Look for long JavaScript tasks (>50ms) blocking rendering.",
-            "Reduce DOM Complexity", "Check DOM node count in DevTools (Elements panel). Reduce nested elements and virtualize long lists.",
-            "None", "Performance is balanced \u2014 no single bottleneck identified."
+        "Fix Network Failures", "Check failed requests in DevTools Network tab (filter by status 4xx/5xx). Verify CDN and third-party resource availability.",
+        "Reduce Server Response", "Profile backend response time. Check database queries, API calls, and caching headers via DevTools Timing tab.",
+        "Optimise Heavy Assets", "Identify largest resources via DevTools Network tab (sort by Size). Compress images (WebP/AVIF), lazy-load below-fold content.",
+        "Reduce Render Work", "Profile main thread in DevTools Performance tab. Look for long JavaScript tasks (>50ms) blocking rendering.",
+        "Reduce DOM Complexity", "Check DOM node count in DevTools (Elements panel). Reduce nested elements and virtualize long lists.",
+        "None", "Performance is balanced \u2014 no single bottleneck identified."
     );
 
     // CSS and JS loaded from classpath resources — cached in static fields
@@ -102,11 +102,11 @@ public final class BpmHtmlReportRenderer {
     private static final String REPORT_JS;
     // Maps full-model column index → slaCol index used by computeVerdict (0 = not SLA-relevant)
     private static final Map<Integer, Integer> COL_TO_SLA = Map.of(
-            BpmConstants.COL_IDX_SCORE, 1,
-            BpmConstants.COL_IDX_LCP, 2,
-            BpmConstants.COL_IDX_FCP, 3,
-            BpmConstants.COL_IDX_TTFB, 4,
-            BpmConstants.COL_IDX_CLS, 5
+        BpmConstants.COL_IDX_SCORE, 1,
+        BpmConstants.COL_IDX_LCP, 2,
+        BpmConstants.COL_IDX_FCP, 3,
+        BpmConstants.COL_IDX_TTFB, 4,
+        BpmConstants.COL_IDX_CLS, 5
     );
 
     // ── Metadata KPI cards (first panel) ────────────────────────────────────
@@ -114,7 +114,7 @@ public final class BpmHtmlReportRenderer {
     static {
         String loadedCss = ReportPanelBuilder.loadTemplate("bpm-report.css");
         CSS = loadedCss != null ? "  <style>\n" + loadedCss + "\n  </style>\n"
-                : "  <!-- bpm-report.css not found on classpath -->\n";
+            : "  <!-- bpm-report.css not found on classpath -->\n";
         String loadedJs = ReportPanelBuilder.loadTemplate("bpm-report.js");
         REPORT_JS = loadedJs != null ? "<script>\n" + loadedJs + "\n</script>\n" : "";
     }
@@ -165,7 +165,7 @@ public final class BpmHtmlReportRenderer {
         panelHeadings.add("Risk Assessment");
 
         return buildHtmlPage(data, panelHeadings, config,
-                hasMetrics, metricsTable, hasCharts, timeBuckets, perLabelBuckets);
+            hasMetrics, metricsTable, hasCharts, timeBuckets, perLabelBuckets);
     }
 
     private static String buildHtmlPage(ReportData data, List<String> panelHeadings,
@@ -183,9 +183,9 @@ public final class BpmHtmlReportRenderer {
         sb.append("  <title>Browser Performance Metrics Report</title>\n");
         // Inline bundled libraries for offline support (falls back to CDN if resource missing)
         inlineOrCdn(sb, "chart.umd.min.js",
-                "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js");
+            "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js");
         inlineOrCdn(sb, "xlsx-style.bundle.js",
-                "https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js");
+            "https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js");
         sb.append(CSS);
         appendMetaScript(sb, config);
         sb.append("</head>\n<body>\n<div class=\"rpt\">\n");
@@ -207,9 +207,9 @@ public final class BpmHtmlReportRenderer {
         for (String heading : panelHeadings) {
             String activeClass = panelIndex == 0 ? " active" : "";
             sb.append("<div class=\"panel").append(activeClass).append("\" id=\"panel-")
-                    .append(panelIndex).append("\" role=\"tabpanel\" aria-labelledby=\"tab-")
-                    .append(panelIndex).append("\" data-title=\"")
-                    .append(escapeHtml(heading)).append("\">\n");
+                .append(panelIndex).append("\" role=\"tabpanel\" aria-labelledby=\"tab-")
+                .append(panelIndex).append("\" data-title=\"")
+                .append(escapeHtml(heading)).append("\">\n");
 
             if ("Executive Summary".equals(heading)) {
                 appendExecutiveSummaryPanel(sb, config, data);
@@ -236,7 +236,7 @@ public final class BpmHtmlReportRenderer {
         // Footer
         String timestamp = LocalDateTime.now().format(FOOTER_TIME_FMT);
         sb.append("  <div class=\"footer-rpt\">Report generated on ")
-                .append(escapeHtml(timestamp)).append("</div>\n");
+            .append(escapeHtml(timestamp)).append("</div>\n");
         sb.append("</div>\n"); // rpt
 
         // Static scripts (panel nav, pagination, search, export) — cached from classpath
@@ -261,7 +261,7 @@ public final class BpmHtmlReportRenderer {
             sb.append("        <div class=\"meta-grid\" style=\"margin-top:12px\">\n");
             for (String[] row : metaRows) {
                 sb.append("          <span class=\"ml\">").append(escapeHtml(row[0])).append("</span>")
-                        .append("<span class=\"mv\">").append(escapeHtml(row[1])).append("</span>\n");
+                    .append("<span class=\"mv\">").append(escapeHtml(row[1])).append("</span>\n");
             }
             sb.append("        </div>\n");
         }
@@ -285,12 +285,12 @@ public final class BpmHtmlReportRenderer {
             String tabId = "tab-" + i;
             String panelId = "panel-" + i;
             sb.append("  <button class=\"nav-item").append(activeClass)
-                    .append("\" id=\"").append(tabId)
-                    .append("\" role=\"tab\" aria-selected=\"").append(i == 0 ? "true" : "false")
-                    .append("\" aria-controls=\"").append(panelId)
-                    .append("\" tabindex=\"").append(i == 0 ? "0" : "-1")
-                    .append("\" data-panel=\"").append(panelId).append("\">")
-                    .append(prefix).append(escapeHtml(heading)).append("</button>\n");
+                .append("\" id=\"").append(tabId)
+                .append("\" role=\"tab\" aria-selected=\"").append(i == 0 ? "true" : "false")
+                .append("\" aria-controls=\"").append(panelId)
+                .append("\" tabindex=\"").append(i == 0 ? "0" : "-1")
+                .append("\" data-panel=\"").append(panelId).append("\">")
+                .append(prefix).append(escapeHtml(heading)).append("</button>\n");
         }
         sb.append("    </nav>\n");
     }
@@ -299,18 +299,18 @@ public final class BpmHtmlReportRenderer {
         int failCount = data.criticalCount() + data.warnCount();
         String overallCss = failCount == 0 ? "pass" : "fail";
         String overallText = failCount == 0 ? "All Pass"
-                : failCount + " of " + data.totalLabels() + " Need Attention";
+            : failCount + " of " + data.totalLabels() + " Need Attention";
 
         sb.append("    <div class=\"metadata-grid kpi-grid\">\n");
 
         // Card 1: Overall verdict
         String verdictTooltip = failCount == 0
-                ? "All pages meet SLA targets"
-                : "See SLA Compliance panel for details";
+            ? "All pages meet SLA targets"
+            : "See SLA Compliance panel for details";
         sb.append("      <div class=\"kpi\" title=\"").append(escapeHtml(verdictTooltip))
-                .append("\"><div class=\"kpi-label\">Overall Verdict</div>")
-                .append("<div class=\"kpi-value ").append(overallCss).append("\">")
-                .append(escapeHtml(overallText)).append("</div></div>\n");
+            .append("\"><div class=\"kpi-label\">Overall Verdict</div>")
+            .append("<div class=\"kpi-value ").append(overallCss).append("\">")
+            .append(escapeHtml(overallText)).append("</div></div>\n");
 
         // Card 2: Performance Score — weighted score primary, range secondary
         sb.append("      <div class=\"kpi\" title=\"Weighted average across all pages (proportional to sample count). Range shows the lowest and highest individual page scores.\">");
@@ -338,12 +338,12 @@ public final class BpmHtmlReportRenderer {
         if (data.weightedLcp() > 0) {
             long weightedLcp = data.weightedLcp();
             String lcpCss = weightedLcp <= config.slaLcpGood ? "pass"
-                    : weightedLcp <= config.slaLcpPoor ? "" : "fail";
+                : weightedLcp <= config.slaLcpPoor ? "" : "fail";
             String display = weightedLcp >= 1000
-                    ? String.format("%.1fs", weightedLcp / 1000.0)
-                    : weightedLcp + "ms";
+                ? String.format("%.1fs", weightedLcp / 1000.0)
+                : weightedLcp + "ms";
             sb.append("<div class=\"kpi-value ").append(lcpCss).append("\">")
-                    .append(display).append("</div>");
+                .append(display).append("</div>");
         } else {
             sb.append("<div class=\"kpi-value\">N/A</div>");
         }
@@ -354,8 +354,8 @@ public final class BpmHtmlReportRenderer {
 
     private static void appendColoredScore(StringBuilder sb, int score, RenderConfig config) {
         String css = score >= config.slaScoreGood ? "color:#276749;font-weight:700"
-                : score >= config.slaScorePoor ? "color:var(--color-text-primary);font-weight:700"
-                  : "color:#c53030;font-weight:700";
+            : score >= config.slaScorePoor ? "color:var(--color-text-primary);font-weight:700"
+              : "color:#c53030;font-weight:700";
         sb.append("<span style=\"").append(css).append("\">").append(score).append("</span>");
     }
 
@@ -369,7 +369,7 @@ public final class BpmHtmlReportRenderer {
 
         // Build the rest from template + ReportData
         String panelHtml = ReportPanelBuilder.buildExecutiveSummary(
-                data, kpiBuffer.toString(), config.slaScoreGood, config.slaScorePoor);
+            data, kpiBuffer.toString(), config.slaScoreGood, config.slaScorePoor);
         sb.append(panelHtml);
     }
 
@@ -383,7 +383,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("<h2>Performance Metrics</h2>\n");
         appendMetricDescriptions(sb);
         sb.append("<div class=\"tbl-search\"><input type=\"text\" id=\"metricsSearch\" ")
-                .append("placeholder=\"Search transactions\u2026\" autocomplete=\"off\"></div>\n");
+            .append("placeholder=\"Search transactions\u2026\" autocomplete=\"off\"></div>\n");
         appendPaginatedTable(sb, config, metricsTable, "metrics");
     }
 
@@ -393,10 +393,10 @@ public final class BpmHtmlReportRenderer {
 
         // Intro line
         sb.append("<p class=\"sla-intro\">Each metric is evaluated against configured quality thresholds. ")
-                .append("Cells are colour-coded: ")
-                .append("<span style=\"color:#276749\">\u2713 Pass</span>, ")
-                .append("<span style=\"color:#b7791f\">\u26A0 Warning</span>, ")
-                .append("<span style=\"color:#c53030\">\u2717 Fail</span>.</p>\n");
+            .append("Cells are colour-coded: ")
+            .append("<span style=\"color:#276749\">\u2713 Pass</span>, ")
+            .append("<span style=\"color:#b7791f\">\u26A0 Warning</span>, ")
+            .append("<span style=\"color:#c53030\">\u2717 Fail</span>.</p>\n");
 
         // Compact threshold reference (moved above table)
         sb.append("<div class=\"sla-thresholds\">\n");
@@ -406,17 +406,17 @@ public final class BpmHtmlReportRenderer {
         sb.append(" | FCP: \u2264").append(config.slaFcpGood).append("ms Good, \u2264").append(config.slaFcpPoor).append("ms Warning");
         sb.append(" | TTFB: \u2264").append(config.slaTtfbGood).append("ms Good, \u2264").append(config.slaTtfbPoor).append("ms Warning");
         sb.append(" | CLS: \u2264").append(String.format(Locale.US, "%.2f", config.slaClsGood))
-                .append(" Good, \u2264").append(String.format(Locale.US, "%.2f", config.slaClsPoor)).append(" Warning");
+            .append(" Good, \u2264").append(String.format(Locale.US, "%.2f", config.slaClsPoor)).append(" Warning");
         sb.append("\n</div>\n");
 
         sb.append("<div class=\"tbl-search\"><input type=\"text\" id=\"slaSearch\" ")
-                .append("placeholder=\"Search transactions\u2026\" autocomplete=\"off\"></div>\n");
+            .append("placeholder=\"Search transactions\u2026\" autocomplete=\"off\"></div>\n");
 
         // SLA columns: Page | Score | Page Load (LCP) | First Paint (FCP) | Server Response (TTFB) | Visual Stability (CLS)
         String[] slaHeaders = {"Transaction Name", "Score", "Page Load", "First Paint", "Server Response", "Visual Stability"};
         int[] srcCols = {BpmConstants.COL_IDX_LABEL, BpmConstants.COL_IDX_SCORE,
-                BpmConstants.COL_IDX_LCP, BpmConstants.COL_IDX_FCP,
-                BpmConstants.COL_IDX_TTFB, BpmConstants.COL_IDX_CLS};
+            BpmConstants.COL_IDX_LCP, BpmConstants.COL_IDX_FCP,
+            BpmConstants.COL_IDX_TTFB, BpmConstants.COL_IDX_CLS};
 
         // Build SLA rows: each cell = "rawValue|verdict" (computeVerdict used for per-cell display only)
         List<String[]> slaRows = new ArrayList<>();
@@ -439,10 +439,10 @@ public final class BpmHtmlReportRenderer {
         int failCount = data.criticalCount() + data.warnCount();
         if (failCount == 0 && data.totalLabels() > 0) {
             sb.append("<p class=\"sla-summary sla-pass-summary\">All ").append(data.totalLabels())
-                    .append(" transactions pass all performance targets.</p>\n");
+                .append(" transactions pass all performance targets.</p>\n");
         } else if (failCount > 0) {
             sb.append("<p class=\"sla-summary sla-fail-summary\">").append(failCount)
-                    .append(" of ").append(data.totalLabels()).append(" transactions need attention.</p>\n");
+                .append(" of ").append(data.totalLabels()).append(" transactions need attention.</p>\n");
         }
 
         // Paginated table
@@ -450,7 +450,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("<div class=\"tbl-controls\"><label>Show:&nbsp;</label><select class=\"row-limit\" data-for=\"sla\">\n");
         for (int v : new int[]{10, 25, 50, 100}) {
             sb.append("  <option value=\"").append(v).append("\"")
-                    .append(v == 10 ? " selected" : "").append(">").append(v).append("</option>\n");
+                .append(v == 10 ? " selected" : "").append(">").append(v).append("</option>\n");
         }
         sb.append("</select></div>\n");
         sb.append("<div class=\"pager\" data-for=\"sla\"></div>\n");
@@ -535,7 +535,7 @@ public final class BpmHtmlReportRenderer {
         List<ReportData.BreachEntry> breaches = data.breaches();
         if (breaches.isEmpty()) {
             sb.append("<p class=\"sla-summary sla-pass-summary\">No critical issues were detected. ")
-                    .append("All transactions are meeting their quality targets.</p>\n");
+                .append("All transactions are meeting their quality targets.</p>\n");
             return;
         }
 
@@ -543,7 +543,7 @@ public final class BpmHtmlReportRenderer {
         Map<String, Boolean> groupHasCritical = new LinkedHashMap<>();
         for (Map.Entry<String, List<ReportData.BreachEntry>> e : groups.entrySet()) {
             groupHasCritical.put(e.getKey(),
-                    e.getValue().stream().anyMatch(ReportData.BreachEntry::hasCritical));
+                e.getValue().stream().anyMatch(ReportData.BreachEntry::hasCritical));
         }
 
         int critCount = data.criticalCount();
@@ -554,7 +554,7 @@ public final class BpmHtmlReportRenderer {
         if (critCount > 0 && warnCount > 0) sb.append(" and ");
         if (warnCount > 0) sb.append(warnCount).append(" warning");
         sb.append(" finding").append(totalFindings > 1 ? "s" : "")
-                .append(" across ").append(totalFindings).append(" transactions.</p>\n");
+            .append(" across ").append(totalFindings).append(" transactions.</p>\n");
 
         // Grouped card layout — one card per bottleneck area
         sb.append("<div class=\"cf-cards\">\n");
@@ -567,19 +567,19 @@ public final class BpmHtmlReportRenderer {
 
             sb.append("<details class=\"cf-card\">\n");
             sb.append("  <summary><strong>").append(escapeHtml(displayName)).append("</strong> ")
-                    .append("<span class=\"severity-tag ").append(isCritical ? "severity-critical" : "severity-warning")
-                    .append("\">").append(pages.size()).append(pages.size() == 1 ? " transaction" : " transactions")
-                    .append("</span></summary>\n");
+                .append("<span class=\"severity-tag ").append(isCritical ? "severity-critical" : "severity-warning")
+                .append("\">").append(pages.size()).append(pages.size() == 1 ? " transaction" : " transactions")
+                .append("</span></summary>\n");
             sb.append("  <div class=\"cf-card-body\">\n");
 
             sb.append("    <details class=\"cf-transaction-list\">\n");
             sb.append("      <summary>").append(pages.size())
-                    .append(" affected transaction").append(pages.size() != 1 ? "s" : "")
-                    .append(" \u2014 show list</summary>\n");
+                .append(" affected transaction").append(pages.size() != 1 ? "s" : "")
+                .append(" \u2014 show list</summary>\n");
             sb.append("      <ul>\n");
             for (ReportData.BreachEntry page : pages) {
                 sb.append("        <li><strong>").append(escapeHtml(page.label())).append("</strong> ")
-                        .append(severityTag(page.hasCritical())).append("</li>\n");
+                    .append(severityTag(page.hasCritical())).append("</li>\n");
             }
             sb.append("      </ul>\n");
             sb.append("    </details>\n");
@@ -609,15 +609,15 @@ public final class BpmHtmlReportRenderer {
     private static String buildCardRootCause(String area) {
         return switch (area) {
             case BOTTLENECK_SERVER ->
-                    "The server is taking too long to respond. Backend processing is the primary bottleneck, delaying everything downstream.";
+                "The server is taking too long to respond. Backend processing is the primary bottleneck, delaying everything downstream.";
             case BOTTLENECK_RESOURCE ->
-                    "The page is loading large resources \u2014 oversized images, scripts, or stylesheets \u2014 that delay rendering.";
+                "The page is loading large resources \u2014 oversized images, scripts, or stylesheets \u2014 that delay rendering.";
             case BOTTLENECK_CLIENT ->
-                    "The browser is spending excessive time rendering the page. Complex layouts or heavy JavaScript execution is consuming the main thread.";
+                "The browser is spending excessive time rendering the page. Complex layouts or heavy JavaScript execution is consuming the main thread.";
             case BOTTLENECK_LAYOUT ->
-                    "The page has an excessive number of DOM elements. Complex nesting is slowing down rendering and layout calculations.";
+                "The page has an excessive number of DOM elements. Complex nesting is slowing down rendering and layout calculations.";
             case BOTTLENECK_RELIABILITY ->
-                    "There are failed or blocked network requests preventing resources from loading correctly.";
+                "There are failed or blocked network requests preventing resources from loading correctly.";
             default -> "No single bottleneck was identified. Performance is degraded across multiple areas.";
         };
     }
@@ -626,18 +626,18 @@ public final class BpmHtmlReportRenderer {
         String severity = isCritical ? "significant" : "noticeable";
         return switch (area) {
             case BOTTLENECK_SERVER ->
-                    "Users experience a " + severity + " delay before any content appears on screen. The page feels unresponsive.";
+                "Users experience a " + severity + " delay before any content appears on screen. The page feels unresponsive.";
             case BOTTLENECK_RESOURCE -> isCritical
-                    ? "Users experience noticeable delays as the browser waits for large resources to download before rendering content."
-                    : "The page loads slowly but remains functional. Users on slower connections will feel the impact more acutely.";
+                ? "Users experience noticeable delays as the browser waits for large resources to download before rendering content."
+                : "The page loads slowly but remains functional. Users on slower connections will feel the impact more acutely.";
             case BOTTLENECK_CLIENT ->
-                    "The page feels sluggish after content loads. Interactions may be delayed while the browser completes rendering work.";
+                "The page feels sluggish after content loads. Interactions may be delayed while the browser completes rendering work.";
             case BOTTLENECK_LAYOUT ->
-                    "The page takes longer to become interactive due to the complexity of the layout. Scrolling and interactions may feel janky.";
+                "The page takes longer to become interactive due to the complexity of the layout. Scrolling and interactions may feel janky.";
             case BOTTLENECK_RELIABILITY ->
-                    "Some page content may be missing or broken. Users may see incomplete layouts or failed functionality.";
+                "Some page content may be missing or broken. Users may see incomplete layouts or failed functionality.";
             default ->
-                    "Users are experiencing a degraded experience. Multiple aspects of the page contribute to the slowdown.";
+                "Users are experiencing a degraded experience. Multiple aspects of the page contribute to the slowdown.";
         };
     }
 
@@ -649,40 +649,40 @@ public final class BpmHtmlReportRenderer {
     private static String[] buildCardAction(String area, boolean isCritical) {
         return switch (area) {
             case BOTTLENECK_SERVER -> new String[]{
-                    "Investigate server-side processing for the affected pages. The server response time is the primary delay before any content reaches the browser.",
-                    "Enable response caching for static assets. Check for redundant database queries or synchronous API calls that could be parallelised.",
-                    "Profile the backend under load to identify slow queries or resource contention. Consider adding server-side caching, connection pooling, or moving heavy processing to asynchronous workflows.",
-                    "Reducing server response time would directly improve how quickly users see these pages. This is the single highest-impact change."
+                "Investigate server-side processing for the affected pages. The server response time is the primary delay before any content reaches the browser.",
+                "Enable response caching for static assets. Check for redundant database queries or synchronous API calls that could be parallelised.",
+                "Profile the backend under load to identify slow queries or resource contention. Consider adding server-side caching, connection pooling, or moving heavy processing to asynchronous workflows.",
+                "Reducing server response time would directly improve how quickly users see these pages. This is the single highest-impact change."
             };
             case BOTTLENECK_RESOURCE -> new String[]{
-                    "Audit the resources loaded by the affected pages. Large images, unminified scripts, or render-blocking stylesheets are delaying rendering.",
-                    "Compress images to modern formats (WebP/AVIF) and defer non-critical JavaScript. These changes require no architectural work.",
-                    "Implement lazy loading for below-fold content and evaluate a resource bundling strategy to reduce the number of blocking requests.",
-                    "Reducing page weight would bring load times within acceptable limits and prevent further degradation under increased traffic."
+                "Audit the resources loaded by the affected pages. Large images, unminified scripts, or render-blocking stylesheets are delaying rendering.",
+                "Compress images to modern formats (WebP/AVIF) and defer non-critical JavaScript. These changes require no architectural work.",
+                "Implement lazy loading for below-fold content and evaluate a resource bundling strategy to reduce the number of blocking requests.",
+                "Reducing page weight would bring load times within acceptable limits and prevent further degradation under increased traffic."
             };
             case BOTTLENECK_CLIENT -> new String[]{
-                    "Profile the main thread activity on the affected pages. Long JavaScript tasks or complex CSS layouts are likely blocking the browser.",
-                    "Identify and break up JavaScript tasks longer than 50ms. Defer non-essential scripts that run during page load.",
-                    "Simplify the DOM structure and reduce nested elements. Consider virtualising long lists or complex form sections.",
-                    "Reducing main-thread work would make the affected pages feel more responsive and prevent degradation under future feature additions."
+                "Profile the main thread activity on the affected pages. Long JavaScript tasks or complex CSS layouts are likely blocking the browser.",
+                "Identify and break up JavaScript tasks longer than 50ms. Defer non-essential scripts that run during page load.",
+                "Simplify the DOM structure and reduce nested elements. Consider virtualising long lists or complex form sections.",
+                "Reducing main-thread work would make the affected pages feel more responsive and prevent degradation under future feature additions."
             };
             case BOTTLENECK_LAYOUT -> new String[]{
-                    "Check the DOM node count on the affected pages. Excessive nesting and large element trees are slowing down rendering.",
-                    "Remove unnecessary wrapper elements and flatten the DOM structure where possible.",
-                    "Virtualise long lists and paginate complex data tables. Consider component-level lazy rendering for sections below the fold.",
-                    "Reducing DOM complexity would improve both initial render time and ongoing interaction responsiveness."
+                "Check the DOM node count on the affected pages. Excessive nesting and large element trees are slowing down rendering.",
+                "Remove unnecessary wrapper elements and flatten the DOM structure where possible.",
+                "Virtualise long lists and paginate complex data tables. Consider component-level lazy rendering for sections below the fold.",
+                "Reducing DOM complexity would improve both initial render time and ongoing interaction responsiveness."
             };
             case BOTTLENECK_RELIABILITY -> new String[]{
-                    "Check the browser Network tab for failed requests (4xx/5xx errors). Verify CDN and third-party resource availability.",
-                    "Fix any broken resource URLs and ensure fallback behaviour for third-party dependencies.",
-                    "Implement error monitoring for critical resources. Add retry logic or graceful degradation for non-essential third-party scripts.",
-                    "Resolving network failures would restore full page functionality and may improve performance scores as blocked resources are loaded correctly."
+                "Check the browser Network tab for failed requests (4xx/5xx errors). Verify CDN and third-party resource availability.",
+                "Fix any broken resource URLs and ensure fallback behaviour for third-party dependencies.",
+                "Implement error monitoring for critical resources. Add retry logic or graceful degradation for non-essential third-party scripts.",
+                "Resolving network failures would restore full page functionality and may improve performance scores as blocked resources are loaded correctly."
             };
             default -> new String[]{
-                    "Review the affected pages holistically \u2014 no single bottleneck dominates, so targeted investigation is needed.",
-                    "Check the Performance Metrics panel for the specific metrics that are underperforming.",
-                    "Profile each page end-to-end to identify whether server, network, or client factors dominate.",
-                    "Identifying the primary constraint would enable targeted optimisation with the highest return on effort."
+                "Review the affected pages holistically \u2014 no single bottleneck dominates, so targeted investigation is needed.",
+                "Check the Performance Metrics panel for the specific metrics that are underperforming.",
+                "Profile each page end-to-end to identify whether server, network, or client factors dominate.",
+                "Identifying the primary constraint would enable targeted optimisation with the highest return on effort."
             };
         };
     }
@@ -697,7 +697,7 @@ public final class BpmHtmlReportRenderer {
         sb.append("<div class=\"tbl-controls\"><label>Show:&nbsp;</label><select class=\"row-limit\" data-for=\"").append(tableId).append("\">\n");
         for (int v : new int[]{10, 25, 50, 100}) {
             sb.append("  <option value=\"").append(v).append("\"")
-                    .append(v == 10 ? " selected" : "").append(">").append(v).append("</option>\n");
+                .append(v == 10 ? " selected" : "").append(">").append(v).append("</option>\n");
         }
         sb.append("</select></div>\n");
         sb.append("<div class=\"pager\" data-for=\"").append(tableId).append("\"></div>\n");
@@ -730,7 +730,7 @@ public final class BpmHtmlReportRenderer {
             for (int c = 0; c < row.length; c++) {
                 String cell = row[c] != null ? row[c] : "";
                 String display = "\u2014".equals(cell) ? "-"
-                        : (c == BpmConstants.COL_IDX_IMPROVEMENT_AREA && "None".equals(cell)) ? "-" : cell;
+                    : (c == BpmConstants.COL_IDX_IMPROVEMENT_AREA && "None".equals(cell)) ? "-" : cell;
                 // Compute verdict once for SLA-relevant columns — used for both CSS and icon
                 Integer slaCol = COL_TO_SLA.get(c);
                 String verdict = slaCol != null ? computeVerdict(slaCol, cell, config) : null;
@@ -761,7 +761,7 @@ public final class BpmHtmlReportRenderer {
             return verdictToCss(computeVerdict(slaCol, value, config));
         }
         if (col == BpmConstants.COL_IDX_STABILITY
-                || col == BpmConstants.COL_IDX_IMPROVEMENT_AREA) {
+            || col == BpmConstants.COL_IDX_IMPROVEMENT_AREA) {
             return "";
         }
         return "num";
@@ -802,7 +802,7 @@ public final class BpmHtmlReportRenderer {
         // If TrendAnalyzer data is available via config, show insight; otherwise show interval info
         sb.append("Each point represents a ").append(escapeHtml(intervalText)).append(" interval.");
         boolean hasSlaLines = config.slaScoreGood > 0 || config.slaLcpPoor > 0
-                || config.slaFcpPoor > 0 || config.slaTtfbPoor > 0 || config.slaClsPoor > 0;
+            || config.slaFcpPoor > 0 || config.slaTtfbPoor > 0 || config.slaClsPoor > 0;
         if (hasSlaLines) {
             sb.append(" Dashed lines indicate SLA thresholds.");
         }
@@ -820,25 +820,25 @@ public final class BpmHtmlReportRenderer {
             Collections.sort(sortedLabels);
             for (String label : sortedLabels) {
                 sb.append("      <option value=\"").append(escapeHtml(label)).append("\">")
-                        .append(escapeHtml(label)).append("</option>\n");
+                    .append(escapeHtml(label)).append("</option>\n");
             }
             sb.append("    </select></div>\n");
         }
 
         sb.append("  <div class=\"charts-grid\">\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"Overall performance score (0-100). Higher is better. Green dashed line = minimum target.\">Performance Score Over Time</h3>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartScore\"></canvas></div></div>\n");
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartScore\"></canvas></div></div>\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"Largest Contentful Paint \u2014 time until the main visible content renders. Lower is better. Red dashed line = SLA threshold.\">LCP Over Time (ms)</h3>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartLcp\"></canvas></div></div>\n");
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartLcp\"></canvas></div></div>\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"First Contentful Paint \u2014 time until the first text or image appears. Lower is better. Red dashed line = SLA threshold.\">FCP Over Time (ms)</h3>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartFcp\"></canvas></div></div>\n");
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartFcp\"></canvas></div></div>\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"Time To First Byte \u2014 server response time before any content arrives. Lower is better. Red dashed line = SLA threshold.\">TTFB Over Time (ms)</h3>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartTtfb\"></canvas></div></div>\n");
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartTtfb\"></canvas></div></div>\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"Cumulative Layout Shift \u2014 measures unexpected content movement during load. Lower is better. Red dashed line = SLA threshold.\">CLS Over Time</h3>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartCls\"></canvas></div></div>\n");
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartCls\"></canvas></div></div>\n");
         sb.append("  <div class=\"chart-box\"><h3 title=\"Client-side rendering duration (LCP \u2212 TTFB). Lower is better. No SLA threshold.\">Render Time Over Time (ms)</h3>")
-                .append("<div style=\"font-size:10px;color:var(--color-text-tertiary);margin:-8px 0 8px\">No SLA threshold defined for this metric</div>")
-                .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartRender\"></canvas></div></div>\n");
+            .append("<div style=\"font-size:10px;color:var(--color-text-tertiary);margin:-8px 0 8px\">No SLA threshold defined for this metric</div>")
+            .append("<div class=\"chart-canvas-wrap\"><canvas id=\"chartRender\"></canvas></div></div>\n");
         sb.append("  </div>\n"); // charts-grid
         sb.append("</div>\n");   // charts-section
 
@@ -854,13 +854,13 @@ public final class BpmHtmlReportRenderer {
                 String varSuffix = "p" + perLabelIndex++;
                 appendBucketDataset(sb, varSuffix, entry.getValue());
                 sb.append("  bpmPages['").append(escapeJs(entry.getKey()))
-                        .append("'] = { labels: ").append(varSuffix).append("Labels, ")
-                        .append("scores: ").append(varSuffix).append("Scores, ")
-                        .append("lcp: ").append(varSuffix).append("Lcp, ")
-                        .append("fcp: ").append(varSuffix).append("Fcp, ")
-                        .append("ttfb: ").append(varSuffix).append("Ttfb, ")
-                        .append("cls: ").append(varSuffix).append("Cls, ")
-                        .append("render: ").append(varSuffix).append("Render };\n");
+                    .append("'] = { labels: ").append(varSuffix).append("Labels, ")
+                    .append("scores: ").append(varSuffix).append("Scores, ")
+                    .append("lcp: ").append(varSuffix).append("Lcp, ")
+                    .append("fcp: ").append(varSuffix).append("Fcp, ")
+                    .append("ttfb: ").append(varSuffix).append("Ttfb, ")
+                    .append("cls: ").append(varSuffix).append("Cls, ")
+                    .append("render: ").append(varSuffix).append("Render };\n");
             }
         }
 
@@ -974,8 +974,8 @@ public final class BpmHtmlReportRenderer {
 
         for (BpmTimeBucket b : buckets) {
             String timeLabel = LocalDateTime.ofInstant(
-                            Instant.ofEpochMilli(b.epochMs), ZoneId.systemDefault())
-                    .format(CHART_TIME_FMT);
+                    Instant.ofEpochMilli(b.epochMs), ZoneId.systemDefault())
+                .format(CHART_TIME_FMT);
             labels.add("\"" + timeLabel + "\"");
             scores.add(b.avgScore >= 0 ? String.format(Locale.US, "%.1f", b.avgScore) : "null");
             lcpVals.add(String.format(Locale.US, "%.0f", b.avgLcp));
@@ -1035,9 +1035,9 @@ public final class BpmHtmlReportRenderer {
 
     private static String escapeJs(String text) {
         return text.replace("\\", "\\\\").replace("'", "\\'")
-                .replace("<", "\\x3c").replace(">", "\\x3e")
-                .replace("\n", "\\n").replace("\r", "")
-                .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029");
+            .replace("<", "\\x3c").replace(">", "\\x3e")
+            .replace("\n", "\\n").replace("\r", "")
+            .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029");
     }
 
     /**
@@ -1066,9 +1066,9 @@ public final class BpmHtmlReportRenderer {
 
         public RenderConfig(String scenarioName, String description, String virtualUsers) {
             this(scenarioName, description, virtualUsers,
-                    "", "", "", 0,
-                    0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0);
+                "", "", "", 0,
+                0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0);
         }
 
         public RenderConfig(String scenarioName, String description, String virtualUsers,

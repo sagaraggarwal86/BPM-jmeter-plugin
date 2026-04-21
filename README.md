@@ -396,12 +396,52 @@ defaults matching Google Core Web Vitals thresholds.
 
 ## Troubleshooting
 
-| Problem                                | Solution                                                          |
-|----------------------------------------|-------------------------------------------------------------------|
-| Plugin not in Add > Listener menu      | Verify JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter.        |
-| Generate HTML Report button greyed out | No data in the table. Run a test or load a JSONL file first.      |
-| "No performance data available" dialog | No data captured or loaded. Run a test or load a JSONL file.      |
-| Charts blank in HTML report            | Chart.js CDN unreachable. Open in a browser with internet access. |
+| Problem                                   | Solution                                                                                        |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Plugin not in Add > Listener menu         | Verify JAR is in `<JMETER_HOME>/lib/ext/`. Restart JMeter.                                      |
+| Generate HTML Report button greyed out    | No data in the table. Run a test or load a JSONL file first.                                    |
+| "No performance data available" dialog    | No data captured or loaded. Run a test or load a JSONL file.                                    |
+| Charts blank in HTML report               | Chart.js CDN unreachable. Open in a browser with internet access.                               |
+| `UnsupportedClassVersionError` on startup | Java older than 17 — use a [portable Java 17](#using-a-portable-java-17-when-yours-is-too-old). |
+
+### Using a Portable Java 17 (when yours is too old)
+
+BPM needs Java 17. If your system's Java is older and you can't change it (e.g. locked corporate machine),
+use a portable Java 17 — no installer, no admin rights, and your system Java stays untouched.
+
+1. **Download Java 17** (JDK, portable `.zip` for Windows or `.tar.gz` for Linux/macOS) from any OpenJDK
+   provider — e.g. [Adoptium](https://adoptium.net/temurin/releases/?version=17&package=jdk),
+   [Zulu](https://www.azul.com/downloads/), or [Corretto](https://aws.amazon.com/corretto/). Make sure
+   you pick **Java 17** — some provider pages default to a newer version.
+2. **Unzip anywhere you own** — for example `C:\Users\<you>\jdk` or `~/jdk`. Check it has a `bin` folder
+   inside. The unzipped folder is usually named like `jdk-17.0.10+7` — either rename it to `jdk` or use
+   its actual name in the paths below.
+3. **Edit these JMeter scripts** in `<JMETER_HOME>/bin/` and add two lines near the top:
+    - Windows: `jmeter.bat` and `bpm-report.bat`
+    - Linux / macOS: `jmeter.sh` and `bpm-report.sh`
+
+   **Windows** — just after `@echo off`:
+   ```batch
+   set JAVA_HOME=C:\Users\<you>\jdk
+   set PATH=%JAVA_HOME%\bin;%PATH%
+   ```
+
+   **Linux / macOS** — just after the `#!/usr/bin/env bash` line:
+   ```bash
+   export JAVA_HOME="$HOME/jdk"
+   export PATH="$JAVA_HOME/bin:$PATH"
+   ```
+   On macOS, use `$HOME/jdk/Contents/Home` instead (macOS tucks Java into a `Contents/Home` subfolder).
+
+4. **Check it worked.** Start JMeter → **Help** → **About Apache JMeter** — should show Java 17.x. Also
+   run `bpm-report --help` from `<JMETER_HOME>/bin/` — should print help without errors.
+
+> [!TIP]
+> These lines only take effect inside these scripts — other apps on your machine still use your system Java.
+> If you upgrade JMeter later, add the lines again to the new scripts.
+
+> [!TIP]
+> On macOS, if Java is blocked by Gatekeeper, run: `xattr -r -d com.apple.quarantine ~/jdk`
 
 ---
 

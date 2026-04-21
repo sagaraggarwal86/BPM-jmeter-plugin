@@ -69,7 +69,7 @@ public final class BpmCliReportPipeline {
             int beforeCount = aggregates.size();
             applyLabelFilter(aggregates, args.search(), args.regex(), args.exclude());
             progress("Filter applied: %d \u2192 %d labels (search=%s, regex=%s, exclude=%s)",
-                    beforeCount, aggregates.size(), args.search(), args.regex(), args.exclude());
+                beforeCount, aggregates.size(), args.search(), args.regex(), args.exclude());
             if (aggregates.isEmpty()) {
                 throw new BpmParseException("No labels remaining after filter. Check --search pattern.");
             }
@@ -81,18 +81,18 @@ public final class BpmCliReportPipeline {
 
         // 4. Build time buckets for trend analysis and charts
         TimeBucketBuilder.GroupedResult grouped = TimeBucketBuilder.buildGrouped(
-                parsed.rawSamples, args.chartInterval());
+            parsed.rawSamples, args.chartInterval());
         List<BpmTimeBucket> timeBuckets = grouped.globalBuckets;
         if (!timeBuckets.isEmpty()) {
             progress("Built %d time buckets (%ds interval) for trend analysis and charts.",
-                    timeBuckets.size(), grouped.intervalSeconds);
+                timeBuckets.size(), grouped.intervalSeconds);
         }
 
         // 5. Build report data
         progress("Building report data...");
         ReportData data = ReportDataBuilder.build(aggregates, props, timeBuckets);
         progress("Report data: %d labels, %d breaches, %d headroom risks",
-                data.totalLabels(), data.breaches().size(), data.headroomRisks().size());
+            data.totalLabels(), data.breaches().size(), data.headroomRisks().size());
 
         // 6. Render HTML
         progress("Rendering HTML report...");
@@ -103,12 +103,12 @@ public final class BpmCliReportPipeline {
             long startMs = timeBuckets.get(0).epochMs;
             long endMs = timeBuckets.get(timeBuckets.size() - 1).epochMs;
             java.time.format.DateTimeFormatter dtFmt =
-                    java.time.format.DateTimeFormatter.ofPattern("M/d/yy HH:mm:ss");
+                java.time.format.DateTimeFormatter.ofPattern("M/d/yy HH:mm:ss");
             java.time.ZoneId zone = java.time.ZoneId.systemDefault();
             String startStr = java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(startMs), zone).format(dtFmt);
+                java.time.Instant.ofEpochMilli(startMs), zone).format(dtFmt);
             String endStr = java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(endMs), zone).format(dtFmt);
+                java.time.Instant.ofEpochMilli(endMs), zone).format(dtFmt);
             runDateTime = startStr + " - " + endStr;
             long totalSec = (endMs - startMs) / 1000;
             long h = totalSec / 3600;
@@ -117,26 +117,26 @@ public final class BpmCliReportPipeline {
             duration = h + "h " + m + "m " + s + "s";
         }
         BpmHtmlReportRenderer.RenderConfig renderConfig = new BpmHtmlReportRenderer.RenderConfig(
-                args.scenarioName(),
-                args.description(),
-                virtualUsersStr,
-                runDateTime,
-                duration,
-                "",
-                grouped.intervalSeconds,
-                props.getSlaScoreGood(), props.getSlaLcpGood(),
-                props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
-                props.getSlaScorePoor(), props.getSlaLcpPoor(),
-                props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
+            args.scenarioName(),
+            args.description(),
+            virtualUsersStr,
+            runDateTime,
+            duration,
+            "",
+            grouped.intervalSeconds,
+            props.getSlaScoreGood(), props.getSlaLcpGood(),
+            props.getSlaFcpGood(), props.getSlaTtfbGood(), props.getSlaClsGood(),
+            props.getSlaScorePoor(), props.getSlaLcpPoor(),
+            props.getSlaFcpPoor(), props.getSlaTtfbPoor(), props.getSlaClsPoor());
         List<String[]> metricsTable = buildMetricsTable(parsed.metricsRows, aggregates);
         String html = BpmHtmlReportRenderer.render(data, renderConfig,
-                timeBuckets, grouped.perLabelBuckets, metricsTable);
+            timeBuckets, grouped.perLabelBuckets, metricsTable);
 
         // 7. Save to file
         Path outputPath = args.outputFile();
         if (outputPath == null) {
             String ts = java.time.LocalDateTime.now()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
             outputPath = Path.of("BPM_Report_" + ts + ".html");
         }
         BpmFileUtils.ensureParentDirectories(outputPath);
@@ -152,8 +152,8 @@ public final class BpmCliReportPipeline {
     private static void applyLabelFilter(Map<String, LabelAggregate> aggregates,
                                          String search, boolean regex, boolean exclude) {
         Pattern pattern = regex
-                ? Pattern.compile(search, Pattern.CASE_INSENSITIVE)
-                : null;
+            ? Pattern.compile(search, Pattern.CASE_INSENSITIVE)
+            : null;
         String searchLower = search.toLowerCase(java.util.Locale.ROOT);
 
         aggregates.entrySet().removeIf(entry -> {
@@ -196,10 +196,10 @@ public final class BpmCliReportPipeline {
                     LabelAggregate agg = aggregates.computeIfAbsent(label, k -> new LabelAggregate());
                     if (result.derived() != null) {
                         agg.update(
-                                result.derived(),
-                                result.webVitals(),
-                                result.network(),
-                                result.console()
+                            result.derived(),
+                            result.webVitals(),
+                            result.network(),
+                            result.console()
                         );
                     }
 
@@ -213,14 +213,14 @@ public final class BpmCliReportPipeline {
                         long lcpVal = wv != null && wv.lcp() != null ? wv.lcp() : 0;
                         long ttfbVal = wv != null && wv.ttfb() != null ? wv.ttfb() : 0;
                         rawSamples.add(new TimeBucketBuilder.RawSample(
-                                result.timestamp(),
-                                label,
-                                d.performanceScore(),
-                                lcpVal,
-                                wv != null && wv.fcp() != null ? wv.fcp() : 0,
-                                ttfbVal,
-                                wv != null && wv.cls() != null ? wv.cls() : -1,
-                                d.renderTime()
+                            result.timestamp(),
+                            label,
+                            d.performanceScore(),
+                            lcpVal,
+                            wv != null && wv.fcp() != null ? wv.fcp() : 0,
+                            ttfbVal,
+                            wv != null && wv.cls() != null ? wv.cls() : -1,
+                            d.renderTime()
                         ));
                     }
                 } catch (Exception e) {

@@ -55,9 +55,9 @@ public final class BpmReportLauncher {
         // Validate inputs
         if (aggregates == null || aggregates.isEmpty()) {
             JOptionPane.showMessageDialog(parentComponent,
-                    "No performance data available.\n\n"
-                            + "Run a test or load a JSONL file first.",
-                    "BPM Report", JOptionPane.WARNING_MESSAGE);
+                "No performance data available.\n\n"
+                    + "Run a test or load a JSONL file first.",
+                "BPM Report", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -66,9 +66,9 @@ public final class BpmReportLauncher {
         try {
             // Generate HTML
             BpmReportCoordinator.GenerateResult result =
-                    BpmReportCoordinator.generateHtml(
-                            aggregates, props, renderConfig,
-                            timeBuckets, perLabelBuckets, metricsTable);
+                BpmReportCoordinator.generateHtml(
+                    aggregates, props, renderConfig,
+                    timeBuckets, perLabelBuckets, metricsTable);
 
             // Show save dialog
             JFileChooser chooser = new JFileChooser();
@@ -87,14 +87,14 @@ public final class BpmReportLauncher {
                     Files.writeString(selected.toPath(), result.html(), StandardCharsets.UTF_8);
                     log.info("BPM Report: Saved to {}", selected);
                     if (Desktop.isDesktopSupported()
-                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         Desktop.getDesktop().browse(selected.toURI());
                     }
                 } catch (Exception ex) {
                     log.warn("BPM Report: Failed to save report", ex);
                     JOptionPane.showMessageDialog(parentComponent,
-                            "Failed to save report:\n\n" + ex.getMessage(),
-                            "BPM Report Error", JOptionPane.ERROR_MESSAGE);
+                        "Failed to save report:\n\n" + ex.getMessage(),
+                        "BPM Report Error", JOptionPane.ERROR_MESSAGE);
                 }
             } else {
                 // User cancelled — save to default location so report isn't lost
@@ -104,7 +104,7 @@ public final class BpmReportLauncher {
                     Files.writeString(defaultPath, result.html(), StandardCharsets.UTF_8);
                     log.info("BPM Report: Save cancelled. Report saved to default: {}", defaultPath);
                     if (Desktop.isDesktopSupported()
-                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         Desktop.getDesktop().browse(defaultPath.toUri());
                     }
                 } catch (Exception ex) {
@@ -114,8 +114,8 @@ public final class BpmReportLauncher {
         } catch (Exception e) {
             log.warn("BPM Report: Generation failed.", e);
             JOptionPane.showMessageDialog(parentComponent,
-                    "Report generation failed:\n\n" + e.getMessage(),
-                    "BPM Report Error", JOptionPane.ERROR_MESSAGE);
+                "Report generation failed:\n\n" + e.getMessage(),
+                "BPM Report Error", JOptionPane.ERROR_MESSAGE);
         } finally {
             triggerButton.setEnabled(true);
         }

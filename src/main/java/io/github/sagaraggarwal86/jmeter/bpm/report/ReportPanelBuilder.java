@@ -49,12 +49,12 @@ public final class ReportPanelBuilder {
 
     // Plain-language improvement area descriptions (manager/architect audience)
     private static final Map<String, String> IMPROVEMENT_DESCRIPTIONS = Map.of(
-            BOTTLENECK_SERVER, "The primary bottleneck is slow server response \u2014 reducing server-side processing time would have the most impact.",
-            BOTTLENECK_RESOURCE, "The page is loading heavy assets \u2014 optimising image sizes and deferring non-critical scripts would improve load times.",
-            BOTTLENECK_CLIENT, "The browser is spending excessive time rendering \u2014 simplifying the page structure or reducing JavaScript work would help.",
-            BOTTLENECK_LAYOUT, "The page has excessive DOM complexity \u2014 reducing nested elements would improve rendering performance.",
-            BOTTLENECK_RELIABILITY, "There are failed or blocked network requests \u2014 checking resource availability and CDN health is recommended.",
-            BOTTLENECK_NONE, "No single bottleneck was identified \u2014 performance is generally balanced across all areas."
+        BOTTLENECK_SERVER, "The primary bottleneck is slow server response \u2014 reducing server-side processing time would have the most impact.",
+        BOTTLENECK_RESOURCE, "The page is loading heavy assets \u2014 optimising image sizes and deferring non-critical scripts would improve load times.",
+        BOTTLENECK_CLIENT, "The browser is spending excessive time rendering \u2014 simplifying the page structure or reducing JavaScript work would help.",
+        BOTTLENECK_LAYOUT, "The page has excessive DOM complexity \u2014 reducing nested elements would improve rendering performance.",
+        BOTTLENECK_RELIABILITY, "There are failed or blocked network requests \u2014 checking resource availability and CDN health is recommended.",
+        BOTTLENECK_NONE, "No single bottleneck was identified \u2014 performance is generally balanced across all areas."
     );
 
     private ReportPanelBuilder() {
@@ -96,7 +96,7 @@ public final class ReportPanelBuilder {
 
         // Risk paragraph (conditional)
         boolean hasRisks = !data.headroomRisks().isEmpty() || !data.boundaryRisks().isEmpty()
-                || !data.spaLabels().isEmpty();
+            || !data.spaLabels().isEmpty();
         if (hasRisks) {
             template = keepSection(template, "riskParagraph");
             template = template.replace("{{riskParagraph}}", buildRiskParagraph(data));
@@ -129,10 +129,10 @@ public final class ReportPanelBuilder {
             template = template.replace("{{breachSummaryLabel}}", buildBreachSummaryLabel(data));
             template = template.replace("{{breachItems}}", buildBreachItemsHtml(data));
             template = template.replace("{{breachMoreNote}}",
-                    data.breaches().size() > MAX_BREACH_DISPLAY
-                            ? "<p class=\"es-more-note\">and " + (data.breaches().size() - MAX_BREACH_DISPLAY)
-                              + " more \u2014 see Critical Findings for the complete list.</p>"
-                            : "");
+                data.breaches().size() > MAX_BREACH_DISPLAY
+                    ? "<p class=\"es-more-note\">and " + (data.breaches().size() - MAX_BREACH_DISPLAY)
+                      + " more \u2014 see Critical Findings for the complete list.</p>"
+                    : "");
         }
 
         // ── Error section (expandable) ─────────────────────────────────────
@@ -157,18 +157,18 @@ public final class ReportPanelBuilder {
         if (data.criticalCount() == 0 && data.warnCount() == 0) {
             // All-pass scenario — descriptive
             sb.append("The application is performing well. All ")
-                    .append(data.totalLabels())
-                    .append(" pages met their quality targets, and users should experience fast, ")
-                    .append("responsive page loads across the board.");
+                .append(data.totalLabels())
+                .append(" pages met their quality targets, and users should experience fast, ")
+                .append("responsive page loads across the board.");
             if (data.weightedScore() > 0) {
                 sb.append(" Overall, the application scores <strong>")
-                        .append(data.weightedScore()).append("</strong> out of 100.");
+                    .append(data.weightedScore()).append("</strong> out of 100.");
             }
             // Add best page context if available
             if (!data.bestLabel().isEmpty() && data.bestLcp() > 0) {
                 String lcpDisplay = data.bestLcp() >= 1000
-                        ? String.format(Locale.US, "%.1f seconds", data.bestLcp() / 1000.0)
-                        : data.bestLcp() + " milliseconds";
+                    ? String.format(Locale.US, "%.1f seconds", data.bestLcp() / 1000.0)
+                    : data.bestLcp() + " milliseconds";
                 sb.append(" The fastest page loaded in ").append(lcpDisplay);
                 if (!data.worstLabel().isEmpty() && data.worstLcp() > 0) {
                     sb.append(", and even the slowest page completed within acceptable limits");
@@ -192,16 +192,16 @@ public final class ReportPanelBuilder {
 
             if (data.passCount() > 0) {
                 sb.append("While ").append(data.passCount() > 1 ? data.passCount() + " pages are" : "1 page is")
-                        .append(" delivering a good user experience, ");
+                    .append(" delivering a good user experience, ");
             }
             int failingCount = data.criticalCount() + data.warnCount();
             sb.append(failingCount).append(failingCount == 1 ? " page" : " pages")
-                    .append(" fell short of quality targets and need").append(failingCount == 1 ? "s" : "")
-                    .append(" attention.");
+                .append(" fell short of quality targets and need").append(failingCount == 1 ? "s" : "")
+                .append(" attention.");
 
             if (data.weightedScore() > 0) {
                 sb.append(" Overall, the application scores <strong>")
-                        .append(data.weightedScore()).append("</strong> out of 100, placing it in the ");
+                    .append(data.weightedScore()).append("</strong> out of 100, placing it in the ");
                 if (data.weightedScore() >= scoreGood) {
                     sb.append("\u201Cgood\u201D range.");
                 } else if (data.weightedScore() >= scorePoor) {
@@ -232,34 +232,34 @@ public final class ReportPanelBuilder {
 
         if (!data.headroomRisks().isEmpty()) {
             sb.append(data.headroomRisks().size())
-                    .append(data.headroomRisks().size() == 1 ? " page is" : " pages are")
-                    .append(" operating close to ")
-                    .append(data.headroomRisks().size() == 1 ? "its" : "their")
-                    .append(" quality limits. ")
-                    .append("A modest increase in traffic or a minor code change could push ")
-                    .append(data.headroomRisks().size() == 1 ? "it" : "them")
-                    .append(" into failure.");
+                .append(data.headroomRisks().size() == 1 ? " page is" : " pages are")
+                .append(" operating close to ")
+                .append(data.headroomRisks().size() == 1 ? "its" : "their")
+                .append(" quality limits. ")
+                .append("A modest increase in traffic or a minor code change could push ")
+                .append(data.headroomRisks().size() == 1 ? "it" : "them")
+                .append(" into failure.");
             first = false;
         }
 
         if (!data.spaLabels().isEmpty()) {
             if (!first) sb.append(" Additionally, ");
             sb.append(data.spaLabels().size())
-                    .append(data.spaLabels().size() == 1 ? " page involves" : " pages involve")
-                    .append(" an in-app navigation where standard performance metrics cannot be captured, ")
-                    .append("creating a monitoring blind spot.");
+                .append(data.spaLabels().size() == 1 ? " page involves" : " pages involve")
+                .append(" an in-app navigation where standard performance metrics cannot be captured, ")
+                .append("creating a monitoring blind spot.");
             first = false;
         }
 
         if (!data.boundaryRisks().isEmpty() && first) {
             sb.append(data.boundaryRisks().size())
-                    .append(data.boundaryRisks().size() == 1 ? " page is" : " pages are")
-                    .append(" near a quality threshold boundary. ")
-                    .append("A small improvement could upgrade ")
-                    .append(data.boundaryRisks().size() == 1 ? "its" : "their")
-                    .append(" status; a small regression could downgrade ")
-                    .append(data.boundaryRisks().size() == 1 ? "it" : "them")
-                    .append(".");
+                .append(data.boundaryRisks().size() == 1 ? " page is" : " pages are")
+                .append(" near a quality threshold boundary. ")
+                .append("A small improvement could upgrade ")
+                .append(data.boundaryRisks().size() == 1 ? "its" : "their")
+                .append(" status; a small regression could downgrade ")
+                .append(data.boundaryRisks().size() == 1 ? "it" : "them")
+                .append(".");
         }
 
         sb.append("</p>");
@@ -271,7 +271,7 @@ public final class ReportPanelBuilder {
         Map<String, Integer> bottleneckCounts = new java.util.LinkedHashMap<>();
         for (ReportData.BreachEntry breach : data.breaches()) {
             if (breach.improvementArea() != null && !breach.improvementArea().isEmpty()
-                    && !BOTTLENECK_NONE.equals(breach.improvementArea())) {
+                && !BOTTLENECK_NONE.equals(breach.improvementArea())) {
                 bottleneckCounts.merge(breach.improvementArea(), 1, Integer::sum);
             }
         }
@@ -279,13 +279,13 @@ public final class ReportPanelBuilder {
         StringBuilder sb = new StringBuilder("<p>");
         if (bottleneckCounts.isEmpty()) {
             sb.append("No single bottleneck pattern was identified across the affected pages. ")
-                    .append("See the Critical Findings section for per-page recommendations.");
+                .append("See the Critical Findings section for per-page recommendations.");
         } else {
             // Find the most common bottleneck
             String topBottleneck = bottleneckCounts.entrySet().stream()
-                    .max(Map.Entry.comparingByValue())
-                    .map(Map.Entry::getKey)
-                    .orElse(BOTTLENECK_NONE);
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(BOTTLENECK_NONE);
             int count = bottleneckCounts.getOrDefault(topBottleneck, 0);
 
             String desc = IMPROVEMENT_DESCRIPTIONS.getOrDefault(topBottleneck, "");
@@ -303,15 +303,15 @@ public final class ReportPanelBuilder {
     private static String buildErrorsParagraph(ReportData data) {
         int labelCount = data.totalErrorLabels();
         return "<p>JavaScript errors were detected on " + labelCount + " out of " + data.totalLabels()
-                + " pages during the test. These errors may indicate broken functionality or "
-                + "failed background requests that are visible to end users.</p>";
+            + " pages during the test. These errors may indicate broken functionality or "
+            + "failed background requests that are visible to end users.</p>";
     }
 
     // ── Breach section ──────────────────────────────────────────────────────
 
     private static String buildBreachIntro(ReportData data) {
         return data.breaches().size() + " out of " + data.totalLabels()
-                + " pages did not meet one or more quality targets.";
+            + " pages did not meet one or more quality targets.";
     }
 
     private static String buildBreachSummaryLabel(ReportData data) {
@@ -319,7 +319,7 @@ public final class ReportPanelBuilder {
         long warnCount = data.breaches().size() - critCount;
         StringBuilder sb = new StringBuilder();
         sb.append(data.breaches().size()).append(data.breaches().size() == 1 ? " page needs" : " pages need")
-                .append(" attention");
+            .append(" attention");
         if (critCount > 0 && warnCount > 0) {
             sb.append(" (").append(critCount).append(" critical, ").append(warnCount).append(" warning)");
         } else if (critCount > 0) {
@@ -333,7 +333,7 @@ public final class ReportPanelBuilder {
 
     private static String buildBreachItemsHtml(ReportData data) {
         List<ReportData.BreachEntry> capped = data.breaches().size() > MAX_BREACH_DISPLAY
-                ? data.breaches().subList(0, MAX_BREACH_DISPLAY) : data.breaches();
+            ? data.breaches().subList(0, MAX_BREACH_DISPLAY) : data.breaches();
         Map<String, List<ReportData.BreachEntry>> groups = ReportData.groupByArea(capped);
 
         StringBuilder sb = new StringBuilder();
@@ -342,22 +342,22 @@ public final class ReportPanelBuilder {
             List<ReportData.BreachEntry> pages = entry.getValue();
             String displayName = BOTTLENECK_DISPLAY_NAMES.getOrDefault(area, area);
             String desc = IMPROVEMENT_DESCRIPTIONS.getOrDefault(area,
-                    IMPROVEMENT_DESCRIPTIONS.get(BOTTLENECK_NONE));
+                IMPROVEMENT_DESCRIPTIONS.get(BOTTLENECK_NONE));
 
             sb.append("    <li class=\"es-breach-item\">\n");
             sb.append("      <p><strong>").append(escapeHtml(displayName)).append("</strong> (")
-                    .append(pages.size()).append(pages.size() == 1 ? " page" : " pages")
-                    .append(") \u2014 ").append(desc).append("</p>\n");
+                .append(pages.size()).append(pages.size() == 1 ? " page" : " pages")
+                .append(") \u2014 ").append(desc).append("</p>\n");
 
             // Nested expandable page list
             sb.append("      <details class=\"es-breach-pages\">\n");
             sb.append("        <summary>").append(pages.size())
-                    .append(" affected page").append(pages.size() != 1 ? "s" : "")
-                    .append(" \u2014 show list</summary>\n");
+                .append(" affected page").append(pages.size() != 1 ? "s" : "")
+                .append(" \u2014 show list</summary>\n");
             sb.append("        <ul>\n");
             for (ReportData.BreachEntry breach : pages) {
                 sb.append("          <li><strong>").append(escapeHtml(breach.label())).append("</strong> ")
-                        .append(severityTag(breach.hasCritical())).append("</li>\n");
+                    .append(severityTag(breach.hasCritical())).append("</li>\n");
             }
             sb.append("        </ul>\n");
             sb.append("      </details>\n");
@@ -371,14 +371,14 @@ public final class ReportPanelBuilder {
     private static String buildErrorIntro(ReportData data) {
         int labelCount = data.totalErrorLabels();
         return data.totalErrors() + " JavaScript error" + (data.totalErrors() > 1 ? "s were" : " was")
-                + " detected across " + labelCount + " page" + (labelCount > 1 ? "s" : "")
-                + ". These errors may indicate broken functionality or failed background "
-                + "requests that are visible to end users.";
+            + " detected across " + labelCount + " page" + (labelCount > 1 ? "s" : "")
+            + ". These errors may indicate broken functionality or failed background "
+            + "requests that are visible to end users.";
     }
 
     private static String buildErrorSummaryLabel(ReportData data) {
         return data.totalErrorLabels() + " affected page"
-                + (data.totalErrorLabels() != 1 ? "s" : "") + " \u2014 show details";
+            + (data.totalErrorLabels() != 1 ? "s" : "") + " \u2014 show details";
     }
 
     private static String buildErrorItemsHtml(ReportData data) {
@@ -413,8 +413,8 @@ public final class ReportPanelBuilder {
 
         if (entries.size() < data.totalErrorLabels()) {
             sb.append("    <li class=\"es-more-note\"><em>and ")
-                    .append(data.totalErrorLabels() - entries.size())
-                    .append(" more pages with errors \u2014 see Performance Metrics for the complete list.</em></li>\n");
+                .append(data.totalErrorLabels() - entries.size())
+                .append(" more pages with errors \u2014 see Performance Metrics for the complete list.</em></li>\n");
         }
         return sb.toString();
     }
@@ -425,23 +425,23 @@ public final class ReportPanelBuilder {
     private static String trendStabilityText(String stability) {
         return switch (stability) {
             case TREND_STABLE -> "Performance remained stable throughout the test duration. "
-                    + "There are no signs of degradation under sustained load, "
-                    + "which indicates the application handles sustained load at the tested level.";
+                + "There are no signs of degradation under sustained load, "
+                + "which indicates the application handles sustained load at the tested level.";
             case TREND_MOSTLY_STABLE -> "Performance was mostly stable, but one metric showed signs of decline "
-                    + "over the test duration. This warrants monitoring but does not indicate a systemic issue.";
+                + "over the test duration. This warrants monitoring but does not indicate a systemic issue.";
             case TREND_DEGRADING -> "Performance deteriorated as the test progressed. "
-                    + "Metrics worsened over the test duration, which suggests "
-                    + "the system may not sustain this load level over longer periods.";
+                + "Metrics worsened over the test duration, which suggests "
+                + "the system may not sustain this load level over longer periods.";
             default -> "";
         };
     }
 
     private static String buildFallbackExecutiveSummary(ReportData data) {
         return "<p>Test covered " + data.totalLabels() + " pages across "
-                + data.totalSamples() + " page loads. "
-                + data.passCount() + " passing, "
-                + data.criticalCount() + " critical, "
-                + data.warnCount() + " warnings.</p>";
+            + data.totalSamples() + " page loads. "
+            + data.passCount() + " passing, "
+            + data.criticalCount() + " critical, "
+            + data.warnCount() + " warnings.</p>";
     }
 
     // ── Risk Assessment ─────────────────────────────────────────────────────
@@ -463,16 +463,16 @@ public final class ReportPanelBuilder {
         boolean hasCapacity = !data.headroomRisks().isEmpty();
         template = template.replace("{{capacitySeverity}}", hasCapacity ? "red" : "green");
         template = template.replace("{{capacityCount}}",
-                data.headroomRisks().size() + " page" + (data.headroomRisks().size() != 1 ? "s" : ""));
+            data.headroomRisks().size() + " page" + (data.headroomRisks().size() != 1 ? "s" : ""));
 
         if (hasCapacity) {
             template = keepSection(template, "capacityHasRisks");
             template = removeSection(template, "capacityAllClear");
             template = template.replace("{{capacityItems}}", buildRiskItemsHtml(data.headroomRisks()));
             template = template.replace("{{capacityMoreNote}}",
-                    data.headroomRisks().size() > MAX_RISK_DISPLAY
-                            ? "<p class=\"ra-more-note\">and " + (data.headroomRisks().size() - MAX_RISK_DISPLAY) + " more.</p>"
-                            : "");
+                data.headroomRisks().size() > MAX_RISK_DISPLAY
+                    ? "<p class=\"ra-more-note\">and " + (data.headroomRisks().size() - MAX_RISK_DISPLAY) + " more.</p>"
+                    : "");
         } else {
             template = removeSection(template, "capacityHasRisks");
             template = keepSection(template, "capacityAllClear");
@@ -482,16 +482,16 @@ public final class ReportPanelBuilder {
         boolean hasBorderline = !data.boundaryRisks().isEmpty();
         template = template.replace("{{borderlineSeverity}}", hasBorderline ? "yellow" : "green");
         template = template.replace("{{borderlineCount}}",
-                data.boundaryRisks().size() + " page" + (data.boundaryRisks().size() != 1 ? "s" : ""));
+            data.boundaryRisks().size() + " page" + (data.boundaryRisks().size() != 1 ? "s" : ""));
 
         if (hasBorderline) {
             template = keepSection(template, "borderlineHasRisks");
             template = removeSection(template, "borderlineAllClear");
             template = template.replace("{{borderlineItems}}", buildRiskItemsHtml(data.boundaryRisks()));
             template = template.replace("{{borderlineMoreNote}}",
-                    data.boundaryRisks().size() > MAX_RISK_DISPLAY
-                            ? "<p class=\"ra-more-note\">and " + (data.boundaryRisks().size() - MAX_RISK_DISPLAY) + " more.</p>"
-                            : "");
+                data.boundaryRisks().size() > MAX_RISK_DISPLAY
+                    ? "<p class=\"ra-more-note\">and " + (data.boundaryRisks().size() - MAX_RISK_DISPLAY) + " more.</p>"
+                    : "");
         } else {
             template = removeSection(template, "borderlineHasRisks");
             template = keepSection(template, "borderlineAllClear");
@@ -501,7 +501,7 @@ public final class ReportPanelBuilder {
         boolean hasSpa = !data.spaLabels().isEmpty();
         template = template.replace("{{spaSeverity}}", hasSpa ? "yellow" : "green");
         template = template.replace("{{spaCount}}",
-                data.spaLabels().size() + " page" + (data.spaLabels().size() != 1 ? "s" : ""));
+            data.spaLabels().size() + " page" + (data.spaLabels().size() != 1 ? "s" : ""));
 
         if (hasSpa) {
             template = keepSection(template, "spaHasLabels");
@@ -509,7 +509,7 @@ public final class ReportPanelBuilder {
             StringBuilder spaItems = new StringBuilder();
             for (String label : data.spaLabels()) {
                 spaItems.append("        <li><strong>").append(escapeHtml(label))
-                        .append("</strong> \u2014 performance problems on this page would go undetected by this test.</li>\n");
+                    .append("</strong> \u2014 performance problems on this page would go undetected by this test.</li>\n");
             }
             template = template.replace("{{spaItems}}", spaItems.toString());
         } else {
@@ -524,7 +524,7 @@ public final class ReportPanelBuilder {
         if (hasTrend) {
             String stability = trends.overallStability();
             String severity = TREND_DEGRADING.equals(stability) ? "red"
-                    : TREND_MOSTLY_STABLE.equals(stability) ? "yellow" : "green";
+                : TREND_MOSTLY_STABLE.equals(stability) ? "yellow" : "green";
             template = template.replace("{{trendSeverity}}", severity);
             template = template.replace("{{trendBadge}}", stability);
 
@@ -559,8 +559,8 @@ public final class ReportPanelBuilder {
         for (ReportData.RiskEntry risk : risks) {
             if (count >= MAX_RISK_DISPLAY) break;
             sb.append("        <li><strong>").append(escapeHtml(risk.label()))
-                    .append("</strong> \u2014 ").append(escapeHtml(risk.description()))
-                    .append("</li>\n");
+                .append("</strong> \u2014 ").append(escapeHtml(risk.description()))
+                .append("</li>\n");
             count++;
         }
         return sb.toString();
@@ -568,8 +568,8 @@ public final class ReportPanelBuilder {
 
     private static String buildFallbackRiskAssessment(ReportData data) {
         return "<p>" + data.headroomRisks().size() + " capacity risks, "
-                + data.boundaryRisks().size() + " borderline pages, "
-                + data.spaLabels().size() + " unmeasured navigations.</p>";
+            + data.boundaryRisks().size() + " borderline pages, "
+            + data.spaLabels().size() + " unmeasured navigations.</p>";
     }
 
     // ── Template utilities ───────────────────────────────────────────────────
@@ -579,13 +579,13 @@ public final class ReportPanelBuilder {
      */
     static String loadTemplate(String resourceName) {
         try (InputStream is = ReportPanelBuilder.class.getClassLoader()
-                .getResourceAsStream(resourceName)) {
+            .getResourceAsStream(resourceName)) {
             if (is == null) {
                 log.warn("Template resource not found: {}", resourceName);
                 return null;
             }
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 return reader.lines().collect(Collectors.joining("\n"));
             }
         } catch (IOException e) {
@@ -614,7 +614,7 @@ public final class ReportPanelBuilder {
      */
     static String keepSection(String template, String sectionName) {
         return template.replace("{{#" + sectionName + "}}", "")
-                .replace("{{/" + sectionName + "}}", "");
+            .replace("{{/" + sectionName + "}}", "");
     }
 
 }

@@ -45,7 +45,7 @@ public final class CsvExporter {
      * @throws IOException if the file cannot be written
      */
     public static void export(Path outputPath, List<String> columnHeaders, List<List<String>> rows)
-            throws IOException {
+        throws IOException {
         BpmFileUtils.ensureParentDirectories(outputPath);
 
         try (BufferedWriter writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
@@ -59,7 +59,7 @@ public final class CsvExporter {
         }
 
         log.info("BPM: CSV exported to {} ({} rows, {} columns)",
-                outputPath, rows.size(), columnHeaders.size());
+            outputPath, rows.size(), columnHeaders.size());
     }
 
     /**
@@ -90,9 +90,9 @@ public final class CsvExporter {
             return "";
         }
         boolean needsQuoting = value.indexOf(COMMA) >= 0
-                || value.indexOf(QUOTE) >= 0
-                || value.indexOf('\n') >= 0
-                || value.indexOf('\r') >= 0;
+            || value.indexOf(QUOTE) >= 0
+            || value.indexOf('\n') >= 0
+            || value.indexOf('\r') >= 0;
         if (!needsQuoting) {
             return value;
         }

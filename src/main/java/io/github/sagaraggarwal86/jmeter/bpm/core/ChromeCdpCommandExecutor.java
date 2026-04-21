@@ -40,7 +40,7 @@ public final class ChromeCdpCommandExecutor implements CdpCommandExecutor {
         }
         if (!(driver instanceof ChromiumDriver chromiumDriver)) {
             throw new IllegalArgumentException(
-                    "Expected ChromiumDriver but got: " + driver.getClass().getName());
+                "Expected ChromiumDriver but got: " + driver.getClass().getName());
         }
         this.driver = chromiumDriver;
         this.closed = false;
@@ -62,7 +62,7 @@ public final class ChromeCdpCommandExecutor implements CdpCommandExecutor {
         }
         if (!(browserObject instanceof WebDriver webDriver)) {
             throw new IllegalArgumentException(
-                    "Expected WebDriver but got: " + browserObject.getClass().getName());
+                "Expected WebDriver but got: " + browserObject.getClass().getName());
         }
         return new ChromeCdpCommandExecutor(webDriver);
     }

@@ -21,7 +21,7 @@ class BpmListenerLifecycleTest {
     void testStarted_initializesState(@TempDir Path tempDir) {
         BpmListener listener = new BpmListener();
         listener.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results.jsonl").toString());
+            tempDir.resolve("bpm-results.jsonl").toString());
         listener.testStarted();
 
         assertNotNull(listener.getGuiUpdateQueue(), "GUI queue should be initialized");
@@ -44,7 +44,7 @@ class BpmListenerLifecycleTest {
     void clearData_resetsState(@TempDir Path tempDir) {
         BpmListener listener = new BpmListener();
         listener.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results.jsonl").toString());
+            tempDir.resolve("bpm-results.jsonl").toString());
         listener.testStarted();
 
         listener.clearData();
@@ -60,7 +60,7 @@ class BpmListenerLifecycleTest {
     void doubleLifecycle_worksCleanly(@TempDir Path tempDir) {
         BpmListener listener = new BpmListener();
         listener.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results.jsonl").toString());
+            tempDir.resolve("bpm-results.jsonl").toString());
 
         listener.testStarted();
         listener.testEnded();
@@ -75,7 +75,7 @@ class BpmListenerLifecycleTest {
     void testEnded_afterStart_noException(@TempDir Path tempDir) {
         BpmListener listener = new BpmListener();
         listener.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results.jsonl").toString());
+            tempDir.resolve("bpm-results.jsonl").toString());
         listener.testStarted();
 
         // Calling sampleOccurred without a proper SampleEvent context
@@ -94,9 +94,9 @@ class BpmListenerLifecycleTest {
         l1.setProperty(BpmConstants.TEST_ELEMENT_ID, java.util.UUID.randomUUID().toString());
         l2.setProperty(BpmConstants.TEST_ELEMENT_ID, java.util.UUID.randomUUID().toString());
         l1.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results-1.jsonl").toString());
+            tempDir.resolve("bpm-results-1.jsonl").toString());
         l2.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results-2.jsonl").toString());
+            tempDir.resolve("bpm-results-2.jsonl").toString());
 
         l1.testStarted();
         l2.testStarted();
@@ -125,7 +125,7 @@ class BpmListenerLifecycleTest {
 
         // Clone's queue is null because it never ran testStarted setup
         assertNull(clone.getGuiUpdateQueue(),
-                "Clone must not initialise its own queue — it defers to primary");
+            "Clone must not initialise its own queue — it defers to primary");
         assertNotNull(primary.getGuiUpdateQueue());
 
         primary.testEnded();
@@ -138,7 +138,7 @@ class BpmListenerLifecycleTest {
     void dontStartPending_isFalse_afterNormalLifecycle(@TempDir Path tempDir) {
         BpmListener l1 = new BpmListener();
         l1.setProperty(BpmConstants.TEST_ELEMENT_OUTPUT_PATH,
-                tempDir.resolve("bpm-results.jsonl").toString());
+            tempDir.resolve("bpm-results.jsonl").toString());
 
         // Verify initial state
         assertFalse(BpmListener.isDontStartPending());
@@ -146,7 +146,7 @@ class BpmListenerLifecycleTest {
         // Start l1 normally — dontStartPending must be cleared at successful start
         l1.testStarted();
         assertFalse(BpmListener.isDontStartPending(),
-                "dontStartPending must be false after a successful test start");
+            "dontStartPending must be false after a successful test start");
 
         l1.testEnded();
         // After testEnded, flag must still be false for the next run

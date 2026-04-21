@@ -176,7 +176,7 @@ final class BpmCollector {
             initCdpSession(browserObj, threadName, vars);
 
             if (!errorHandler.isThreadDisabled(threadName)
-                    && executorsByThread.containsKey(threadName)) {
+                && executorsByThread.containsKey(threadName)) {
                 BpmResult result = doCollect(threadName, sampleResult, vars);
                 cacheResult(vars, sampleResult, result);
                 return result;
@@ -237,7 +237,7 @@ final class BpmCollector {
             return true;
         }
         logOnceTracker.warnOnce(threadName, "non-chrome",
-                "Non-Chrome browser detected (" + className + "). CDP metrics require Chrome/Chromium.");
+            "Non-Chrome browser detected (" + className + "). CDP metrics require Chrome/Chromium.");
         infoBarOverride = BpmConstants.INFO_NON_CHROME;
         return false;
     }
@@ -255,7 +255,7 @@ final class BpmCollector {
 
         } catch (Exception e) {
             logOnceTracker.warnOnce(threadName, "cdp-init-failed",
-                    "Failed to initialize CDP session: " + e.getMessage());
+                "Failed to initialize CDP session: " + e.getMessage());
             errorHandler.handleSessionError(threadName, e);
         }
     }
@@ -296,7 +296,7 @@ final class BpmCollector {
             if (errorHandler.needsReInit(threadName)) {
                 attemptReInit(threadName, vars);
                 if (!errorHandler.isThreadDisabled(threadName)
-                        && executorsByThread.containsKey(threadName)) {
+                    && executorsByThread.containsKey(threadName)) {
                     try {
                         CdpCommandExecutor retryExecutor = executorsByThread.get(threadName);
                         MetricsBuffer retryBuffer = buffersByThread.get(threadName);
@@ -305,7 +305,7 @@ final class BpmCollector {
                         }
                     } catch (Exception retryEx) {
                         debugLogger.log("Retry collection also failed for '{}': {}",
-                                threadName, retryEx.getMessage());
+                            threadName, retryEx.getMessage());
                     }
                 }
             }
@@ -364,31 +364,31 @@ final class BpmCollector {
         }
 
         debugLogger.logCollection(sampleResult.getSampleLabel(),
-                vitalsMs, networkMs, runtimeMs, consoleMs);
+            vitalsMs, networkMs, runtimeMs, consoleMs);
 
         DerivedMetrics derived = derivedCalculator.compute(
-                vitals, network, runtime, console, sampleResult.getTime());
+            vitals, network, runtime, console, sampleResult.getTime());
 
         debugLogger.logDerivedMetrics(sampleResult.getSampleLabel(),
-                derived.performanceScore(), derived.improvementArea());
+            derived.performanceScore(), derived.improvementArea());
 
         int iteration = iterationsByThread
-                .computeIfAbsent(threadName, k -> new AtomicInteger(0))
-                .incrementAndGet();
+            .computeIfAbsent(threadName, k -> new AtomicInteger(0))
+            .incrementAndGet();
 
         BpmResult bpmResult = new BpmResult(
-                BpmConstants.SCHEMA_VERSION,
-                Instant.now().toString(),
-                threadName,
-                iteration,
-                sampleResult.getSampleLabel(),
-                sampleResult.isSuccessful(),
-                sampleResult.getTime(),
-                vitals,
-                network,
-                runtime,
-                console,
-                derived
+            BpmConstants.SCHEMA_VERSION,
+            Instant.now().toString(),
+            threadName,
+            iteration,
+            sampleResult.getSampleLabel(),
+            sampleResult.isSuccessful(),
+            sampleResult.getTime(),
+            vitals,
+            network,
+            runtime,
+            console,
+            derived
         );
 
         samplesCollected.incrementAndGet();
@@ -408,7 +408,7 @@ final class BpmCollector {
             Object browserObj = vars.getObject(BpmConstants.VAR_BROWSER);
             if (browserObj == null || !isChromeDriver(browserObj, threadName)) {
                 errorHandler.handleSessionError(threadName,
-                        new RuntimeException("Browser not available for re-init"));
+                    new RuntimeException("Browser not available for re-init"));
                 return;
             }
 

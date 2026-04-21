@@ -48,7 +48,7 @@ public final class TimeBucketBuilder {
     public static GroupedResult buildGrouped(List<RawSample> samples, int chartIntervalSeconds) {
         if (samples.isEmpty()) {
             return new GroupedResult(Collections.emptyList(),
-                    Collections.emptyMap(), 0);
+                Collections.emptyMap(), 0);
         }
 
         // Determine time range
@@ -106,8 +106,8 @@ public final class TimeBucketBuilder {
         long rawBucketMs = durationMs / AUTO_BUCKET_TARGET;
         // Snap to nice intervals: 1s, 5s, 10s, 15s, 30s, 1m, 2m, 5m, 10m, 15m, 30m, 1h
         long[] niceIntervals = {
-                1_000, 5_000, 10_000, 15_000, 30_000,
-                60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000, 3_600_000
+            1_000, 5_000, 10_000, 15_000, 30_000,
+            60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000, 3_600_000
         };
         for (long nice : niceIntervals) {
             if (rawBucketMs <= nice) return nice;
@@ -151,7 +151,7 @@ public final class TimeBucketBuilder {
         double avgRenderTime = renderTimeCount > 0 ? (double) totalRenderTime / renderTimeCount : -1;
 
         return new BpmTimeBucket(epochMs, avgScore, avgLcp, avgFcp, avgTtfb,
-                avgCls, avgRenderTime, n);
+            avgCls, avgRenderTime, n);
     }
 
     /**

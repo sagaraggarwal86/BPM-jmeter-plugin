@@ -34,8 +34,8 @@ public final class ColumnSelectorPopup extends JPopupMenu {
 
         for (int i = 0; i < BpmConstants.RAW_COLUMN_COUNT; i++) {
             JCheckBoxMenuItem item = new JCheckBoxMenuItem(
-                    BpmConstants.RAW_METRIC_HEADERS[i],
-                    BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY[i]);
+                BpmConstants.RAW_METRIC_HEADERS[i],
+                BpmConstants.RAW_COLUMNS_DEFAULT_VISIBILITY[i]);
             item.addActionListener(changeListener);
             checkBoxes[i] = item;
             add(item);
@@ -80,7 +80,7 @@ public final class ColumnSelectorPopup extends JPopupMenu {
             checkBoxes[i].addActionListener(changeListener);
         }
         changeListener.actionPerformed(
-                new java.awt.event.ActionEvent(this, java.awt.event.ActionEvent.ACTION_PERFORMED, "restore"));
+            new java.awt.event.ActionEvent(this, java.awt.event.ActionEvent.ACTION_PERFORMED, "restore"));
     }
 
     /**
@@ -94,7 +94,7 @@ public final class ColumnSelectorPopup extends JPopupMenu {
             checkBoxes[i].addActionListener(changeListener);
         }
         changeListener.actionPerformed(
-                new java.awt.event.ActionEvent(this, java.awt.event.ActionEvent.ACTION_PERFORMED, "reset"));
+            new java.awt.event.ActionEvent(this, java.awt.event.ActionEvent.ACTION_PERFORMED, "reset"));
     }
 
     /**

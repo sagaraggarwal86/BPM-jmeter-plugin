@@ -91,8 +91,8 @@ public final class DerivedMetricsCalculator {
      */
     private static double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value)
-                .setScale(2, RoundingMode.HALF_UP)
-                .doubleValue();
+            .setScale(2, RoundingMode.HALF_UP)
+            .doubleValue();
     }
 
     /**
@@ -133,13 +133,13 @@ public final class DerivedMetricsCalculator {
 
         // Server Ratio = (TTFB / LCP) × 100, 2 decimal places
         double serverClientRatio = (lcp != null && ttfb != null && lcpVal > 0)
-                ? roundToTwoDecimals((double) ttfbVal / lcpVal * 100.0)
-                : 0.0;
+            ? roundToTwoDecimals((double) ttfbVal / lcpVal * 100.0)
+            : 0.0;
 
         // Frontend Time = FCP - TTFB (parse + blocking-script time before first paint)
         Long frontendTime = (fcp != null && ttfb != null)
-                ? Math.max(0L, fcpVal - ttfbVal)
-                : null;
+            ? Math.max(0L, fcpVal - ttfbVal)
+            : null;
 
         // FCP-LCP Gap = LCP - FCP (only meaningful when both available)
         long fcpLcpGap = (lcp != null && fcp != null) ? Math.max(0, lcpVal - fcpVal) : 0L;
@@ -161,30 +161,30 @@ public final class DerivedMetricsCalculator {
 
         // Failed Request Rate = (failed / total) × 100
         double failedRequestRate = totalRequests > 0
-                ? roundToTwoDecimals((double) failedRequests / totalRequests * 100.0)
-                : 0.0;
+            ? roundToTwoDecimals((double) failedRequests / totalRequests * 100.0)
+            : 0.0;
 
         // Performance Score (weighted composite, null-aware)
         Integer performanceScore = computePerformanceScore(lcp, fcp, cls, ttfb, errorCount);
 
         // Improvement Area detection (all matches + first-match-wins primary)
         List<String> improvementAreas = detectImprovementAreas(
-                failedRequests, ttfbVal, lcpVal, slowest, renderTime, layoutCount, domNodes);
+            failedRequests, ttfbVal, lcpVal, slowest, renderTime, layoutCount, domNodes);
         String improvementArea = improvementAreas.isEmpty()
-                ? BpmConstants.BOTTLENECK_NONE
-                : improvementAreas.get(0);
+            ? BpmConstants.BOTTLENECK_NONE
+            : improvementAreas.get(0);
 
         return new DerivedMetrics(
-                renderTime,
-                serverClientRatio,
-                frontendTime,
-                fcpLcpGap,
-                stabilityCategory,
-                headroom,
-                failedRequestRate,
-                improvementArea,
-                improvementAreas,
-                performanceScore
+            renderTime,
+            serverClientRatio,
+            frontendTime,
+            fcpLcpGap,
+            stabilityCategory,
+            headroom,
+            failedRequestRate,
+            improvementArea,
+            improvementAreas,
+            performanceScore
         );
     }
 
@@ -210,28 +210,28 @@ public final class DerivedMetricsCalculator {
 
         if (lcp != null) {
             weightedSum += scoreMetricLong(lcp, properties.getSlaLcpGood(), properties.getSlaLcpPoor())
-                    * BpmConstants.SCORE_WEIGHT_LCP;
+                * BpmConstants.SCORE_WEIGHT_LCP;
             totalWeight += BpmConstants.SCORE_WEIGHT_LCP;
         }
         if (fcp != null) {
             weightedSum += scoreMetricLong(fcp, properties.getSlaFcpGood(), properties.getSlaFcpPoor())
-                    * BpmConstants.SCORE_WEIGHT_FCP;
+                * BpmConstants.SCORE_WEIGHT_FCP;
             totalWeight += BpmConstants.SCORE_WEIGHT_FCP;
         }
         if (cls != null) {
             weightedSum += scoreMetricDouble(cls, properties.getSlaClsGood(), properties.getSlaClsPoor())
-                    * BpmConstants.SCORE_WEIGHT_CLS;
+                * BpmConstants.SCORE_WEIGHT_CLS;
             totalWeight += BpmConstants.SCORE_WEIGHT_CLS;
         }
         if (ttfb != null) {
             weightedSum += scoreMetricLong(ttfb, properties.getSlaTtfbGood(), properties.getSlaTtfbPoor())
-                    * BpmConstants.SCORE_WEIGHT_TTFB;
+                * BpmConstants.SCORE_WEIGHT_TTFB;
             totalWeight += BpmConstants.SCORE_WEIGHT_TTFB;
         }
         // Errors always contribute — captured regardless of navigation type
         weightedSum += scoreErrors(errorCount,
-                properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor())
-                * BpmConstants.SCORE_WEIGHT_ERRORS;
+            properties.getSlaJsErrorsGood(), properties.getSlaJsErrorsPoor())
+            * BpmConstants.SCORE_WEIGHT_ERRORS;
         totalWeight += BpmConstants.SCORE_WEIGHT_ERRORS;
 
         // Insufficient data — return null rather than a misleading renormalized score.

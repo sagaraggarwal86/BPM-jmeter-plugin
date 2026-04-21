@@ -23,16 +23,16 @@ class ModelSerializationTest {
     void bpmResult_fullRoundtrip_allFieldsPreserved() throws Exception {
         WebVitalsResult vitals = new WebVitalsResult(420L, 1180L, 0.02, 380L);
         NetworkResult network = new NetworkResult(23, 847000L, 0,
-                List.of(new ResourceEntry("/static/dashboard.js", 290, 225000, 120)));
+            List.of(new ResourceEntry("/static/dashboard.js", 290, 225000, 120)));
         RuntimeResult runtime = new RuntimeResult(18400000L, 1847, 12, 8);
         ConsoleResult console = new ConsoleResult(0, 1, List.of("Deprecation warning: ..."));
         DerivedMetrics derived = new DerivedMetrics(800L, 32.20, null, 760L,
-                null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
-                List.of(BpmConstants.BOTTLENECK_CLIENT), 82);
+            null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
+            List.of(BpmConstants.BOTTLENECK_CLIENT), 82);
 
         BpmResult original = new BpmResult("1.0", "2026-03-26T14:30:22.451Z",
-                "Thread Group 1-1", 3, "Login Page", true, 2340,
-                vitals, network, runtime, console, derived);
+            "Thread Group 1-1", 3, "Login Page", true, 2340,
+            vitals, network, runtime, console, derived);
 
         String json = mapper.writeValueAsString(original);
         BpmResult deserialized = mapper.readValue(json, BpmResult.class);
@@ -103,8 +103,8 @@ class ModelSerializationTest {
     @DisplayName("DerivedMetrics serverClientRatio preserves 2 decimal precision")
     void derivedMetrics_serverClientRatio_twoDecimalPrecision() throws Exception {
         DerivedMetrics original = new DerivedMetrics(800L, 32.20, null, 760L,
-                null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
-                List.of(BpmConstants.BOTTLENECK_CLIENT), 82);
+            null, null, 0.0, BpmConstants.BOTTLENECK_CLIENT,
+            List.of(BpmConstants.BOTTLENECK_CLIENT), 82);
 
         String json = mapper.writeValueAsString(original);
         DerivedMetrics result = mapper.readValue(json, DerivedMetrics.class);
@@ -116,8 +116,8 @@ class ModelSerializationTest {
     @DisplayName("DerivedMetrics improvementAreas array survives roundtrip")
     void derivedMetrics_improvementAreasArray_preserved() throws Exception {
         DerivedMetrics original = new DerivedMetrics(800L, 32.20, null, 760L,
-                null, null, 5.0, BpmConstants.BOTTLENECK_RELIABILITY,
-                List.of(BpmConstants.BOTTLENECK_RELIABILITY, BpmConstants.BOTTLENECK_SERVER), 45);
+            null, null, 5.0, BpmConstants.BOTTLENECK_RELIABILITY,
+            List.of(BpmConstants.BOTTLENECK_RELIABILITY, BpmConstants.BOTTLENECK_SERVER), 45);
 
         String json = mapper.writeValueAsString(original);
         DerivedMetrics result = mapper.readValue(json, DerivedMetrics.class);
@@ -131,7 +131,7 @@ class ModelSerializationTest {
     @DisplayName("DerivedMetrics null improvementAreas normalised to empty list")
     void derivedMetrics_nullImprovementAreas_normalisedToEmpty() {
         DerivedMetrics dm = new DerivedMetrics(800L, 32.0, null, 760L,
-                null, null, 0.0, BpmConstants.BOTTLENECK_NONE, null, 90);
+            null, null, 0.0, BpmConstants.BOTTLENECK_NONE, null, 90);
         assertNotNull(dm.improvementAreas());
         assertTrue(dm.improvementAreas().isEmpty());
     }
@@ -156,8 +156,8 @@ class ModelSerializationTest {
     @DisplayName("BpmResult with null sub-results serializes without error")
     void bpmResult_nullSubResults_serializesCleanly() throws Exception {
         BpmResult original = new BpmResult("1.0", "2026-03-26T14:30:22Z",
-                "Thread-1", 1, "Test", true, 1000,
-                null, null, null, null, null);
+            "Thread-1", 1, "Test", true, 1000,
+            null, null, null, null, null);
 
         String json = mapper.writeValueAsString(original);
         assertNotNull(json);

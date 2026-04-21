@@ -18,30 +18,30 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({"url", "duration", "size", "ttfb"})
 public record ResourceEntry(
 
-        /**
-         * Full URL of the resource as reported by the CDP Network domain.
-         * May be {@code null} if the URL was unavailable in the CDP event payload.
-         */
-        @JsonProperty("url") String url,
+    /**
+     * Full URL of the resource as reported by the CDP Network domain.
+     * May be {@code null} if the URL was unavailable in the CDP event payload.
+     */
+    @JsonProperty("url") String url,
 
-        /**
-         * Total request duration in milliseconds
-         * ({@code responseEnd - requestStart} from CDP timing).
-         */
-        @JsonProperty("duration") long duration,
+    /**
+     * Total request duration in milliseconds
+     * ({@code responseEnd - requestStart} from CDP timing).
+     */
+    @JsonProperty("duration") long duration,
 
-        /**
-         * Encoded response body size in bytes as reported by CDP.
-         * Zero for failed requests where no body was received.
-         */
-        @JsonProperty("size") long size,
+    /**
+     * Encoded response body size in bytes as reported by CDP.
+     * Zero for failed requests where no body was received.
+     */
+    @JsonProperty("size") long size,
 
-        /**
-         * Time to First Byte for this resource in milliseconds
-         * ({@code responseStart - requestStart} from CDP timing).
-         * Zero for failed requests where no response headers were received.
-         */
-        @JsonProperty("ttfb") long ttfb
+    /**
+     * Time to First Byte for this resource in milliseconds
+     * ({@code responseStart - requestStart} from CDP timing).
+     * Zero for failed requests where no response headers were received.
+     */
+    @JsonProperty("ttfb") long ttfb
 
 ) {
 }

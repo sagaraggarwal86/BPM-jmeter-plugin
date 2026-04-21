@@ -76,7 +76,7 @@ public final class RuntimeCollector implements MetricsCollector<RuntimeResult> {
     @SuppressWarnings("unchecked")
     public RuntimeResult collect(CdpCommandExecutor executor, MetricsBuffer buffer) {
         Map<String, Object> response = executor.executeCdpCommand(
-                JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS, Map.of());
+            JsSnippets.CDP_METHOD_PERFORMANCE_GET_METRICS, Map.of());
 
         long heapUsed = 0;
         int domNodes = 0;

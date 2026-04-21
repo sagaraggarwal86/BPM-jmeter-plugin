@@ -36,22 +36,22 @@ class ReportDataBuilderTest {
                                            double cls, int errors, Integer headroom) {
         LabelAggregate agg = new LabelAggregate();
         DerivedMetrics dm = new DerivedMetrics(
-                lcp - ttfb,
-                lcp > 0 ? (double) ttfb / lcp * 100 : 0,
-                fcp > 0 && ttfb > 0 ? fcp - ttfb : null,
-                lcp - fcp,
-                "Stable",
-                headroom,
-                0.0,
-                "None",
-                Collections.emptyList(),
-                score);
+            lcp - ttfb,
+            lcp > 0 ? (double) ttfb / lcp * 100 : 0,
+            fcp > 0 && ttfb > 0 ? fcp - ttfb : null,
+            lcp - fcp,
+            "Stable",
+            headroom,
+            0.0,
+            "None",
+            Collections.emptyList(),
+            score);
         WebVitalsResult wv = new WebVitalsResult(fcp, lcp, cls, ttfb);
         agg.update(dm, wv, null, null);
         // Add errors by calling update with console results
         for (int i = 0; i < errors; i++) {
             agg.update(dm, wv, null,
-                    new io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult(1, 0, Collections.emptyList()));
+                new io.github.sagaraggarwal86.jmeter.bpm.model.ConsoleResult(1, 0, Collections.emptyList()));
         }
         return agg;
     }
@@ -120,7 +120,7 @@ class ReportDataBuilderTest {
         // SPA label: score is null (DerivedMetrics with null score)
         LabelAggregate spaAgg = new LabelAggregate();
         DerivedMetrics dm = new DerivedMetrics(
-                0, 0, null, 0, "Stable", null, 0.0, "None", Collections.emptyList(), null);
+            0, 0, null, 0, "Stable", null, 0.0, "None", Collections.emptyList(), null);
         spaAgg.update(dm, null, null, null);
         aggs.put("/dashboard", spaAgg);
 
@@ -161,13 +161,13 @@ class ReportDataBuilderTest {
     @DisplayName("Null aggregates throws NPE")
     void nullAggregates() {
         assertThrows(NullPointerException.class,
-                () -> ReportDataBuilder.build(null, props));
+            () -> ReportDataBuilder.build(null, props));
     }
 
     @Test
     @DisplayName("Null props throws NPE")
     void nullProps() {
         assertThrows(NullPointerException.class,
-                () -> ReportDataBuilder.build(Collections.emptyMap(), null));
+            () -> ReportDataBuilder.build(Collections.emptyMap(), null));
     }
 }

@@ -82,7 +82,7 @@ public final class SummaryJsonWriter {
             Path tmpPath = summaryPath.resolveSibling(summaryPath.getFileName() + ".tmp");
             objectMapper.writeValue(tmpPath.toFile(), root);
             Files.move(tmpPath, summaryPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
             log.info("BPM: Summary written to {}", summaryPath);
         } catch (IOException e) {
             log.warn("BPM: Failed to write summary to {}", summaryPath, e);
@@ -141,8 +141,8 @@ public final class SummaryJsonWriter {
 
         // Overall score computed only over labels that had scoreable data
         int overallScore = totalScoredSamples > 0
-                ? (int) (totalWeightedScore / totalScoredSamples)
-                : 0;
+            ? (int) (totalWeightedScore / totalScoredSamples)
+            : 0;
 
         // Overall verdict: FAIL if any SLA breach or overall score below poor threshold
         boolean overallPass = slaBreaches == 0 && overallScore >= slaScorePoor;

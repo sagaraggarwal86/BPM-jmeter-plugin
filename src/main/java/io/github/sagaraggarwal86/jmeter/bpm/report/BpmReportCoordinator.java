@@ -42,15 +42,15 @@ public final class BpmReportCoordinator {
         // 1. Build report data
         ReportData data = ReportDataBuilder.build(aggregates, props, timeBuckets);
         log.info("BPM Report: Data built. {} labels, {} breaches, {} headroom risks",
-                data.totalLabels(), data.breaches().size(), data.headroomRisks().size());
+            data.totalLabels(), data.breaches().size(), data.headroomRisks().size());
 
         // 2. Render HTML
         String html = BpmHtmlReportRenderer.render(data, renderConfig,
-                timeBuckets, perLabelBuckets, metricsTable);
+            timeBuckets, perLabelBuckets, metricsTable);
 
         String filename = "BPM_Report_"
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + ".html";
+            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+            + ".html";
         return new GenerateResult(html, filename);
     }
 
@@ -65,7 +65,7 @@ public final class BpmReportCoordinator {
                                 Map<String, List<BpmTimeBucket>> perLabelBuckets,
                                 List<String[]> metricsTable) throws IOException {
         GenerateResult result = generateHtml(aggregates, props, renderConfig,
-                timeBuckets, perLabelBuckets, metricsTable);
+            timeBuckets, perLabelBuckets, metricsTable);
 
         if (!Files.exists(outputDir)) {
             Files.createDirectories(outputDir);
@@ -87,7 +87,7 @@ public final class BpmReportCoordinator {
             }
         } catch (Exception e) {
             log.warn("BPM Report: Failed to open report in browser. Report saved at: {}",
-                    reportPath, e);
+                reportPath, e);
         }
     }
 

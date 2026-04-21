@@ -96,7 +96,7 @@ public class BpmTableModel extends AbstractTableModel {
                 this.txCompiledPattern = Pattern.compile(txPattern);
             } catch (PatternSyntaxException e) {
                 log.warn("BPM: Invalid regex pattern '{}': {}. Falling back to substring matching.",
-                        txPattern, e.getDescription());
+                    txPattern, e.getDescription());
             }
         }
         this.filteredRows = null;
@@ -266,17 +266,17 @@ public class BpmTableModel extends AbstractTableModel {
                 case BpmConstants.COL_IDX_LABEL -> label;
                 case BpmConstants.COL_IDX_SAMPLES -> sampleCount;
                 case BpmConstants.COL_IDX_SCORE ->
-                        scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : "\u2014";
+                    scoredSampleCount > 0 ? (int) (totalScore / scoredSampleCount) : "\u2014";
                 case BpmConstants.COL_IDX_RENDER_TIME -> totalRenderTime / n;
                 case BpmConstants.COL_IDX_SERVER_RATIO -> String.format("%.2f%%", totalServerRatio / n);
                 case BpmConstants.COL_IDX_FRONTEND_TIME ->
-                        frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : "\u2014";
+                    frontendTimeCount > 0 ? totalFrontendTime / frontendTimeCount : "\u2014";
                 case BpmConstants.COL_IDX_FCP_LCP_GAP -> totalFcpLcpGap / n;
                 case BpmConstants.COL_IDX_STABILITY -> lastStabilityCategory != null ? lastStabilityCategory : "\u2014";
                 case BpmConstants.COL_IDX_HEADROOM ->
-                        headroomCount > 0 ? (int) (totalHeadroom / headroomCount) + "%" : "\u2014";
+                    headroomCount > 0 ? (int) (totalHeadroom / headroomCount) + "%" : "\u2014";
                 case BpmConstants.COL_IDX_IMPROVEMENT_AREA -> "TOTAL".equals(label) ? ""
-                        : BpmConstants.BOTTLENECK_NONE.equals(lastImprovementArea) ? "\u2014" : lastImprovementArea;
+                    : BpmConstants.BOTTLENECK_NONE.equals(lastImprovementArea) ? "\u2014" : lastImprovementArea;
                 case BpmConstants.COL_IDX_FCP -> totalFcp / n;
                 case BpmConstants.COL_IDX_LCP -> totalLcp / n;
                 case BpmConstants.COL_IDX_CLS -> String.format("%.3f", totalCls / n);

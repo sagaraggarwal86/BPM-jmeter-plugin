@@ -22,30 +22,30 @@ import java.util.List;
 @JsonPropertyOrder({"totalRequests", "totalBytes", "failedRequests", "slowest"})
 public record NetworkResult(
 
-        /**
-         * Total number of network requests captured in the CDP buffer since the
-         * last drain (i.e., since the previous sample for this thread).
-         */
-        @JsonProperty("totalRequests") int totalRequests,
+    /**
+     * Total number of network requests captured in the CDP buffer since the
+     * last drain (i.e., since the previous sample for this thread).
+     */
+    @JsonProperty("totalRequests") int totalRequests,
 
-        /**
-         * Total encoded bytes transferred across all requests captured in the
-         * buffer, in bytes. Zero if no response bodies were received.
-         */
-        @JsonProperty("totalBytes") long totalBytes,
+    /**
+     * Total encoded bytes transferred across all requests captured in the
+     * buffer, in bytes. Zero if no response bodies were received.
+     */
+    @JsonProperty("totalBytes") long totalBytes,
 
-        /**
-         * Number of failed requests (HTTP 4xx/5xx or connection failures) in
-         * the buffer. Included in {@code totalRequests}.
-         */
-        @JsonProperty("failedRequests") int failedRequests,
+    /**
+     * Number of failed requests (HTTP 4xx/5xx or connection failures) in
+     * the buffer. Included in {@code totalRequests}.
+     */
+    @JsonProperty("failedRequests") int failedRequests,
 
-        /**
-         * Top-N slowest successful resources plus all failed resources.
-         * N is configurable via {@code network.topN} in {@code bpm.properties}
-         * (default: 5). Never {@code null}; empty list when no requests were captured.
-         */
-        @JsonProperty("slowest") List<ResourceEntry> slowest
+    /**
+     * Top-N slowest successful resources plus all failed resources.
+     * N is configurable via {@code network.topN} in {@code bpm.properties}
+     * (default: 5). Never {@code null}; empty list when no requests were captured.
+     */
+    @JsonProperty("slowest") List<ResourceEntry> slowest
 
 ) {
     /**

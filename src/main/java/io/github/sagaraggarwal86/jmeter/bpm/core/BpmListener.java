@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * No exception ever propagates to JMeter. The parent sampler result is never affected.</p>
  */
 public class BpmListener extends AbstractTestElement
-        implements SampleListener, TestStateListener, Clearable {
+    implements SampleListener, TestStateListener, Clearable {
 
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BpmListener.class);
@@ -257,7 +257,7 @@ public class BpmListener extends AbstractTestElement
                 globalFileDecision = mode;
                 if (mode == FileOpenMode.DONT_START) {
                     log.info("BPM: User chose 'Don't Start' — {} conflicting file(s). "
-                            + "Engine will be stopped.", conflicts.size());
+                        + "Engine will be stopped.", conflicts.size());
                     primaryByName.remove(elementKey);
                     stopTestEngine(cachedEngine);
                     return;
@@ -372,7 +372,7 @@ public class BpmListener extends AbstractTestElement
             }
 
             updateLabelAggregate(bpmResult.samplerLabel(), bpmResult.derived(),
-                    bpmResult.webVitals(), bpmResult.network(), bpmResult.console());
+                bpmResult.webVitals(), bpmResult.network(), bpmResult.console());
 
         } catch (Exception e) {
             log.warn("BPM: Unexpected error in sampleOccurred", e);
@@ -454,7 +454,7 @@ public class BpmListener extends AbstractTestElement
                 var nodes = guiPackage.getTreeModel().getNodesOfType(BpmListener.class);
                 for (var node : nodes) {
                     if (node.getTestElement() instanceof BpmListener guiElement
-                            && thisKey.equals(buildElementKey(guiElement))) {
+                        && thisKey.equals(buildElementKey(guiElement))) {
                         guiElement.setRawResults(getRawResults());
                         break;
                     }
@@ -618,7 +618,7 @@ public class BpmListener extends AbstractTestElement
 
             var treeModel = guiPackage.getTreeModel();
             java.util.List<org.apache.jmeter.gui.tree.JMeterTreeNode> nodes =
-                    treeModel.getNodesOfType(BpmListener.class);
+                treeModel.getNodesOfType(BpmListener.class);
 
             for (org.apache.jmeter.gui.tree.JMeterTreeNode node : nodes) {
                 if (!node.isEnabled()) continue;
@@ -660,17 +660,17 @@ public class BpmListener extends AbstractTestElement
         try {
             String[] options = {"Overwrite", "Don't Start JMeter Engine"};
             String message = "BPM output file(s) already exist:\n\n"
-                    + fileList
-                    + "\nWhat would you like to do?";
+                + fileList
+                + "\nWhat would you like to do?";
             Runnable showDialog = () -> choice[0] = JOptionPane.showOptionDialog(
-                    null,
-                    message,
-                    "BPM — Output File Exists",
-                    JOptionPane.DEFAULT_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    options,
-                    options[0]);
+                null,
+                message,
+                "BPM — Output File Exists",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]);
             if (SwingUtilities.isEventDispatchThread()) {
                 showDialog.run();
             } else {
@@ -705,8 +705,8 @@ public class BpmListener extends AbstractTestElement
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     try {
                         org.apache.jmeter.gui.action.ActionRouter.getInstance()
-                                .doActionNow(new java.awt.event.ActionEvent(
-                                        this, java.awt.event.ActionEvent.ACTION_PERFORMED, "stop"));
+                            .doActionNow(new java.awt.event.ActionEvent(
+                                this, java.awt.event.ActionEvent.ACTION_PERFORMED, "stop"));
                         log.info("BPM: Test stop action sent via ActionRouter.");
                     } catch (Exception e) {
                         log.warn("BPM: ActionRouter stop failed", e);
@@ -744,7 +744,7 @@ public class BpmListener extends AbstractTestElement
 
         log.info("=============== BPM Summary ===============");
         log.info(String.format("%-15s | %7s | %5s | %8s | %7s | %7s | %s",
-                "Label", "Samples", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Improvement"));
+            "Label", "Samples", "Score", "Rndr(ms)", "Srvr(%)", "Gap(ms)", "Improvement"));
 
         int totalSamples = 0;
         long totalWeightedScore = 0;
@@ -765,8 +765,8 @@ public class BpmListener extends AbstractTestElement
             String improvementDisplay = BpmConstants.BOTTLENECK_NONE.equals(improvementArea) ? "-" : improvementArea;
 
             log.info(String.format("%-15s | %7d | %5s | %8d | %6.2f%% | %7d | %s",
-                    truncateLabel(entry.getKey()), samples, scoreStr, renderTime,
-                    serverRatio, fcpLcpGap, improvementDisplay));
+                truncateLabel(entry.getKey()), samples, scoreStr, renderTime,
+                serverRatio, fcpLcpGap, improvementDisplay));
 
             totalSamples += samples;
             if (score != null) {
@@ -780,14 +780,14 @@ public class BpmListener extends AbstractTestElement
 
         if (totalSamples > 0) {
             String totalScoreStr = totalScoredSamples > 0
-                    ? String.valueOf((int) (totalWeightedScore / totalScoredSamples))
-                    : "\u2014";
+                ? String.valueOf((int) (totalWeightedScore / totalScoredSamples))
+                : "\u2014";
             log.info(String.format("%-15s | %7d | %5s | %8d | %6.2f%% | %7d |",
-                    "TOTAL", totalSamples,
-                    totalScoreStr,
-                    totalWeightedRender / totalSamples,
-                    totalWeightedRatio / totalSamples,
-                    totalWeightedGap / totalSamples));
+                "TOTAL", totalSamples,
+                totalScoreStr,
+                totalWeightedRender / totalSamples,
+                totalWeightedRatio / totalSamples,
+                totalWeightedGap / totalSamples));
         }
 
         log.info("============================================");
@@ -799,13 +799,13 @@ public class BpmListener extends AbstractTestElement
         BpmCollector collector = BpmCollector.getInstance();
         if (collector != null) {
             long avgCollectionTime = collector.getSamplesCollected() > 0
-                    ? collector.getTotalCollectionTimeMs() / collector.getSamplesCollected()
-                    : 0;
+                ? collector.getTotalCollectionTimeMs() / collector.getSamplesCollected()
+                : 0;
             log.info("BPM: Health — {} samples collected, {} failures, avg collection time {}ms, CDP re-inits: {}",
-                    collector.getSamplesCollected(),
-                    collector.getErrorHandler().getFailureCount(),
-                    avgCollectionTime,
-                    collector.getErrorHandler().getReInitCount());
+                collector.getSamplesCollected(),
+                collector.getErrorHandler().getFailureCount(),
+                avgCollectionTime,
+                collector.getErrorHandler().getReInitCount());
         }
     }
 }

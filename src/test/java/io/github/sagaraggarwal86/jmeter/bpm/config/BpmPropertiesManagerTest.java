@@ -67,8 +67,8 @@ class BpmPropertiesManagerTest {
     void detectVersion_findsVersionInHeader(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\n# Auto-generated\nmetrics.webvitals=true\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\n# Auto-generated\nmetrics.webvitals=true\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         String version = mgr.detectVersion(propsPath);
@@ -82,8 +82,8 @@ class BpmPropertiesManagerTest {
         Path propsPath = tempDir.resolve("bpm.properties");
         // Write an old-version file
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v0.9\nsla.fcp.good=9999\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v0.9\nsla.fcp.good=9999\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -138,11 +138,11 @@ class BpmPropertiesManagerTest {
     void load_invalidValues_fallBackToDefaults(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\n"
-                        + "sla.fcp.good=not_a_number\n"
-                        + "network.topN=abc\n"
-                        + "sla.cls.good=xyz\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\n"
+                + "sla.fcp.good=not_a_number\n"
+                + "network.topN=abc\n"
+                + "sla.cls.good=xyz\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -169,8 +169,8 @@ class BpmPropertiesManagerTest {
     void detectVersion_noVersionHeader_returnsNull(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Some comment\n# Another comment\n# Third line\n# Fourth line\n# Fifth line\nmetrics.webvitals=true\n",
-                StandardCharsets.UTF_8);
+            "# Some comment\n# Another comment\n# Third line\n# Fourth line\n# Fifth line\nmetrics.webvitals=true\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         assertNull(mgr.detectVersion(propsPath));
@@ -204,13 +204,13 @@ class BpmPropertiesManagerTest {
     void load_blankValues_fallBackToDefaults(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\n"
-                        + "sla.fcp.good=   \n"
-                        + "network.topN=\n"
-                        + "sla.cls.good=  \n"
-                        + "metrics.webvitals=  \n"
-                        + "bpm.debug=  \n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\n"
+                + "sla.fcp.good=   \n"
+                + "network.topN=\n"
+                + "sla.cls.good=  \n"
+                + "metrics.webvitals=  \n"
+                + "bpm.debug=  \n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -227,8 +227,8 @@ class BpmPropertiesManagerTest {
     void getOutputPath_fromPropertiesFile(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\nbpm.output=custom-output.jsonl\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\nbpm.output=custom-output.jsonl\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -242,7 +242,7 @@ class BpmPropertiesManagerTest {
         Path propsPath = tempDir.resolve("bpm.properties");
         // No version header — detectVersion returns null, != CURRENT_VERSION
         Files.writeString(propsPath, "# No version here\nsla.fcp.good=1234\n",
-                StandardCharsets.UTF_8);
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -256,8 +256,8 @@ class BpmPropertiesManagerTest {
     void load_booleanNonTrue_returnsFalse(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\nmetrics.webvitals=maybe\nsecurity.sanitize=yes\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\nmetrics.webvitals=maybe\nsecurity.sanitize=yes\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();
@@ -272,14 +272,14 @@ class BpmPropertiesManagerTest {
     void load_allSlaGetters(@TempDir Path tempDir) throws IOException {
         Path propsPath = tempDir.resolve("bpm.properties");
         Files.writeString(propsPath,
-                "# Browser Performance Metrics (BPM) v1.0\n"
-                        + "sla.fcp.good=100\nsla.fcp.poor=200\n"
-                        + "sla.lcp.good=300\nsla.lcp.poor=400\n"
-                        + "sla.cls.good=0.05\nsla.cls.poor=0.15\n"
-                        + "sla.ttfb.good=500\nsla.ttfb.poor=600\n"
-                        + "sla.jserrors.good=1\nsla.jserrors.poor=5\n"
-                        + "sla.score.good=80\nsla.score.poor=40\n",
-                StandardCharsets.UTF_8);
+            "# Browser Performance Metrics (BPM) v1.0\n"
+                + "sla.fcp.good=100\nsla.fcp.poor=200\n"
+                + "sla.lcp.good=300\nsla.lcp.poor=400\n"
+                + "sla.cls.good=0.05\nsla.cls.poor=0.15\n"
+                + "sla.ttfb.good=500\nsla.ttfb.poor=600\n"
+                + "sla.jserrors.good=1\nsla.jserrors.poor=5\n"
+                + "sla.score.good=80\nsla.score.poor=40\n",
+            StandardCharsets.UTF_8);
 
         TestablePropertiesManager mgr = new TestablePropertiesManager(propsPath);
         mgr.load();

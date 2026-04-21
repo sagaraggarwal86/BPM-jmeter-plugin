@@ -83,7 +83,7 @@ public final class WebVitalsCollector implements MetricsCollector<WebVitalsResul
 
         if (!(result instanceof Map<?, ?> rawMap)) {
             log.debug("BPM: COLLECT_WEB_VITALS returned unexpected type: {}",
-                    result != null ? result.getClass().getName() : "null");
+                result != null ? result.getClass().getName() : "null");
             return null;
         }
 

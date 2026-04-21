@@ -46,7 +46,7 @@ public final class ConsoleSanitizer {
      * Group 2 (redacted): the token value
      */
     private static final Pattern PATTERN_BEARER_TOKEN = Pattern.compile(
-            "(?i)((?:Authorization|Auth):\\s*Bearer\\s+)\\S+");
+        "(?i)((?:Authorization|Auth):\\s*Bearer\\s+)\\S+");
 
     /**
      * Matches common API key header values.
@@ -54,7 +54,7 @@ public final class ConsoleSanitizer {
      * Group 1 (preserved): the header name and colon+space
      */
     private static final Pattern PATTERN_API_KEY = Pattern.compile(
-            "(?i)((?:x-api-key|api[-_]?key|apikey):\\s*)\\S+");
+        "(?i)((?:x-api-key|api[-_]?key|apikey):\\s*)\\S+");
 
     /**
      * Matches three-part base64url-encoded JWT tokens (header.payload.signature).
@@ -62,21 +62,21 @@ public final class ConsoleSanitizer {
      * version strings or other dot-separated identifiers.
      */
     private static final Pattern PATTERN_JWT = Pattern.compile(
-            "eyJ[A-Za-z0-9+/=_-]{10,}\\.[A-Za-z0-9+/=_-]{10,}\\.[A-Za-z0-9+/=_-]{10,}");
+        "eyJ[A-Za-z0-9+/=_-]{10,}\\.[A-Za-z0-9+/=_-]{10,}\\.[A-Za-z0-9+/=_-]{10,}");
 
     /**
      * Matches email addresses.
      * Example: {@code admin@company.com}
      */
     private static final Pattern PATTERN_EMAIL = Pattern.compile(
-            "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}");
+        "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}");
 
     /**
      * Matches AWS access key IDs — 20-character strings beginning with {@code AKIA}.
      * Example: {@code AKIAIOSFODNN7EXAMPLE}
      */
     private static final Pattern PATTERN_AWS_ACCESS_KEY = Pattern.compile(
-            "\\bAKIA[0-9A-Z]{16}\\b");
+        "\\bAKIA[0-9A-Z]{16}\\b");
 
     /**
      * Matches password-like key=value pairs.
@@ -84,7 +84,7 @@ public final class ConsoleSanitizer {
      * Group 1 (preserved): the key and equals sign
      */
     private static final Pattern PATTERN_PASSWORD = Pattern.compile(
-            "(?i)((?:password|passwd|pwd|secret|token|pass)\\s*=\\s*)\\S+");
+        "(?i)((?:password|passwd|pwd|secret|token|pass)\\s*=\\s*)\\S+");
 
     /**
      * Matches common database/broker connection string URIs.
@@ -92,8 +92,8 @@ public final class ConsoleSanitizer {
      * The full URI (from scheme through end of non-whitespace run) is redacted.
      */
     private static final Pattern PATTERN_CONNECTION_STRING = Pattern.compile(
-            "(?i)(?:mongodb|postgresql|postgres|mysql|mariadb|redis|amqp|amqps|jdbc:"
-                    + "(?:mysql|postgresql|oracle|sqlserver|h2)?)://\\S+");
+        "(?i)(?:mongodb|postgresql|postgres|mysql|mariadb|redis|amqp|amqps|jdbc:"
+            + "(?:mysql|postgresql|oracle|sqlserver|h2)?)://\\S+");
 
     /**
      * Matches 13–19 consecutive digit sequences that resemble payment card numbers.
@@ -109,14 +109,14 @@ public final class ConsoleSanitizer {
      * Patterns without groups replace the entire match.
      */
     private static final List<PatternReplacement> PATTERNS = List.of(
-            new PatternReplacement(PATTERN_BEARER_TOKEN, "$1" + REDACTED),
-            new PatternReplacement(PATTERN_API_KEY, "$1" + REDACTED),
-            new PatternReplacement(PATTERN_JWT, REDACTED),
-            new PatternReplacement(PATTERN_EMAIL, REDACTED),
-            new PatternReplacement(PATTERN_AWS_ACCESS_KEY, REDACTED),
-            new PatternReplacement(PATTERN_PASSWORD, "$1" + REDACTED),
-            new PatternReplacement(PATTERN_CONNECTION_STRING, REDACTED),
-            new PatternReplacement(PATTERN_CREDIT_CARD, REDACTED)
+        new PatternReplacement(PATTERN_BEARER_TOKEN, "$1" + REDACTED),
+        new PatternReplacement(PATTERN_API_KEY, "$1" + REDACTED),
+        new PatternReplacement(PATTERN_JWT, REDACTED),
+        new PatternReplacement(PATTERN_EMAIL, REDACTED),
+        new PatternReplacement(PATTERN_AWS_ACCESS_KEY, REDACTED),
+        new PatternReplacement(PATTERN_PASSWORD, "$1" + REDACTED),
+        new PatternReplacement(PATTERN_CONNECTION_STRING, REDACTED),
+        new PatternReplacement(PATTERN_CREDIT_CARD, REDACTED)
     );
 
     // ── State ─────────────────────────────────────────────────────────────────────────────────
