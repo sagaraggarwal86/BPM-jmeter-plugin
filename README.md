@@ -54,8 +54,8 @@ detection, and an HTML performance report with trend analysis.
 
 | Requirement       | Version                                   |
 |-------------------|-------------------------------------------|
-| Java              | 17+                                       |
-| Apache JMeter     | 5.6.3+                                    |
+| Java              | 17                                       |
+| Apache JMeter     | 5.6.3                                    |
 | WebDriver Sampler | jpgc-webdriver *(JMeter Plugins Manager)* |
 | Chrome / Chromium | Any recent version                        |
 | Maven             | 3.8+ *(build only)*                       |
